@@ -1,10 +1,9 @@
 const {onRequest} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
-// --- 修正第 1 處 ---
-const {GoogleAuth} = require("google-auth-library"); // <-- 從 getAuth 改為 GoogleAuth
+const {GoogleAuth} = require("google-auth-library"); 
 const fetch = require("node-fetch");
 
-// 初始化 Firebase Admin (如果您的 Function 需要的話，但這裡主要用 GCP Auth)
+// 初始化 Firebase Admin
 initializeApp();
 
 // --- Vertex AI 設定 ---
@@ -14,15 +13,15 @@ const API_VERSION = "v1"; // API 版本
 
 // 模型名稱 (對應到您的文件)
 const GENERATION_MODEL = "gemini-2.5-flash-image-preview"; // NanoBanana
-const UPSCALING_MODEL = "imagen-002"; // 用於圖片放大
-const VIRTUAL_TRY_ON_MODEL = "imagen-002"; // (假設) Imagen 002 也用於試穿
+// *** 修正：模型名稱改為 imagegeneration@002 ***
+const UPSCALING_MODEL = "imagegeneration@002"; // 用於圖片放大
+// *** 移除 VIRTUAL_TRY_ON_MODEL ***
 
 // Vertex AI API 端點
 const VERTEX_AI_ENDPOINT = `https://${LOCATION}-aiplatform.googleapis.com`;
 
-// 獲取 GCP 驗證 (這是關鍵！它會自動獲取 OAuth 2.0 權杖)
-// --- 修正第 2 處 ---
-const auth = new GoogleAuth({ // <-- 從 getAuth 改為 GoogleAuth
+// 獲取 GCP 驗證
+const auth = new GoogleAuth({ 
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
@@ -53,7 +52,7 @@ exports.vertexImageGenerator = onRequest(
       };
 
       // 從前端請求中解析資料
-      const {mode, prompt, numImages, image, gament} = req.body;
+      const {mode, prompt, numImages, image} = req.body; // 移除了 gament
       let images = []; // 用於儲存回傳的 Base64 圖片
 
       // 根據模式呼叫不同的 Vertex AI API
@@ -69,9 +68,7 @@ exports.vertexImageGenerator = onRequest(
         case "upscale":
           images = await handleUpscaling(headers, prompt, image);
           break;
-        case "tryon":
-          images = await handleVirtualTryOn(headers, prompt, image, gament);
-          break;
+        // *** 移除了 case "tryon" ***
         default:
           throw new Error("無效的模式 (mode)。");
       }
@@ -112,9 +109,7 @@ async function handleGeneration(headers, prompt, image, numImages) {
 
   const payload = {
     contents: [{role: "user", parts: parts}],
-    generationConfig: {
-      // (可選) 在這裡添加 NanoBanana 的特定設定
-    },
+    // *** 修正：移除了空的 generationConfig ***
   };
 
   const generationPromises = [];
@@ -138,6 +133,11 @@ async function handleGeneration(headers, prompt, image, numImages) {
       (p) => p.inlineData
     );
     if (!part || !part.inlineData) {
+      // 嘗試從 text 中獲取錯誤訊息 (如果 API 拒絕了請求)
+      const errorText = lastResponse.candidates?.[0]?.content?.parts?.[0]?.text;
+      if (errorText) {
+        throw new Error(`NanoBanana API 錯誤: ${errorText}`);
+      }
       throw new Error("NanoBanana API 未回傳圖片資料。");
     }
     return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
@@ -160,17 +160,15 @@ async function handleUpscaling(headers, prompt, image) {
   const payload = {
     instances: [
       {
-        prompt: prompt || "Upscale this image", // Imagen API 需要 prompt
+        // *** 修正：Upscaling 不需要 prompt ***
         image: {
           bytesBase64Encoded: image.base64Data,
         },
       },
     ],
     parameters: {
-      // 根據 Imagen API 文件，設定為放大模式
-      // (這裡的 'task' 參數是假設的，您需要查閱文件確認)
-      // "task": "upscale",
-      "sampleCount": 1,
+      // *** 修正：Upscaling 不需要 'task' 或 'sampleCount' ***
+      // 根據文件，只需傳送圖片即可
     },
   };
 
@@ -189,55 +187,7 @@ async function handleUpscaling(headers, prompt, image) {
   return [`data:image/png;base64,${base64Data}`];
 }
 
-/**
- * 3. 處理虛擬試穿 (Imagen)
- * 呼叫 predict API
- */
-async function handleVirtualTryOn(headers, prompt, clothingImage, personImage) {
-  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${VIRTUAL_TRY_ON_MODEL}:predict`;
-
-  if (!clothingImage || !personImage) {
-    throw new Error("缺少衣物或人物圖片。");
-  }
-
-  const payload = {
-    instances: [
-      {
-        // 根據 Vertex AI Virtual Try-On API 文件調整
-        // "prompt": prompt || "Virtual try-on",
-        // "person_image": { "bytesBase64Encoded": personImage.base64Data },
-        // "clothing_image": { "bytesBase64Encoded": clothingImage.base64Data }
-        
-        // !!! 警告：上面是「猜測」的 API 結構 !!!
-        // ---
-        // 根據您提供的 Imagen API 文件 (非 VTO 文件)，我們只能先用標準 Imagen 結構
-        // 這「不會」執行虛擬試穿，只是示範 API 呼叫
-        // 您需要將此 payload 替換為 VTO API 的正確結構
-        "prompt": `Try on this: ${prompt || 'clothing'}`,
-        "image": {
-          bytesBase64Encoded: personImage.base64Data,
-        },
-      },
-    ],
-    parameters: {
-      "sampleCount": 1,
-      // "task": "virtual-try-on" // (猜測)
-    },
-  };
-
-  const result = await vertexFetch(apiUrl, {
-    method: "POST",
-    headers: headers,
-    body: JSON.stringify(payload),
-  });
-
-  const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
-  if (!base64Data) {
-    throw new Error("Imagen Try-On API 未回傳圖片資料。");
-  }
-
-  return [`data:image/png;base64,${base64Data}`];
-}
+// *** 移除了 handleVirtualTryOn 函式 ***
 
 /**
  * 封裝 Vertex AI 的 fetch 呼叫，統一處理錯誤
@@ -260,5 +210,13 @@ async function vertexFetch(url, options) {
     throw new Error(`Vertex AI 錯誤: ${message}`);
   }
 
-  return await response.json();
+  // 檢查是否為 streamGenerateContent 的 JSON 陣列回傳
+  const responseText = await response.text();
+  try {
+    // 嘗試解析為 JSON (可能是 predict) 或 JSON 陣列 (可能是 streamGenerateContent)
+    return JSON.parse(responseText);
+  } catch (e) {
+    console.error("無法解析 Vertex AI 的 JSON 回應:", responseText);
+    throw new Error("無法解析來自 Vertex AI 的回應。");
+  }
 }
