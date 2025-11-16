@@ -140,7 +140,12 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   // 修正 1：設定生成尺寸 (1K 或 2K)
   // (Ultra 模型會自動忽略此參數並使用 1024)
   if (sampleImageSize) {
-    parameters.sampleImageSize = parseInt(sampleImageSize); 
+    // 修正 4：API 參數需要 "1K" 或 "2K" 字串，而非數字
+    if (parseInt(sampleImageSize) === 2048) {
+      parameters.sampleImageSize = "2K";
+    } else {
+      parameters.sampleImageSize = "1K"; // 預設為 1K
+    }
   }
 
   // 修正 2：修正長寬比的參數名稱 (aspect_ratio -> aspectRatio)
@@ -182,14 +187,16 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
   
   const targetSize = parseInt(upscaleLevel) || 2048;
 
-  // 修正 3：動態選擇模型
-  // 4K (4096) 放大必須使用 Ultra 模型
-  // 2K (2048) 放大可以使用標準版 (MODEL_UPSCALING)
+  // 修正 3 & 4：動態選擇模型並設定正確的 "x2" / "x4" 參數
   let modelId;
-  if (targetSize > 2048) {
-      modelId = MODEL_GENERATE_ULTRA; // 4K 必須用 Ultra
-  } else {
-      modelId = MODEL_UPSCALING; // 2K 可以用標準版
+  let factor;
+
+  if (targetSize > 2048) { // 前端傳來 "4096"
+      modelId = MODEL_GENERATE_ULTRA; // 4K (x4) 必須用 Ultra
+      factor = "x4";
+  } else { // 前端傳來 "2048"
+      modelId = MODEL_UPSCALING; // 2K (x2) 可以用標準版
+      factor = "x2";
   }
   
   const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
@@ -214,7 +221,8 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
     ],
     parameters: {
       task: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
-      sampleImageSize: targetSize, // <-- 這裡會是 2048 或 4096
+      // 修正 4：API 參數改為 upscaleFactor 並使用 "x2" / "x4"
+      upscaleFactor: factor, 
     },
   };
 
