@@ -191,7 +191,7 @@
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra" class="hidden">
-                        <label for="mode-ultra" title="imagen-4.0-ultra-generate-001" class="radio-label">Imagen 4.0 (最高品質)</label>
+                        <label for="mode-ultra" title="imagen-4.0-ultra-generate-001" class="radio-label">Imagen 4.0 (Ultra)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
@@ -201,8 +201,8 @@
             </div>
 
             <div class="mb-4" id="image-count-wrapper">
-                <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-8)</label>
-                <input type="number" id="image-count" name="image-count" value="1" min="1" max="8" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
+                <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-4)</label>
+                <input type="number" id="image-count" name="image-count" value="1" min="1" max="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型一次只能生成 1 張。</p>
             </div>
             
@@ -444,7 +444,7 @@
                     sampleSizeNote.textContent = "注意：Ultra 模型總是 1K。";
 
                 } else {
-                    imageCountInput.max = 8;
+                    imageCountInput.max = 4;
                     size2kRadio.disabled = false;
                     size2kLabel.classList.remove('opacity-50', 'cursor-not-allowed');
                     size2kLabel.title = "";
@@ -487,6 +487,16 @@
             
             const mode = selectedMode;
             
+            if (mode === 'generate-ultra' && numImages !== 1) {
+                showError("「Ultra」模式一次只能生成 1 張圖片。");
+                imageCountInput.value = 1; 
+                return; 
+            }
+            if (mode.startsWith('generate-') && mode !== 'generate-ultra' && (numImages < 1 || numImages > 4)) {
+                showError("圖片數量必須是 1 到 4 之間的整數。");
+                imageCountInput.value = Math.max(1, Math.min(numImages, 4)); 
+                return; 
+            }
             let aspectRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
             let sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
             let upscaleLevel = document.querySelector('input[name="upscale-level-mode"]:checked').value;
