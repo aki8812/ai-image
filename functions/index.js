@@ -11,9 +11,11 @@ const PROJECT_ID = "us-computer-474205"; // 您的 GCP 專案 ID
 const LOCATION = "us-central1"; // 您的 Vertex AI 所在區域
 const API_VERSION = "v1"; // API 版本
 
-// 模型名稱 (對應到您的文件)
-const GENERATION_MODEL = "gemini-2.5-flash-image-preview"; // NanoBanana
-const UPSCALING_MODEL = "imagegeneration@002"; // 用於圖片放大
+// --- 修正：模型名稱 (Imagen 4.0 系列) ---
+const MODEL_GENERATE_DEFAULT = "imagen-4.0-generate-001";
+const MODEL_GENERATE_FAST = "imagen-4.0-fast-generate-001";
+const MODEL_GENERATE_ULTRA = "imagen-4.0-ultra-generate-001";
+const MODEL_UPSCALING = "imagen-4.0-generate-001"; // Upscaling 也使用此模型
 
 // Vertex AI API 端點
 const VERTEX_AI_ENDPOINT = `https://${LOCATION}-aiplatform.googleapis.com`;
@@ -55,19 +57,22 @@ exports.vertexImageGenerator = onRequest(
 
       // 根據模式呼叫不同的 Vertex AI API
       switch (mode) {
-        case "generate":
+        case "upscale":
+          images = await handleUpscaling(headers, image);
+          break;
+        case "generate-default":
+        case "generate-fast":
+        case "generate-ultra":
           images = await handleGeneration(
             headers,
+            mode,
             prompt,
             image,
             numImages
           );
           break;
-        case "upscale":
-          images = await handleUpscaling(headers, prompt, image);
-          break;
         default:
-          throw new Error("無效的模式 (mode)。");
+          throw new Error(`無效的模式 (mode): ${mode}`);
       }
 
       // 成功！回傳圖片陣列
@@ -77,7 +82,7 @@ exports.vertexImageGenerator = onRequest(
       res.status(500).json({
         error: {
           message: error.message || "後端伺服器發生未知錯誤。",
-          stack: error.stack, // (可選) 在開發中傳送堆疊資訊
+          stack: error.stack,
         },
       });
     }
@@ -85,70 +90,70 @@ exports.vertexImageGenerator = onRequest(
 );
 
 /**
- * 1. 處理標準圖片生成 (NanoBanana)
- * 呼叫 streamGenerateContent API
+ * 1. 處理標準圖片生成 (Imagen 4.0)
+ * 呼叫 :predict API
  */
-async function handleGeneration(headers, prompt, image, numImages) {
-  // *** 關鍵修正：補上 projects/.../locations/... 路徑 ***
-  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${GENERATION_MODEL}:streamGenerateContent`;
+async function handleGeneration(headers, mode, prompt, image, numImages) {
+  
+  // 根據 mode 選擇模型 ID
+  let modelId = MODEL_GENERATE_DEFAULT; // 預設
+  if (mode === "generate-fast") modelId = MODEL_GENERATE_FAST;
+  if (mode === "generate-ultra") modelId = MODEL_GENERATE_ULTRA;
 
-  const parts = [];
-  if (prompt) {
-    parts.push({text: prompt});
-  }
+  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
+
+  // 建立 :predict 的 instances
+  const instances = [];
+  const instance = { prompt: prompt };
+  
+  // 檢查是否有上傳圖片 (用於 圖+文 生成)
   if (image && image.base64Data) {
-    parts.push({
-      inlineData: {
-        mimeType: image.mimeType,
-        data: image.base64Data,
-      },
-    });
+    instance.image = {
+      bytesBase64Encoded: image.base64Data,
+    };
   }
+  instances.push(instance);
 
-  const payload = {
-    contents: [{role: "user", parts: parts}],
+  // 建立 :predict 的 parameters
+  const parameters = {
+    sampleCount: numImages,
+    // 您可以在這裡添加其他 Imagen 參數，例如 aspect_ratio, negative_prompt 等
   };
 
-  const generationPromises = [];
-  for (let i = 0; i < numImages; i++) {
-    generationPromises.push(
-      vertexFetch(apiUrl, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(payload),
-      })
-    );
+  const payload = {
+    instances: instances,
+    parameters: parameters,
+  };
+
+  const result = await vertexFetch(apiUrl, {
+    method: "POST",
+    headers: headers,
+    body: JSON.stringify(payload),
+  });
+
+  // 解析 Imagen predict API 的回傳
+  if (!result.predictions || !Array.isArray(result.predictions)) {
+      throw new Error("Imagen API 未回傳有效的 predictions 陣列。");
   }
 
-  const results = await Promise.all(generationPromises);
-
-  // 解析結果
-  const images = results.map((result) => {
-    // streamGenerateContent 回傳的是一個陣列
-    const lastResponse = result[result.length - 1];
-    const part = lastResponse.candidates?.[0]?.content?.parts?.find(
-      (p) => p.inlineData
-    );
-    if (!part || !part.inlineData) {
-      // 嘗試從 text 中獲取錯誤訊息 (如果 API 拒絕了請求)
-      const errorText = lastResponse.candidates?.[0]?.content?.parts?.[0]?.text;
-      if (errorText) {
-        throw new Error(`NanoBanana API 錯誤: ${errorText}`);
+  const images = result.predictions.map(pred => {
+      if (!pred.bytesBase64Encoded) {
+          throw new Error("Imagen API 的 prediction 中缺少 bytesBase64Encoded。");
       }
-      throw new Error("NanoBanana API 未回傳圖片資料。");
-    }
-    return `data:${part.inlineData.mimeType};base64,${part.inlineData.data}`;
+      return `data:image/png;base64,${pred.bytesBase64Encoded}`;
   });
 
   return images;
 }
 
 /**
- * 2. 處理圖片放大 (Imagen)
- * 呼叫 predict API
+ * 2. 處理圖片放大 (Imagen 4.0)
+ * 呼叫 :predict API
  */
-async function handleUpscaling(headers, prompt, image) {
-  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${UPSCALING_MODEL}:predict`;
+async function handleUpscaling(headers, image) {
+  // 根據文件，Upscaling 使用 imagen-4.0-generate-001
+  const modelId = MODEL_UPSCALING; 
+  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
 
   if (!image || !image.base64Data) {
     throw new Error("缺少用於放大的圖片。");
@@ -163,7 +168,7 @@ async function handleUpscaling(headers, prompt, image) {
       },
     ],
     parameters: {
-      // 根據文件，只需傳送圖片即可
+      task: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
     },
   };
 
@@ -204,10 +209,9 @@ async function vertexFetch(url, options) {
     throw new Error(`Vertex AI 錯誤: ${message}`);
   }
 
-  // 檢查是否為 streamGenerateContent 的 JSON 陣列回傳
+  // :predict API 回傳的是單一 JSON 物件
   const responseText = await response.text();
   try {
-    // 嘗試解析為 JSON (可能是 predict) 或 JSON 陣列 (可能是 streamGenerateContent)
     return JSON.parse(responseText);
   } catch (e) {
     console.error("無法解析 Vertex AI 的 JSON 回應:", responseText);
