@@ -131,7 +131,7 @@
             <p id="error-message" class="text-center text-red-400 mt-2 hidden"></p>
         </div>
 
-        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full"> <!-- 修正 4：移除了 'mt-auto' -->
+        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full"> <!-- 修正 4：移除 mt-auto -->
             <!-- 圖片預覽 (上傳後顯示) --><div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
                 <!-- 圖片預覽 1 (主圖/放大) --><div id="image-preview-wrapper-1" class="relative w-20 h-20 hidden">
                     <img id="image-preview-1" src="" alt="圖片預覽 1" class="w-full h-full object-cover rounded-lg shadow-md">
@@ -145,7 +145,7 @@
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden">
                 
-                <!-- 長寬比按鈕 --><button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比"> <!-- 修正 3：標題移除 '與尺寸' -->
+                <!-- 長寬比按鈕 --><button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比與尺寸">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
                 </button>
                 
@@ -224,18 +224,13 @@
                 <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型一次只能生成 1 張。</p>
             </div>
             
-            <!-- 放大尺寸選項 (預設隱藏) --><div class="mb-4 hidden" id="upscale-options-wrapper">
-                <label class="block text-sm font-medium text-gray-300 mb-3">放大尺寸</label>
-                <fieldset class="grid grid-cols-3 gap-3" id="upscale-level-selector">
+            <!-- 修正 2：放大尺寸選項 (移除 3K) --><div class="mb-4 hidden" id="upscale-options-wrapper">
+                <label class="block text-sm font-medium text-gray-300 mb-3">放大尺寸 (僅支援 2K / 4K)</label>
+                <fieldset class="grid grid-cols-2 gap-3" id="upscale-level-selector"> <!-- 修正 2：改為 2 欄 -->
                     <!-- 2K -->
                     <div>
                         <input type="radio" name="upscale-level-mode" value="2048" id="upscale-2k" class="hidden" checked>
                         <label for="upscale-2k" class="radio-label">2K</label>
-                    </div>
-                    <!-- 3K -->
-                    <div>
-                        <input type="radio" name="upscale-level-mode" value="3072" id="upscale-3k" class="hidden">
-                        <label for="upscale-3k" class="radio-label">3K</label>
                     </div>
                     <!-- 4K -->
                     <div>
@@ -251,13 +246,13 @@
     <!-- 長寬比 Modal (預設隱藏) --><div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">長寬比</h2> <!-- 修正 3：標題移除 '與尺寸' -->
+                <h2 class="text-xl font-bold">長寬比與尺寸</h2>
                 <button id="ratio-close-btn" class="p-1 rounded-full hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
             
-            <!-- 修正 4：固定的 5 種比例 --><div class="mb-4">
+            <!-- 固定的 5 種比例 --><div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">長寬比例</label>
                 <fieldset class="grid grid-cols-3 gap-3" id="ratio-selector">
                     <!-- 1:1 -->
@@ -288,15 +283,31 @@
                 </fieldset>
             </div>
             
-            <!-- 修正 4：移除自訂比例 -->
+            <!-- 移除自訂比例 -->
             
-            <!-- 修正 3：移除生成尺寸 (1K/2K) --><!-- <div class="mt-6"> ... </div> -->
+            <!-- 生成尺寸 (1K/2K) --><div class="mt-6">
+                <label class="block text-sm font-medium text-gray-300 mb-3">生成尺寸</label>
+                <fieldset class="grid grid-cols-2 gap-3" id="sample-size-selector">
+                    <!-- 1K -->
+                    <div>
+                        <input type="radio" name="sample-size-mode" value="1024" id="size-1k" class="hidden" checked>
+                        <label for="size-1k" class="radio-label">1K (1024px)</label>
+                    </div>
+                    <!-- 2K -->
+                    <div>
+                        <input type="radio" name="sample-size-mode" value="2048" id="size-2k" class="hidden">
+                        <label for="size-2k" class="radio-label">2K (2048px)</label>
+                    </div>
+                </fieldset>
+                 <p class="text-xs text-gray-500 mt-2" id="sample-size-note">注意：Ultra 模型總是 1K。</p>
+            </div>
         </div>
     </div>
 
 
     <script>
         // --- API 相關 ---
+
         const firebaseFunctionUrl = "https://verteximagegenerator-zlimai3iga-uc.a.run.app"; 
 
         // --- 狀態變數 ---
@@ -309,8 +320,8 @@
         // --- 狀態變數 (來自 Modal) ---
         let selectedMode = "generate-default"; 
         let selectedAspectRatio = "1:1"; 
-        // let selectedSampleSize = "1024"; // 修正 3：移除
-        let selectedUpscaleLevel = "2048"; // 放大尺寸 2K, 3K, 4K
+        let selectedSampleSize = "1024"; // 1K (1024) 或 2K (2048)
+        let selectedUpscaleLevel = "2048"; // 2K (2048) 或 4K (4096)
 
         // --- DOM 元素 ---
         const appContainer = document.getElementById('app-container');
@@ -368,7 +379,8 @@
         const ratioModal = document.getElementById('ratio-modal');
         const ratioCloseBtn = document.getElementById('ratio-close-btn');
         const ratioSelector = document.getElementById('ratio-selector');
-        // const sampleSizeSelector = document.getElementById('sample-size-selector'); // 修正 3：移除
+        const sampleSizeSelector = document.getElementById('sample-size-selector'); 
+        const sampleSizeNote = document.getElementById('sample-size-note');
 
         // --- 事件監聽 ---
 
@@ -444,18 +456,19 @@
         ratioBtn.addEventListener('click', () => ratioModal.classList.remove('hidden'));
         ratioCloseBtn.addEventListener('click', () => ratioModal.classList.add('hidden'));
         
-        // 監聽預設比例 (修正 4)
+        // 監聽預設比例
         ratioSelector.addEventListener('change', (e) => {
             if (e.target.name === 'ratio-mode') {
                 selectedAspectRatio = e.target.value;
             }
         });
         
-        // 監聽生成尺寸 (修正 3：移除)
-        // sampleSizeSelector.addEventListener('change', (e) => { ... });
-        
-        // 移除了 customRatioInput 監聽 (修正 4)
-
+        // 監聽生成尺寸
+        sampleSizeSelector.addEventListener('change', (e) => {
+            if (e.target.name === 'sample-size-mode') {
+                selectedSampleSize = e.target.value;
+            }
+        });
 
         // --- 核心函式 ---
 
@@ -463,6 +476,10 @@
          * 修正：根據設定更新輸入介面
          */
         function updateInputUI() {
+            // 獲取 2K 選項
+            const size2kRadio = document.getElementById('size-2k');
+            const size2kLabel = size2kRadio.nextElementSibling;
+
             if (selectedMode === 'upscale') {
                 // 如果是放大模式
                 imageCountWrapper.classList.add('hidden'); // 隱藏數量
@@ -476,14 +493,31 @@
                 ratioBtn.disabled = false; // 啟用長寬比
                 ratioBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 
-                // 如果是 Ultra，限制最大值
+                // 修正 3：Ultra 模型不支援 2K
                 if (selectedMode === 'generate-ultra') {
                     imageCountInput.max = 1;
                     if (parseInt(imageCountInput.value) > 1) {
                         imageCountInput.value = 1;
                     }
+                    // 禁用 2K
+                    size2kRadio.disabled = true;
+                    size2kLabel.classList.add('opacity-50', 'cursor-not-allowed');
+                    size2kLabel.title = "Ultra 模型不支援 2K";
+                    // 如果當前選了 2K，強制改回 1K
+                    if (selectedSampleSize === "2048") {
+                        document.getElementById('size-1k').checked = true;
+                        selectedSampleSize = "1024";
+                    }
+                    sampleSizeNote.textContent = "注意：Ultra 模型總是 1K。";
+
                 } else {
-                    imageCountInput.max = 8; // Imagen 4 和 Fast 最多 8 張
+                    // 標準 和 高速
+                    imageCountInput.max = 8;
+                    // 啟用 2K
+                    size2kRadio.disabled = false;
+                    size2kLabel.classList.remove('opacity-50', 'cursor-not-allowed');
+                    size2kLabel.title = "";
+                    sampleSizeNote.textContent = "注意：生成 2K 圖片會更慢且更貴。";
                 }
             }
         }
@@ -530,29 +564,24 @@
             
             const mode = selectedMode;
             
-            // 修正 4：獲取固定的長寬比
-            const aspectRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
-            // 修正 3：移除 (sampleImageSize)
-            // const sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
-            // 獲取放大尺寸
-            const upscaleLevel = document.querySelector('input[name="upscale-level-mode"]:checked').value;
+            // 獲取設定值
+            let aspectRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
+            let sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
+            let upscaleLevel = document.querySelector('input[name="upscale-level-mode"]:checked').value;
 
 
             // 基礎檢查
             if (mode.startsWith('generate-') && !prompt && !uploadedImage) {
                 showError("請至少輸入提示詞或上傳一張圖片。"); return;
             }
-            // 修正 1：放大功能也需要提示詞
             if (mode === 'upscale' && !uploadedImage) {
                 showError("請上傳一張圖片來進行「圖片放大」。"); return;
             }
-             if (mode === 'upscale' && !prompt) {
-                showError("「圖片放大」也需要提示詞。"); return;
-            }
             
-            // 修正：如果是 Ultra，強制 1 張
+            // 修正 3：如果是 Ultra，強制 1 張 且 1K
             if (mode === 'generate-ultra') {
                 numImages = 1;
+                sampleImageSize = "1024"; // Ultra 只支援 1K
             }
             // 修正：如果是 Upscale，強制 1 張
             if (mode === 'upscale') {
@@ -566,11 +595,11 @@
                 // 建立傳送給 Firebase Function 的 Payload
                 const payload = {
                     mode: mode,
-                    prompt: prompt, // 修正 1：放大也需要 prompt
+                    prompt: prompt,
                     numImages: numImages,
                     image: uploadedImage,       // Base64 + mimeType
-                    aspectRatio: aspectRatio,   // 修正 4
-                    // sampleImageSize: sampleImageSize, // 修正 3：移除
+                    aspectRatio: aspectRatio,   
+                    sampleImageSize: sampleImageSize, 
                     upscaleLevel: upscaleLevel 
                 };
 
@@ -808,12 +837,13 @@
                 // 狀態: 非載入中
                 clearInterval(progressInterval);
                 if (!resultsGallery.classList.contains('hidden')) {
-                    // 如果有結果，保持在上
+                    // 修正 4：如果有結果，保持在上 (mt-auto 應保留)
                     appContainer.style.justifyContent = 'flex-start';
+                    inputHub.classList.add('mt-auto');
                 } else {
                     // 修正 4：如果沒結果 (或失敗)，回到中央
                     appContainer.style.justifyContent = 'center';
-                    inputHub.classList.remove('mt-auto'); // 修正 4：移除 mt-auto
+                    inputHub.classList.remove('mt-auto');
                 }
                 progressContainer.classList.add('hidden');
                 sendBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
