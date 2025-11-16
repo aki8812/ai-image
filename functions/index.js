@@ -58,8 +58,8 @@ exports.vertexImageGenerator = onRequest(
         numImages, 
         image, 
         aspectRatio, 
-        sampleImageSize, // 新增 2
-        upscaleLevel   // 新增 5
+        // sampleImageSize, // 修正 3：移除
+        upscaleLevel   
       } = req.body; 
       
       let images = []; // 用於儲存回傳的 Base64 圖片
@@ -69,8 +69,9 @@ exports.vertexImageGenerator = onRequest(
         case "upscale":
           images = await handleUpscaling(
             headers, 
+            prompt, // 修正 1：傳入 prompt
             image,
-            upscaleLevel // 修正 1 & 5：傳入放大尺寸
+            upscaleLevel 
           );
           break;
         case "generate-default":
@@ -82,8 +83,8 @@ exports.vertexImageGenerator = onRequest(
             prompt,
             image,
             numImages,
-            aspectRatio,
-            sampleImageSize // 新增 2：傳入生成尺寸
+            aspectRatio
+            // sampleImageSize // 修正 3：移除
           );
           break;
         default:
@@ -108,7 +109,7 @@ exports.vertexImageGenerator = onRequest(
  * 1. 處理標準圖片生成 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio, sampleImageSize) { // 新增 2：接收 sampleImageSize
+async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio) { // 修正 3：移除 sampleImageSize
   
   // 根據 mode 選擇模型 ID
   let modelId = MODEL_GENERATE_DEFAULT; // 預設
@@ -132,11 +133,11 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   // 建立 :predict 的 parameters
   const parameters = {
     sampleCount: numImages,
-    sampleImageSize: parseInt(sampleImageSize) || 1024, // 新增 2：設定生成尺寸
+    // sampleImageSize: 1024, // 修正 3：移除 (API 預設為 1024)
   };
 
-  // 修正 3：如果傳來了長寬比 (且不是 1:1 預設)，就加入 parameters
-  if (aspectRatio && aspectRatio !== "1:1") {
+  // 修正 4：總是傳送長寬比
+  if (aspectRatio) {
     parameters.aspect_ratio = aspectRatio;
   }
 
@@ -170,7 +171,7 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
  * 2. 處理圖片放大 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleUpscaling(headers, image, upscaleLevel) { // 修正 1 & 5
+async function handleUpscaling(headers, prompt, image, upscaleLevel) { // 修正 1：接收 prompt
   // 根據文件，Upscaling 使用 imagen-4.0-generate-001
   const modelId = MODEL_UPSCALING; 
   const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
@@ -178,10 +179,16 @@ async function handleUpscaling(headers, image, upscaleLevel) { // 修正 1 & 5
   if (!image || !image.base64Data) {
     throw new Error("缺少用於放大的圖片。");
   }
+  
+  // 修正 1：放大也需要 prompt
+  if (!prompt) {
+      prompt = " "; // 傳入一個空字串或空格，避免 'Text content is empty'
+  }
 
   const payload = {
     instances: [
       {
+        prompt: prompt, // 修正 1：傳入 prompt
         image: {
           bytesBase64Encoded: image.base64Data,
         },
@@ -189,7 +196,7 @@ async function handleUpscaling(headers, image, upscaleLevel) { // 修正 1 & 5
     ],
     parameters: {
       task: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
-      sampleImageSize: parseInt(upscaleLevel) || 2048, // 新增 5：設定放大尺寸
+      sampleImageSize: parseInt(upscaleLevel) || 2048, // 設定放大尺寸
     },
   };
 
