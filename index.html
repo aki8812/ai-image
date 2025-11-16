@@ -12,9 +12,21 @@
             font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
 
+        /* 修正 1：讓 body 至少有螢幕高度，並允許滾動 (在小螢幕上) */
+        html, body {
+            min-height: 100vh;
+        }
+        
+        body {
+            display: flex; /* 保持置中 */
+            align-items: center;
+            justify-content: center;
+        }
+
         /* 主應用程式容器的流暢過渡 */
         #app-container {
             transition: justify-content 0.5s ease-in-out;
+            width: 100%; /* 確保容器寬度 */
         }
 
         /* 自動增高的 textarea，並有流暢的高度過渡 */
@@ -53,8 +65,8 @@
             -moz-appearance: none;
         }
 
-        /* 自定義 radio 按鈕樣式 */
-        input[type="radio"] + label {
+        /* 自定義 radio 按鈕樣式 (用於設定和長寬比) */
+        .radio-label {
             cursor: pointer;
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
@@ -62,28 +74,32 @@
             background-color: #374151; /* gray-700 */
             color: #D1D5DB; /* gray-300 */
             border: 1px solid #4B5563; /* gray-600 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            height: 100%; /* 確保填滿 grid cell */
         }
 
         /* 選中時的樣式 */
-        input[type="radio"]:checked + label {
+        input[type="radio"]:checked + .radio-label {
             background-color: #3B82F6; /* blue-500 */
             color: #FFFFFF; /* white */
             border-color: #2563EB; /* blue-600 */
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
         
-        input[type="radio"]:focus-visible + label {
+        input[type="radio"]:focus-visible + .radio-label {
              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
              outline: none;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200 h-screen overflow-hidden flex items-center justify-center">
+<body class="bg-gray-900 text-gray-200"> <!-- 修正 1：移除 h-screen 和 overflow-hidden -->
 
-    <!-- 1. 主應用程式容器 --><div id="app-container" class="w-full max-w-2xl h-full flex flex-col items-center justify-center p-4">
+    <!-- 1. 主應用程式容器 --><div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4"> <!-- 修正 1：改為 min-h-screen -->
 
-        <!-- 2. 生成結果區域 (預設隱藏) --><div id="results-gallery" class="w-full mb-8 hidden">
-            <!-- 圖片顯示框 --><div id="image-display-wrapper" class="relative w-full aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group">
+        <!-- 2. 生成結果區域 (預設隱藏) --><div id="results-gallery" class="w-full mb-4 hidden"> <!-- 修正 1：減少 mb -->
+            <!-- 圖片顯示框 --><div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto"> <!-- 修正 1：新增 max-h-[60vh] 和 mx-auto -->
                 <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0">
 
                 <!-- 圖片上的按鈕 --><div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -114,7 +130,7 @@
             <p id="error-message" class="text-center text-red-400 mt-2 hidden"></p>
         </div>
 
-        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full mt-auto">
+        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full mt-auto"> <!-- 修正 1：這會被推到頁面底部 -->
             <!-- 圖片預覽 (上傳後顯示) --><div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
                 <!-- 圖片預覽 1 (主圖/放大) --><div id="image-preview-wrapper-1" class="relative w-20 h-20 hidden">
                     <img id="image-preview-1" src="" alt="圖片預覽 1" class="w-full h-full object-cover rounded-lg shadow-md">
@@ -128,7 +144,11 @@
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden">
                 
-                <!-- 設定按鈕 --><button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
+                <!-- 新增 3：長寬比按鈕 --><button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
+                </button>
+                
+                <!-- 設定按鈕 --><button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
 
@@ -163,7 +183,7 @@
     </div>
     
     <!-- 6. 設定 Modal (預設隱藏) --><div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> <!-- 加寬了 Modal -->
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> 
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">設定</h2>
                 <button id="settings-close-btn" class="p-1 rounded-full hover:bg-gray-700">
@@ -171,47 +191,100 @@
                 </button>
             </div>
             
-            <!-- 修正：生成模式 (Radio buttons) --><div class="mb-4">
+            <!-- 修正 2：生成模式 (改為單欄) --><div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
-                <fieldset class="grid grid-cols-2 gap-3" id="mode-selector">
+                <fieldset class="grid grid-cols-1 gap-3" id="mode-selector"> <!-- 修正 2：改為 grid-cols-1 -->
                     <!-- 選項 1: Imagen 4.0 (預設) -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-default" id="mode-default" class="hidden" checked>
-                        <label for="mode-default" title="imagen-4.0-generate-001">Imagen 4.0 (標準)</label>
+                        <label for="mode-default" title="imagen-4.0-generate-001" class="radio-label">Imagen 4.0 (標準)</label>
                     </div>
                     <!-- 選項 2: Imagen 4.0 Fast -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-fast" id="mode-fast" class="hidden">
-                        <label for="mode-fast" title="imagen-4.0-fast-generate-001">Imagen 4.0 (高速)</label>
+                        <label for="mode-fast" title="imagen-4.0-fast-generate-001" class="radio-label">Imagen 4.0 (高速)</label>
                     </div>
                     <!-- 選項 3: Imagen 4.0 Ultra -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra" class="hidden">
-                        <label for="mode-ultra" title="imagen-4.0-ultra-generate-001">Imagen 4.0 (最高品質)</label>
+                        <label for="mode-ultra" title="imagen-4.0-ultra-generate-001" class="radio-label">Imagen 4.0 (最高品質)</label>
                     </div>
                     <!-- 選項 4: Upscaling -->
                     <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
-                        <label for="mode-upscale" title="使用 imagen-4.0-generate-001 放大">圖片放大</label>
+                        <label for="mode-upscale" title="使用 imagen-4.0-generate-001 放大" class="radio-label">圖片放大</label>
                     </div>
                 </fieldset>
             </div>
 
-            <!-- 修正：圖片數量 (可隱藏) --><div class="mb-4" id="image-count-wrapper">
+            <!-- 圖片數量 (可隱藏) --><div class="mb-4" id="image-count-wrapper">
                 <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-8)</label>
                 <input type="number" id="image-count" name="image-count" value="1" min="1" max="8" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型一次只能生成 1 張。</p>
             </div>
+        </div>
+    </div>
+    
+    <!-- 新增 3：長寬比 Modal (預設隱藏) --><div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-xl font-bold">長寬比例</h2>
+                <button id="ratio-close-btn" class="p-1 rounded-full hover:bg-gray-700">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                </button>
+            </div>
             
+            <!-- 視覺化比例按鈕 --><div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-3">預設比例</label>
+                <fieldset class="grid grid-cols-2 gap-3" id="ratio-selector">
+                    <!-- 1:1 -->
+                    <div>
+                        <input type="radio" name="ratio-mode" value="1:1" id="ratio-1-1" class="hidden" checked>
+                        <label for="ratio-1-1" class="radio-label">
+                            <div class="w-8 h-8 bg-gray-600 rounded mr-3"></div>
+                            <span>1:1 (方形)</span>
+                        </label>
+                    </div>
+                    <!-- 16:9 -->
+                    <div>
+                        <input type="radio" name="ratio-mode" value="16:9" id="ratio-16-9" class="hidden">
+                        <label for="ratio-16-9" class="radio-label">
+                            <div class="w-12 h-[27px] bg-gray-600 rounded mr-3"></div>
+                            <span>16:9 (寬)</span>
+                        </label>
+                    </div>
+                    <!-- 9:16 -->
+                    <div>
+                        <input type="radio" name="ratio-mode" value="9:16" id="ratio-9-16" class="hidden">
+                        <label for="ratio-9-16" class="radio-label">
+                            <div class="w-[27px] h-12 bg-gray-600 rounded mr-3"></div>
+                            <span>9:16 (高)</span>
+                        </label>
+                    </div>
+                    <!-- 4:3 -->
+                    <div>
+                        <input type="radio" name="ratio-mode" value="4:3" id="ratio-4-3" class="hidden">
+                        <label for="ratio-4-3" class="radio-label">
+                            <div class="w-10 h-[30px] bg-gray-600 rounded mr-3"></div>
+                            <span>4:3 (標準)</span>
+                        </label>
+                    </div>
+                </fieldset>
+            </div>
+            
+            <!-- 自訂比例 -->
+            <div>
+                <label class="block text-sm font-medium text-gray-300 mb-2">自訂比例</label>
+                <input type="text" id="custom-ratio-input" placeholder="例如: 16:9 或 1.85:1" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-500 mt-1">注意：輸入自訂比例會取消選擇預設比例。</p>
+            </div>
         </div>
     </div>
 
 
     <script>
         // --- API 相關 ---
-        // !!! 重要：將這裡替換成您部署後的 Firebase Function URL !!!
         const firebaseFunctionUrl = "https://verteximagegenerator-zlimai3iga-uc.a.run.app"; 
-        // 範例: "https://us-central1-us-computer-474205.cloudfunctions.net/vertexImageGenerator"
 
         // --- 狀態變數 ---
         let uploadedImage = null; // 儲存上傳圖片 1 的 Base64 和 MimeType
@@ -219,7 +292,8 @@
         let currentImageIndex = 0;
         let isLoading = false;
         let progressInterval = null;
-        let selectedMode = "generate-default"; // 修正：預設模式
+        let selectedMode = "generate-default"; 
+        let selectedAspectRatio = "1:1"; // 新增 3：長寬比狀態
 
         // --- DOM 元素 ---
         const appContainer = document.getElementById('app-container');
@@ -267,8 +341,15 @@
         const settingsModal = document.getElementById('settings-modal');
         const settingsCloseBtn = document.getElementById('settings-close-btn');
         const imageCountInput = document.getElementById('image-count');
-        const imageCountWrapper = document.getElementById('image-count-wrapper'); // 修正：獲取包裝元素
-        const modeSelector = document.getElementById('mode-selector'); // 修正：獲取 Radio Group
+        const imageCountWrapper = document.getElementById('image-count-wrapper'); 
+        const modeSelector = document.getElementById('mode-selector'); 
+
+        // 新增 3：長寬比 Modal DOM
+        const ratioBtn = document.getElementById('ratio-btn');
+        const ratioModal = document.getElementById('ratio-modal');
+        const ratioCloseBtn = document.getElementById('ratio-close-btn');
+        const ratioSelector = document.getElementById('ratio-selector');
+        const customRatioInput = document.getElementById('custom-ratio-input');
 
         // --- 事件監聽 ---
 
@@ -333,6 +414,28 @@
         downloadBtn.addEventListener('click', downloadCurrentImage);
         modalDownloadBtn.addEventListener('click', downloadCurrentImage);
 
+        // 新增 3：長寬比 Modal 事件
+        ratioBtn.addEventListener('click', () => ratioModal.classList.remove('hidden'));
+        ratioCloseBtn.addEventListener('click', () => ratioModal.classList.add('hidden'));
+        
+        // 監聽預設比例
+        ratioSelector.addEventListener('change', (e) => {
+            if (e.target.name === 'ratio-mode') {
+                selectedAspectRatio = e.target.value;
+                customRatioInput.value = ""; // 清空自訂
+            }
+        });
+        
+        // 監聽自訂比例
+        customRatioInput.addEventListener('input', () => {
+            // 取消所有 radio 的選中
+            const checkedRadio = ratioSelector.querySelector('input[type="radio"]:checked');
+            if (checkedRadio) {
+                checkedRadio.checked = false;
+            }
+            selectedAspectRatio = customRatioInput.value.trim();
+        });
+
 
         // --- 核心函式 ---
 
@@ -343,9 +446,16 @@
             if (selectedMode === 'upscale') {
                 // 如果是放大模式，隱藏數量滑桿
                 imageCountWrapper.classList.add('hidden');
+                // 新增 3：禁用長寬比按鈕
+                ratioBtn.disabled = true;
+                ratioBtn.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
                 // 否則 (所有生成模式)，顯示數量滑桿
                 imageCountWrapper.classList.remove('hidden');
+                // 新增 3：啟用長寬比按鈕
+                ratioBtn.disabled = false;
+                ratioBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                
                 // 如果是 Ultra，限制最大值
                 if (selectedMode === 'generate-ultra') {
                     imageCountInput.max = 1;
@@ -398,8 +508,9 @@
             const prompt = promptTextarea.value.trim();
             let numImages = parseInt(imageCountInput.value) || 1;
             
-            // 修正：使用 selectedMode
             const mode = selectedMode;
+            // 新增 3：獲取長寬比
+            const aspectRatio = selectedAspectRatio;
 
             // 基礎檢查
             if (mode.startsWith('generate-') && !prompt && !uploadedImage) {
@@ -428,6 +539,7 @@
                     prompt: prompt,
                     numImages: numImages,
                     image: uploadedImage,       // Base64 + mimeType
+                    aspectRatio: aspectRatio    // 新增 3：傳送長寬比
                 };
 
                 // 呼叫我們的後端
@@ -708,6 +820,9 @@
             progressBar.style.width = '0%'; // 重設進度條
             progressPercent.textContent = "失敗";
         }
+
+        // 初始化UI
+        updateInputUI();
     </script>
 </body>
 </html>
