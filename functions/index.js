@@ -220,6 +220,7 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
       },
     ],
     parameters: {
+      sampleCount: 1,
       mode: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
       upscaleFactor: factor, 
     },
