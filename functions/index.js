@@ -220,8 +220,7 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
       },
     ],
     parameters: {
-      task: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
-      // 修正 4：API 參數改為 upscaleFactor 並使用 "x2" / "x4"
+      mode: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
       upscaleFactor: factor, 
     },
   };
