@@ -3,8 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image</title> <!-- 修正：標題已更改 -->
-    <link rel="icon" href="favicon.ico" /> <!-- 新增：網站圖示 -->
+    <title>AI Image</title> 
+    <link rel="icon" href="favicon.ico" /> 
     <!-- 引入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
     <style>
         /* 應用使用者偏好的字體 */
@@ -46,58 +46,35 @@
           -moz-appearance: textfield;
         }
 
-        /* 自定義切換開關 */
-        .toggle-switch {
-            position: relative;
-            display: inline-block;
-            width: 48px;
-            height: 28px;
+        /* 隱藏 radio 按鈕的圓點 */
+        input[type="radio"] {
+            appearance: none;
+            -webkit-appearance: none;
+            -moz-appearance: none;
         }
 
-        .toggle-switch input {
-            opacity: 0;
-            width: 0;
-            height: 0;
-        }
-
-        .slider {
-            position: absolute;
+        /* 自定義 radio 按鈕樣式 */
+        input[type="radio"] + label {
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background-color: #4B5563; /* gray-600 */
-            -webkit-transition: .4s;
-            transition: .4s;
-            border-radius: 28px;
+            padding: 0.5rem 1rem;
+            border-radius: 0.5rem;
+            transition: all 0.2s ease-in-out;
+            background-color: #374151; /* gray-700 */
+            color: #D1D5DB; /* gray-300 */
+            border: 1px solid #4B5563; /* gray-600 */
         }
 
-        .slider:before {
-            position: absolute;
-            content: "";
-            height: 20px;
-            width: 20px;
-            left: 4px;
-            bottom: 4px;
-            background-color: white;
-            -webkit-transition: .4s;
-            transition: .4s;
-            border-radius: 50%;
-        }
-
-        input:checked + .slider {
+        /* 選中時的樣式 */
+        input[type="radio"]:checked + label {
             background-color: #3B82F6; /* blue-500 */
+            color: #FFFFFF; /* white */
+            border-color: #2563EB; /* blue-600 */
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
-
-        input:focus + .slider {
-            box-shadow: 0 0 1px #3B82F6;
-        }
-
-        input:checked + .slider:before {
-            -webkit-transform: translateX(20px);
-            -ms-transform: translateX(20px);
-            transform: translateX(20px);
+        
+        input[type="radio"]:focus-visible + label {
+             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+             outline: none;
         }
     </style>
 </head>
@@ -143,7 +120,6 @@
                     <img id="image-preview-1" src="" alt="圖片預覽 1" class="w-full h-full object-cover rounded-lg shadow-md">
                     <button data-preview-id="1" class="remove-image-btn absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow hover:bg-red-700 transition">&times;</button>
                 </div>
-                <!-- 移除了 image-preview-wrapper-2 -->
             </div>
             
             <!-- 主輸入框 --><div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2">
@@ -151,8 +127,6 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden">
-
-                <!-- 移除了 upload-btn-2 和 image-upload-2 -->
                 
                 <!-- 設定按鈕 --><button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
@@ -189,29 +163,46 @@
     </div>
     
     <!-- 6. 設定 Modal (預設隱藏) --><div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-sm">
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> <!-- 加寬了 Modal -->
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">設定</h2>
                 <button id="settings-close-btn" class="p-1 rounded-full hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
             </div>
-            <div class="mb-4">
-                <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-4)</label>
-                <input type="number" id="image-count" name="image-count" value="1" min="1" max="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
-            </div>
-
-            <!-- 圖片放大 --><div class="flex justify-between items-center mb-4">
-                <label for="upscaling-toggle" class="block text-sm font-medium text-gray-300">圖片放大 (Upscaling)</label>
-                <label class="toggle-switch">
-                    <input type="checkbox" id="upscaling-toggle">
-                    <span class="slider"></span>
-                </label>
-            </div>
-
-            <!-- 移除了虛擬試穿 Toggle -->
             
-            <p class="text-xs text-gray-500 mt-4">注意：特殊功能開啟時，只會生成一張圖片。</p>
+            <!-- 修正：生成模式 (Radio buttons) --><div class="mb-4">
+                <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
+                <fieldset class="grid grid-cols-2 gap-3" id="mode-selector">
+                    <!-- 選項 1: Imagen 4.0 (預設) -->
+                    <div>
+                        <input type="radio" name="generation-mode" value="generate-default" id="mode-default" class="hidden" checked>
+                        <label for="mode-default" title="imagen-4.0-generate-001">Imagen 4.0 (標準)</label>
+                    </div>
+                    <!-- 選項 2: Imagen 4.0 Fast -->
+                    <div>
+                        <input type="radio" name="generation-mode" value="generate-fast" id="mode-fast" class="hidden">
+                        <label for="mode-fast" title="imagen-4.0-fast-generate-001">Imagen 4.0 (高速)</label>
+                    </div>
+                    <!-- 選項 3: Imagen 4.0 Ultra -->
+                    <div>
+                        <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra" class="hidden">
+                        <label for="mode-ultra" title="imagen-4.0-ultra-generate-001">Imagen 4.0 (最高品質)</label>
+                    </div>
+                    <!-- 選項 4: Upscaling -->
+                    <div>
+                        <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
+                        <label for="mode-upscale" title="使用 imagen-4.0-generate-001 放大">圖片放大</label>
+                    </div>
+                </fieldset>
+            </div>
+
+            <!-- 修正：圖片數量 (可隱藏) --><div class="mb-4" id="image-count-wrapper">
+                <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-8)</label>
+                <input type="number" id="image-count" name="image-count" value="1" min="1" max="8" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
+                <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型一次只能生成 1 張。</p>
+            </div>
+            
         </div>
     </div>
 
@@ -224,13 +215,11 @@
 
         // --- 狀態變數 ---
         let uploadedImage = null; // 儲存上傳圖片 1 的 Base64 和 MimeType
-        // 移除了 uploadedGament
         let generatedImages = []; // 儲存生成圖片 URL 的陣列
         let currentImageIndex = 0;
         let isLoading = false;
         let progressInterval = null;
-        let isUpscalingEnabled = false;
-        // 移除了 isVirtualTryOnEnabled
+        let selectedMode = "generate-default"; // 修正：預設模式
 
         // --- DOM 元素 ---
         const appContainer = document.getElementById('app-container');
@@ -241,12 +230,10 @@
         // 上傳
         const uploadBtn1 = document.getElementById('upload-btn-1');
         const imageUpload1 = document.getElementById('image-upload-1');
-        // 移除了 uploadBtn2 和 imageUpload2
         
         const imagePreviewContainer = document.getElementById('image-preview-container');
         const imagePreviewWrapper1 = document.getElementById('image-preview-wrapper-1');
         const imagePreview1 = document.getElementById('image-preview-1');
-        // 移除了 imagePreviewWrapper2 和 imagePreview2
         const removeImageBtns = document.querySelectorAll('.remove-image-btn');
 
         // 進度條
@@ -280,8 +267,8 @@
         const settingsModal = document.getElementById('settings-modal');
         const settingsCloseBtn = document.getElementById('settings-close-btn');
         const imageCountInput = document.getElementById('image-count');
-        const upscalingToggle = document.getElementById('upscaling-toggle');
-        // 移除了 virtualTryOnToggle
+        const imageCountWrapper = document.getElementById('image-count-wrapper'); // 修正：獲取包裝元素
+        const modeSelector = document.getElementById('mode-selector'); // 修正：獲取 Radio Group
 
         // --- 事件監聽 ---
 
@@ -293,9 +280,7 @@
 
         // 2. 上傳圖片
         uploadBtn1.addEventListener('click', () => imageUpload1.click());
-        // 移除了 uploadBtn2
         imageUpload1.addEventListener('change', (e) => handleImageUpload(e, 1));
-        // 移除了 imageUpload2
 
         // 3. 移除預覽圖片
         removeImageBtns.forEach(btn => {
@@ -306,9 +291,7 @@
                     imagePreview1.src = "";
                     imagePreviewWrapper1.classList.add('hidden');
                 }
-                // 移除了 id === '2' 的邏輯
                 
-                // 檢查是否所有預覽都隱藏了
                 if (imagePreviewWrapper1.classList.contains('hidden')) {
                     imagePreviewContainer.classList.add('hidden');
                 }
@@ -328,13 +311,13 @@
         settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
         settingsCloseBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-        // 6. 設定選項變更
-        upscalingToggle.addEventListener('change', (e) => {
-            isUpscalingEnabled = e.target.checked;
-            // 移除了 virtualTryOnToggle 的連動
-            updateInputUI();
+        // 6. 修正：設定選項變更 (Radio buttons)
+        modeSelector.addEventListener('change', (e) => {
+            if (e.target.name === 'generation-mode') {
+                selectedMode = e.target.value;
+                updateInputUI();
+            }
         });
-        // 移除了 virtualTryOnToggle 的監聽
 
         // 7. 圖片導航 (主介面)
         navLeft.addEventListener('click', () => showImage(currentImageIndex - 1));
@@ -354,19 +337,24 @@
         // --- 核心函式 ---
 
         /**
-         * 根據設定更新輸入介面
+         * 修正：根據設定更新輸入介面
          */
         function updateInputUI() {
-            // 移除了 isVirtualTryOnEnabled 的邏輯
-            if (isUpscalingEnabled) {
-                uploadBtn1.title = "上傳圖片 (主圖)";
-                // 移除了 uploadBtn2.classList.add('hidden');
-                imageCountInput.disabled = true;
-                imageCountInput.value = 1;
+            if (selectedMode === 'upscale') {
+                // 如果是放大模式，隱藏數量滑桿
+                imageCountWrapper.classList.add('hidden');
             } else {
-                uploadBtn1.title = "上傳圖片 (主圖)";
-                // 移除了 uploadBtn2.classList.add('hidden');
-                imageCountInput.disabled = false;
+                // 否則 (所有生成模式)，顯示數量滑桿
+                imageCountWrapper.classList.remove('hidden');
+                // 如果是 Ultra，限制最大值
+                if (selectedMode === 'generate-ultra') {
+                    imageCountInput.max = 1;
+                    if (parseInt(imageCountInput.value) > 1) {
+                        imageCountInput.value = 1;
+                    }
+                } else {
+                    imageCountInput.max = 8; // Imagen 4 和 Fast 最多 8 張
+                }
             }
         }
 
@@ -387,7 +375,6 @@
                     imagePreview1.src = previewUrl;
                     imagePreviewWrapper1.classList.remove('hidden');
                 } 
-                // 移除了 id === 2 的邏輯
                 
                 imagePreviewContainer.classList.remove('hidden');
                 e.target.value = null; // 清空以便下次上傳
@@ -409,21 +396,27 @@
             }
             
             const prompt = promptTextarea.value.trim();
-            const numImages = parseInt(imageCountInput.value) || 1;
+            let numImages = parseInt(imageCountInput.value) || 1;
             
-            // 決定模式
-            let mode = "generate";
-            if (isUpscalingEnabled) mode = "upscale";
-            // 移除了 isVirtualTryOnEnabled
+            // 修正：使用 selectedMode
+            const mode = selectedMode;
 
             // 基礎檢查
-            if (mode === "generate" && !prompt && !uploadedImage) {
+            if (mode.startsWith('generate-') && !prompt && !uploadedImage) {
                 showError("請至少輸入提示詞或上傳一張圖片。"); return;
             }
-            if (mode === "upscale" && !uploadedImage) {
+            if (mode === 'upscale' && !uploadedImage) {
                 showError("請上傳一張圖片來進行「圖片放大」。"); return;
             }
-            // 移除了 mode === "tryon" 的檢查
+            
+            // 修正：如果是 Ultra，強制 1 張
+            if (mode === 'generate-ultra') {
+                numImages = 1;
+            }
+            // 修正：如果是 Upscale，強制 1 張
+            if (mode === 'upscale') {
+                numImages = 1;
+            }
 
             setLoading(true);
             await simulateProgress(0, 90, 2000); // 模擬 0-90% 進度
@@ -435,7 +428,6 @@
                     prompt: prompt,
                     numImages: numImages,
                     image: uploadedImage,       // Base64 + mimeType
-                    // 移除了 gament
                 };
 
                 // 呼叫我們的後端
