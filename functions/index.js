@@ -58,9 +58,8 @@ exports.vertexImageGenerator = onRequest(
         numImages, 
         image, 
         aspectRatio, 
-        // 修正 1：恢復 sampleImageSize，使其能從前端接收 1024 或 2048
-        sampleImageSize, 
-        upscaleLevel   
+        sampleImageSize, // 接收 1024 或 2048
+        upscaleLevel    // 接收 2048 或 4096
       } = req.body; 
       
       let images = []; // 用於儲存回傳的 Base64 圖片
@@ -70,7 +69,7 @@ exports.vertexImageGenerator = onRequest(
         case "upscale":
           images = await handleUpscaling(
             headers, 
-            prompt, // 修正：傳入 prompt (原檔案已有)
+            prompt,
             image,
             upscaleLevel 
           );
@@ -85,7 +84,6 @@ exports.vertexImageGenerator = onRequest(
             image,
             numImages,
             aspectRatio,
-            // 修正 1：將 sampleImageSize 傳入生成函式
             sampleImageSize 
           );
           break;
@@ -111,7 +109,7 @@ exports.vertexImageGenerator = onRequest(
  * 1. 處理標準圖片生成 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio, sampleImageSize) { // 修正 1：接收 sampleImageSize
+async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio, sampleImageSize) {
   
   // 根據 mode 選擇模型 ID
   let modelId = MODEL_GENERATE_DEFAULT; // 預設
@@ -137,8 +135,7 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
     sampleCount: numImages,
   };
   
-  // 修正 1：設定生成尺寸 (1K 或 2K)
-  // (Ultra 模型會自動忽略此參數並使用 1024)
+  // (Ultra 模型會自動忽略此參數並使用 1K)
   if (sampleImageSize) {
     // 修正 4：API 參數需要 "1K" 或 "2K" 字串，而非數字
     if (parseInt(sampleImageSize) === 2048) {
@@ -205,7 +202,7 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
     throw new Error("缺少用於放大的圖片。");
   }
   
-  // 放大也需要 prompt (原檔案已有)
+  // 放大也需要 prompt
   if (!prompt) {
       prompt = " "; // 傳入一個空字串或空格，避免 'Text content is empty'
   }
@@ -221,8 +218,10 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
     ],
     parameters: {
       sampleCount: 1,
-      mode: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
-      upscaleFactor: factor, 
+      mode: "upscale",
+      upscaleConfig: { 
+        upscaleFactor: factor 
+      }
     },
   };
 
