@@ -109,8 +109,16 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   }
   instances.push(instance);
 
+  let safeNumImages = parseInt(numImages) || 1;
+
+  if (mode === 'generate-ultra') {
+      safeNumImages = 1;
+  } else if (mode === 'generate-default' || mode === 'generate-fast') {
+      safeNumImages = Math.max(1, Math.min(safeNumImages, 4)); 
+  }
+
   const parameters = {
-    sampleCount: numImages,
+    sampleCount: safeNumImages,
   };
   
   if (sampleImageSize) {
