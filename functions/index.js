@@ -11,11 +11,11 @@ const PROJECT_ID = "us-computer-474205"; // 您的 GCP 專案 ID
 const LOCATION = "us-central1"; // 您的 Vertex AI 所在區域
 const API_VERSION = "v1"; // API 版本
 
-// --- 修正：模型名稱 (Imagen 4.0 系列) ---
+// --- 模型名稱 (Imagen 4.0 系列) ---
 const MODEL_GENERATE_DEFAULT = "imagen-4.0-generate-001";
 const MODEL_GENERATE_FAST = "imagen-4.0-fast-generate-001";
 const MODEL_GENERATE_ULTRA = "imagen-4.0-ultra-generate-001";
-const MODEL_UPSCALING = "imagen-4.0-generate-001"; // Upscaling 也使用此模型
+const MODEL_UPSCALING = "imagen-4.0-generate-001"; // 2K 放大使用標準版
 
 // Vertex AI API 端點
 const VERTEX_AI_ENDPOINT = `https://${LOCATION}-aiplatform.googleapis.com`;
@@ -58,7 +58,8 @@ exports.vertexImageGenerator = onRequest(
         numImages, 
         image, 
         aspectRatio, 
-        // sampleImageSize, // 修正 3：移除
+        // 修正 1：恢復 sampleImageSize，使其能從前端接收 1024 或 2048
+        sampleImageSize, 
         upscaleLevel   
       } = req.body; 
       
@@ -69,7 +70,7 @@ exports.vertexImageGenerator = onRequest(
         case "upscale":
           images = await handleUpscaling(
             headers, 
-            prompt, // 修正 1：傳入 prompt
+            prompt, // 修正：傳入 prompt (原檔案已有)
             image,
             upscaleLevel 
           );
@@ -83,8 +84,9 @@ exports.vertexImageGenerator = onRequest(
             prompt,
             image,
             numImages,
-            aspectRatio
-            // sampleImageSize // 修正 3：移除
+            aspectRatio,
+            // 修正 1：將 sampleImageSize 傳入生成函式
+            sampleImageSize 
           );
           break;
         default:
@@ -109,7 +111,7 @@ exports.vertexImageGenerator = onRequest(
  * 1. 處理標準圖片生成 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio) { // 修正 3：移除 sampleImageSize
+async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio, sampleImageSize) { // 修正 1：接收 sampleImageSize
   
   // 根據 mode 選擇模型 ID
   let modelId = MODEL_GENERATE_DEFAULT; // 預設
@@ -133,12 +135,17 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   // 建立 :predict 的 parameters
   const parameters = {
     sampleCount: numImages,
-    // sampleImageSize: 1024, // 修正 3：移除 (API 預設為 1024)
   };
+  
+  // 修正 1：設定生成尺寸 (1K 或 2K)
+  // (Ultra 模型會自動忽略此參數並使用 1024)
+  if (sampleImageSize) {
+    parameters.sampleImageSize = parseInt(sampleImageSize); 
+  }
 
-  // 修正 4：總是傳送長寬比
+  // 修正 2：修正長寬比的參數名稱 (aspect_ratio -> aspectRatio)
   if (aspectRatio) {
-    parameters.aspect_ratio = aspectRatio;
+    parameters.aspectRatio = aspectRatio; // <-- 已修正為駝峰式
   }
 
   const payload = {
@@ -171,16 +178,27 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
  * 2. 處理圖片放大 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleUpscaling(headers, prompt, image, upscaleLevel) { // 修正 1：接收 prompt
-  // 根據文件，Upscaling 使用 imagen-4.0-generate-001
-  const modelId = MODEL_UPSCALING; 
+async function handleUpscaling(headers, prompt, image, upscaleLevel) { 
+  
+  const targetSize = parseInt(upscaleLevel) || 2048;
+
+  // 修正 3：動態選擇模型
+  // 4K (4096) 放大必須使用 Ultra 模型
+  // 2K (2048) 放大可以使用標準版 (MODEL_UPSCALING)
+  let modelId;
+  if (targetSize > 2048) {
+      modelId = MODEL_GENERATE_ULTRA; // 4K 必須用 Ultra
+  } else {
+      modelId = MODEL_UPSCALING; // 2K 可以用標準版
+  }
+  
   const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
 
   if (!image || !image.base64Data) {
     throw new Error("缺少用於放大的圖片。");
   }
   
-  // 修正 1：放大也需要 prompt
+  // 放大也需要 prompt (原檔案已有)
   if (!prompt) {
       prompt = " "; // 傳入一個空字串或空格，避免 'Text content is empty'
   }
@@ -188,7 +206,7 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) { // 修正
   const payload = {
     instances: [
       {
-        prompt: prompt, // 修正 1：傳入 prompt
+        prompt: prompt,
         image: {
           bytesBase64Encoded: image.base64Data,
         },
@@ -196,7 +214,7 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) { // 修正
     ],
     parameters: {
       task: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
-      sampleImageSize: parseInt(upscaleLevel) || 2048, // 設定放大尺寸
+      sampleImageSize: targetSize, // <-- 這裡會是 2048 或 4096
     },
   };
 
