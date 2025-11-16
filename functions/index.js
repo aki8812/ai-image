@@ -52,13 +52,26 @@ exports.vertexImageGenerator = onRequest(
       };
 
       // 從前端請求中解析資料
-      const {mode, prompt, numImages, image, aspectRatio} = req.body; // 新增 3：獲取 aspectRatio
+      const {
+        mode, 
+        prompt, 
+        numImages, 
+        image, 
+        aspectRatio, 
+        sampleImageSize, // 新增 2
+        upscaleLevel   // 新增 5
+      } = req.body; 
+      
       let images = []; // 用於儲存回傳的 Base64 圖片
 
       // 根據模式呼叫不同的 Vertex AI API
       switch (mode) {
         case "upscale":
-          images = await handleUpscaling(headers, image);
+          images = await handleUpscaling(
+            headers, 
+            image,
+            upscaleLevel // 修正 1 & 5：傳入放大尺寸
+          );
           break;
         case "generate-default":
         case "generate-fast":
@@ -69,7 +82,8 @@ exports.vertexImageGenerator = onRequest(
             prompt,
             image,
             numImages,
-            aspectRatio // 新增 3：傳入 aspectRatio
+            aspectRatio,
+            sampleImageSize // 新增 2：傳入生成尺寸
           );
           break;
         default:
@@ -94,7 +108,7 @@ exports.vertexImageGenerator = onRequest(
  * 1. 處理標準圖片生成 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio) { // 新增 3：接收 aspectRatio
+async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio, sampleImageSize) { // 新增 2：接收 sampleImageSize
   
   // 根據 mode 選擇模型 ID
   let modelId = MODEL_GENERATE_DEFAULT; // 預設
@@ -118,10 +132,11 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   // 建立 :predict 的 parameters
   const parameters = {
     sampleCount: numImages,
+    sampleImageSize: parseInt(sampleImageSize) || 1024, // 新增 2：設定生成尺寸
   };
 
-  // 新增 3：如果傳來了長寬比，就加入 parameters
-  if (aspectRatio && aspectRatio.includes(':')) {
+  // 修正 3：如果傳來了長寬比 (且不是 1:1 預設)，就加入 parameters
+  if (aspectRatio && aspectRatio !== "1:1") {
     parameters.aspect_ratio = aspectRatio;
   }
 
@@ -155,7 +170,7 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
  * 2. 處理圖片放大 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleUpscaling(headers, image) {
+async function handleUpscaling(headers, image, upscaleLevel) { // 修正 1 & 5
   // 根據文件，Upscaling 使用 imagen-4.0-generate-001
   const modelId = MODEL_UPSCALING; 
   const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:predict`;
@@ -174,6 +189,7 @@ async function handleUpscaling(headers, image) {
     ],
     parameters: {
       task: "upscale", // <-- 關鍵：告訴 Imagen 4.0 執行放大任務
+      sampleImageSize: parseInt(upscaleLevel) || 2048, // 新增 5：設定放大尺寸
     },
   };
 
@@ -194,7 +210,7 @@ async function handleUpscaling(headers, image) {
 
 
 /**
- * 封裝 Vertex AI 的 fetch 呼叫，統一處理錯誤
+ * 封装 Vertex AI 的 fetch 呼叫，統一處理錯誤
  */
 async function vertexFetch(url, options) {
   const response = await fetch(url, options);
