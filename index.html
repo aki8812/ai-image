@@ -4,51 +4,44 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI Image</title> 
+    
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#111827"> 
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <link rel="apple-touch-icon" href="icon/icon-512x512.png">
+
     <link rel="icon" href="favicon.ico" /> 
-    <!-- 引入 Tailwind CSS --><script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* 應用使用者偏好的字體 */
         body {
             font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
         }
-
-        /* 修正 1：讓 body 至少有螢幕高度，並允許滾動 (在小螢幕上) */
         html, body {
             min-height: 100vh;
         }
-        
         body {
-            display: flex; /* 保持置中 */
+            display: flex; 
             align-items: center;
             justify-content: center;
         }
-
-        /* 主應用程式容器的流暢過渡 */
         #app-container {
             transition: justify-content 0.5s ease-in-out;
-            width: 100%; /* 確保容器寬度 */
+            width: 100%; 
         }
-
-        /* 自動增高的 textarea，並有流暢的高度過渡 */
         #prompt-textarea {
             transition: height 0.2s ease-in-out;
-            scrollbar-width: none; /* Firefox */
+            scrollbar-width: none; 
         }
         #prompt-textarea::-webkit-scrollbar {
-            display: none; /* Chrome, Safari */
+            display: none; 
         }
-
-        /* 圖片庫的淡入淡出效果 */
         .image-transition {
             transition: opacity 0.3s ease-in-out;
         }
-
-        /* 進度條的流暢過渡 */
         #progress-bar {
             transition: width 0.3s ease-in-out;
         }
-        
-        /* 隱藏數字輸入框的上下箭頭 */
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
           -webkit-appearance: none; 
@@ -57,62 +50,55 @@
         input[type=number] {
           -moz-appearance: textfield;
         }
-
-        /* 隱藏 radio 按鈕的圓點 */
         input[type="radio"] {
             appearance: none;
             -webkit-appearance: none;
             -moz-appearance: none;
         }
-
-        /* 自定義 radio 按鈕樣式 (用於設定和長寬比) */
         .radio-label {
             cursor: pointer;
             padding: 0.5rem 1rem;
             border-radius: 0.5rem;
             transition: all 0.2s ease-in-out;
-            background-color: #374151; /* gray-700 */
-            color: #D1D5DB; /* gray-300 */
-            border: 1px solid #4B5563; /* gray-600 */
+            background-color: #374151; 
+            color: #D1D5DB; 
+            border: 1px solid #4B5563; 
             display: flex;
             align-items: center;
             justify-content: center;
-            height: 100%; /* 確保填滿 grid cell */
-            text-align: center; /* 確保文字置中 */
+            height: 100%; 
+            text-align: center; 
         }
-
-        /* 選中時的樣式 */
         input[type="radio"]:checked + .radio-label {
-            background-color: #3B82F6; /* blue-500 */
-            color: #FFFFFF; /* white */
-            border-color: #2563EB; /* blue-600 */
+            background-color: #3B82F6; 
+            color: #FFFFFF; 
+            border-color: #2563EB; 
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
-        
         input[type="radio"]:focus-visible + .radio-label {
              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
              outline: none;
         }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200"> <!-- 修正 1：移除 h-screen 和 overflow-hidden -->
+<body class="bg-gray-900 text-gray-200"> 
 
-    <!-- 1. 主應用程式容器 --><div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4"> <!-- 修正 1：改為 min-h-screen -->
+    <div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4"> 
 
-        <!-- 2. 生成結果區域 (預設隱藏) --><div id="results-gallery" class="w-full mb-4 hidden"> <!-- 修正 1：減少 mb -->
-            <!-- 圖片顯示框 --><div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto"> <!-- 修正 1：新增 max-h-[60vh] 和 mx-auto -->
+        <div id="results-gallery" class="w-full mb-4 hidden"> 
+            <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto"> 
                 <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0">
 
-                <!-- 圖片上的按鈕 --><div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <!-- 下載按鈕 --><button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition">
+                <div class="absolute top-4 right-4 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                     </button>
-                    <!-- 全螢幕預覽按鈕 --><button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition">
+                    <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition">
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                     </button>
                 </div>
             </div>
-            <!-- 圖片導航 --><div id="gallery-nav" class="flex justify-between items-center mt-4 px-2 hidden">
+            <div id="gallery-nav" class="flex justify-between items-center mt-4 px-2 hidden">
                 <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
@@ -123,7 +109,7 @@
             </div>
         </div>
         
-        <!-- 3. 進度條區域 (預設隱藏) --><div id="progress-container" class="w-full px-2 my-10 hidden">
+        <div id="progress-container" class="w-full px-2 my-10 hidden">
             <div class="w-full bg-gray-700 rounded-full h-2.5">
                 <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div>
             </div>
@@ -131,31 +117,31 @@
             <p id="error-message" class="text-center text-red-400 mt-2 hidden"></p>
         </div>
 
-        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full"> <!-- 修正 4：移除 mt-auto -->
-            <!-- 圖片預覽 (上傳後顯示) --><div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
-                <!-- 圖片預覽 1 (主圖/放大) --><div id="image-preview-wrapper-1" class="relative w-20 h-20 hidden">
+        <div id="input-hub" class="w-full"> 
+            <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
+                <div id="image-preview-wrapper-1" class="relative w-20 h-20 hidden">
                     <img id="image-preview-1" src="" alt="圖片預覽 1" class="w-full h-full object-cover rounded-lg shadow-md">
                     <button data-preview-id="1" class="remove-image-btn absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow hover:bg-red-700 transition">&times;</button>
                 </div>
             </div>
             
-            <!-- 主輸入框 --><div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2">
-                <!-- 左側按鈕 --><button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="上傳圖片 (主圖)">
+            <div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2">
+                <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="上傳圖片 (主圖)">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden">
                 
-                <!-- 長寬比按鈕 --><button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比與尺寸">
+                <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比與尺寸">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
                 </button>
                 
-                <!-- 設定按鈕 --><button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
+                <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
 
-                <!-- 自動增高輸入框 --><textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..." class="flex-grow bg-transparent text-lg text-gray-100 placeholder-gray-500 p-3 resize-none outline-none overflow-y-auto" style="max-height: 200px;"></textarea>
+                <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..." class="flex-grow bg-transparent text-lg text-gray-100 placeholder-gray-500 p-3 resize-none outline-none overflow-y-auto" style="max-height: 200px;"></textarea>
                 
-                <!-- 發送按鈕 --><button id="send-btn" class="flex-shrink-0 bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                <button id="send-btn" class="flex-shrink-0 bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
             </div>
@@ -163,18 +149,18 @@
 
     </div>
 
-    <!-- 5. 全螢幕預覽 Modal (預設隱藏) --><div id="fullscreen-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
+    <div id="fullscreen-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
         <div class="relative w-full h-full max-w-4xl max-h-[90vh] flex items-center justify-center">
-            <!-- 關閉按鈕 --><button id="modal-close-btn" class="absolute -top-2 -right-2 md:top-2 md:right-2 z-10 bg-white text-black rounded-full p-1.5 shadow-lg hover:scale-110 transition">
+            <button id="modal-close-btn" class="absolute -top-2 -right-2 md:top-2 md:right-2 z-10 bg-white text-black rounded-full p-1.5 shadow-lg hover:scale-110 transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
             </button>
-            <!-- 下載按鈕 --><button id="modal-download-btn" class="absolute top-2 left-2 z-10 bg-white/80 text-black rounded-full p-2 shadow-lg hover:bg-white transition">
+            <button id="modal-download-btn" class="absolute top-2 left-2 z-10 bg-white/80 text-black rounded-full p-2 shadow-lg hover:bg-white transition">
                 <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
             </button>
 
-            <!-- Modal 圖片 --><img id="modal-image" src="" alt="全螢幕預覽" class="max-w-full max-h-full object-contain rounded-lg">
+            <img id="modal-image" src="" alt="全螢幕預覽" class="max-w-full max-h-full object-contain rounded-lg">
             
-            <!-- Modal 導航 --><button id="modal-nav-left" class="absolute left-0 md:-left-12 p-2 rounded-full bg-white/30 hover:bg-white/50 transition disabled:opacity-0">
+            <button id="modal-nav-left" class="absolute left-0 md:-left-12 p-2 rounded-full bg-white/30 hover:bg-white/50 transition disabled:opacity-0">
                 <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
             </button>
             <button id="modal-nav-right" class="absolute right-0 md:-right-12 p-2 rounded-full bg-white/30 hover:bg-white/50 transition disabled:opacity-0">
@@ -183,7 +169,7 @@
         </div>
     </div>
     
-    <!-- 6. 設定 Modal (預設隱藏) --><div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
+    <div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> 
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">設定</h2>
@@ -192,50 +178,44 @@
                 </button>
             </div>
             
-            <!-- 生成模式 (改為單欄) --><div class="mb-4">
+            <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
                 <fieldset class="grid grid-cols-1 gap-3" id="mode-selector"> 
-                    <!-- 選項 1: Imagen 4.0 (預設) -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-default" id="mode-default" class="hidden" checked>
                         <label for="mode-default" title="imagen-4.0-generate-001" class="radio-label">Imagen 4.0 (標準)</label>
                     </div>
-                    <!-- 選項 2: Imagen 4.0 Fast -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-fast" id="mode-fast" class="hidden">
                         <label for="mode-fast" title="imagen-4.0-fast-generate-001" class="radio-label">Imagen 4.0 (高速)</label>
                     </div>
-                    <!-- 選項 3: Imagen 4.0 Ultra -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra" class="hidden">
                         <label for="mode-ultra" title="imagen-4.0-ultra-generate-001" class="radio-label">Imagen 4.0 (最高品質)</label>
                     </div>
-                    <!-- 選項 4: Upscaling -->
                     <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
-                        <label for="mode-upscale" title="使用 imagen-4.0-generate-001 放大" class="radio-label">圖片放大</label>
+                        <label for="mode-upscale" title="使用 Imagen 4.0 放大" class="radio-label">圖片放大</label>
                     </div>
                 </fieldset>
             </div>
 
-            <!-- 圖片數量 (可隱藏) --><div class="mb-4" id="image-count-wrapper">
+            <div class="mb-4" id="image-count-wrapper">
                 <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-8)</label>
                 <input type="number" id="image-count" name="image-count" value="1" min="1" max="8" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
                 <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型一次只能生成 1 張。</p>
             </div>
             
-            <!-- 修正 2：放大尺寸選項 (移除 3K) --><div class="mb-4 hidden" id="upscale-options-wrapper">
+            <div class="mb-4 hidden" id="upscale-options-wrapper">
                 <label class="block text-sm font-medium text-gray-300 mb-3">放大尺寸 (僅支援 2K / 4K)</label>
-                <fieldset class="grid grid-cols-2 gap-3" id="upscale-level-selector"> <!-- 修正 2：改為 2 欄 -->
-                    <!-- 2K -->
+                <fieldset class="grid grid-cols-2 gap-3" id="upscale-level-selector"> 
                     <div>
                         <input type="radio" name="upscale-level-mode" value="2048" id="upscale-2k" class="hidden" checked>
-                        <label for="upscale-2k" class="radio-label">2K</label>
+                        <label for="upscale-2k" class="radio-label">2K (x2)</label>
                     </div>
-                    <!-- 4K -->
                     <div>
                         <input type="radio" name="upscale-level-mode" value="4096" id="upscale-4k" class="hidden">
-                        <label for="upscale-4k" class="radio-label">4K</label>
+                        <label for="upscale-4k" class="radio-label">4K (x4)</label>
                     </div>
                 </fieldset>
             </div>
@@ -243,7 +223,7 @@
         </div>
     </div>
     
-    <!-- 長寬比 Modal (預設隱藏) --><div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
+    <div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">長寬比與尺寸</h2>
@@ -252,30 +232,25 @@
                 </button>
             </div>
             
-            <!-- 固定的 5 種比例 --><div class="mb-4">
+            <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">長寬比例</label>
                 <fieldset class="grid grid-cols-3 gap-3" id="ratio-selector">
-                    <!-- 1:1 -->
                     <div>
                         <input type="radio" name="ratio-mode" value="1:1" id="ratio-1-1" class="hidden" checked>
                         <label for="ratio-1-1" class="radio-label">1:1</label>
                     </div>
-                    <!-- 16:9 -->
                     <div>
                         <input type="radio" name="ratio-mode" value="16:9" id="ratio-16-9" class="hidden">
                         <label for="ratio-16-9" class="radio-label">16:9</label>
                     </div>
-                    <!-- 9:16 -->
                     <div>
                         <input type="radio" name="ratio-mode" value="9:16" id="ratio-9-16" class="hidden">
                         <label for="ratio-9-16" class="radio-label">9:16</label>
                     </div>
-                    <!-- 4:3 -->
                     <div>
                         <input type="radio" name="ratio-mode" value="4:3" id="ratio-4-3" class="hidden">
                         <label for="ratio-4-3" class="radio-label">4:3</label>
                     </div>
-                    <!-- 3:4 -->
                     <div>
                         <input type="radio" name="ratio-mode" value="3:4" id="ratio-3-4" class="hidden">
                         <label for="ratio-3-4" class="radio-label">3:4</label>
@@ -283,53 +258,43 @@
                 </fieldset>
             </div>
             
-            <!-- 移除自訂比例 -->
-            
-            <!-- 生成尺寸 (1K/2K) --><div class="mt-6">
+            <div class="mt-6">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成尺寸</label>
                 <fieldset class="grid grid-cols-2 gap-3" id="sample-size-selector">
-                    <!-- 1K -->
                     <div>
                         <input type="radio" name="sample-size-mode" value="1024" id="size-1k" class="hidden" checked>
                         <label for="size-1k" class="radio-label">1K (1024px)</label>
                     </div>
-                    <!-- 2K -->
                     <div>
                         <input type="radio" name="sample-size-mode" value="2048" id="size-2k" class="hidden">
                         <label for="size-2k" class="radio-label">2K (2048px)</label>
                     </div>
                 </fieldset>
-                 <p class="text-xs text-gray-500 mt-2" id="sample-size-note">注意：Ultra 模型總是 1K。</p>
+                 <p class="text-xs text-gray-500 mt-2" id="sample-size-note">注意：生成 2K 圖片會生成的更慢。</p>
             </div>
         </div>
     </div>
 
 
     <script>
-        // --- API 相關 ---
-
         const firebaseFunctionUrl = "https://verteximagegenerator-zlimai3iga-uc.a.run.app"; 
 
-        // --- 狀態變數 ---
-        let uploadedImage = null; // 儲存上傳圖片 1 的 Base64 和 MimeType
-        let generatedImages = []; // 儲存生成圖片 URL 的陣列
+        let uploadedImage = null; 
+        let generatedImages = []; 
         let currentImageIndex = 0;
         let isLoading = false;
         let progressInterval = null;
         
-        // --- 狀態變數 (來自 Modal) ---
         let selectedMode = "generate-default"; 
         let selectedAspectRatio = "1:1"; 
-        let selectedSampleSize = "1024"; // 1K (1024) 或 2K (2048)
-        let selectedUpscaleLevel = "2048"; // 2K (2048) 或 4K (4096)
+        let selectedSampleSize = "1024"; 
+        let selectedUpscaleLevel = "2048"; 
 
-        // --- DOM 元素 ---
         const appContainer = document.getElementById('app-container');
         const inputHub = document.getElementById('input-hub');
         const promptTextarea = document.getElementById('prompt-textarea');
         const sendBtn = document.getElementById('send-btn');
         
-        // 上傳
         const uploadBtn1 = document.getElementById('upload-btn-1');
         const imageUpload1 = document.getElementById('image-upload-1');
         
@@ -338,25 +303,21 @@
         const imagePreview1 = document.getElementById('image-preview-1');
         const removeImageBtns = document.querySelectorAll('.remove-image-btn');
 
-        // 進度條
         const progressContainer = document.getElementById('progress-container');
         const progressBar = document.getElementById('progress-bar');
         const progressPercent = document.getElementById('progress-percent');
         const errorMessage = document.getElementById('error-message');
 
-        // 結果
         const resultsGallery = document.getElementById('results-gallery');
         const resultImage = document.getElementById('result-image');
         const downloadBtn = document.getElementById('download-btn');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         
-        // 圖片導航
         const galleryNav = document.getElementById('gallery-nav');
         const navLeft = document.getElementById('nav-left');
         const navRight = document.getElementById('nav-right');
         const imageCounter = document.getElementById('image-counter');
 
-        // 全螢幕 Modal
         const fullscreenModal = document.getElementById('fullscreen-modal');
         const modalImage = document.getElementById('modal-image');
         const modalCloseBtn = document.getElementById('modal-close-btn');
@@ -364,7 +325,6 @@
         const modalNavLeft = document.getElementById('modal-nav-left');
         const modalNavRight = document.getElementById('modal-nav-right');
         
-        // 設定 Modal
         const settingsBtn = document.getElementById('settings-btn');
         const settingsModal = document.getElementById('settings-modal');
         const settingsCloseBtn = document.getElementById('settings-close-btn');
@@ -374,7 +334,6 @@
         const upscaleOptionsWrapper = document.getElementById('upscale-options-wrapper'); 
         const upscaleLevelSelector = document.getElementById('upscale-level-selector'); 
 
-        // 長寬比 Modal DOM
         const ratioBtn = document.getElementById('ratio-btn');
         const ratioModal = document.getElementById('ratio-modal');
         const ratioCloseBtn = document.getElementById('ratio-close-btn');
@@ -382,19 +341,14 @@
         const sampleSizeSelector = document.getElementById('sample-size-selector'); 
         const sampleSizeNote = document.getElementById('sample-size-note');
 
-        // --- 事件監聽 ---
-
-        // 1. 文字框自動增高
         promptTextarea.addEventListener('input', () => {
-            promptTextarea.style.height = 'auto'; // 先重設
+            promptTextarea.style.height = 'auto'; 
             promptTextarea.style.height = `${promptTextarea.scrollHeight}px`;
         });
 
-        // 2. 上傳圖片
         uploadBtn1.addEventListener('click', () => imageUpload1.click());
         imageUpload1.addEventListener('change', (e) => handleImageUpload(e, 1));
 
-        // 3. 移除預覽圖片
         removeImageBtns.forEach(btn => {
             btn.addEventListener('click', (e) => {
                 const id = e.currentTarget.dataset.previewId;
@@ -410,7 +364,6 @@
             });
         });
 
-        // 4. 發送請求
         sendBtn.addEventListener('click', handleGeneration);
         promptTextarea.addEventListener('keydown', (e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
@@ -419,11 +372,9 @@
             }
         });
 
-        // 5. 設定 Modal 開啟/關閉
         settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
         settingsCloseBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
-        // 6. 修正：設定選項變更 (Radio buttons)
         modeSelector.addEventListener('change', (e) => {
             if (e.target.name === 'generation-mode') {
                 selectedMode = e.target.value;
@@ -431,79 +382,61 @@
             }
         });
         
-        // 監聽放大尺寸
         upscaleLevelSelector.addEventListener('change', (e) => {
             if (e.target.name === 'upscale-level-mode') {
                 selectedUpscaleLevel = e.target.value;
             }
         });
 
-        // 7. 圖片導航 (主介面)
         navLeft.addEventListener('click', () => showImage(currentImageIndex - 1));
         navRight.addEventListener('click', () => showImage(currentImageIndex + 1));
         
-        // 8. 全螢幕 Modal 開啟/關閉/導航
         fullscreenBtn.addEventListener('click', openFullscreen);
         modalCloseBtn.addEventListener('click', closeFullscreen);
         modalNavLeft.addEventListener('click', () => showModalImage(currentImageIndex - 1));
         modalNavRight.addEventListener('click', () => showModalImage(currentImageIndex + 1));
 
-        // 9. 下載
         downloadBtn.addEventListener('click', downloadCurrentImage);
         modalDownloadBtn.addEventListener('click', downloadCurrentImage);
 
-        // 10. 長寬比 Modal 事件
         ratioBtn.addEventListener('click', () => ratioModal.classList.remove('hidden'));
         ratioCloseBtn.addEventListener('click', () => ratioModal.classList.add('hidden'));
         
-        // 監聽預設比例
         ratioSelector.addEventListener('change', (e) => {
             if (e.target.name === 'ratio-mode') {
                 selectedAspectRatio = e.target.value;
             }
         });
         
-        // 監聽生成尺寸
         sampleSizeSelector.addEventListener('change', (e) => {
             if (e.target.name === 'sample-size-mode') {
                 selectedSampleSize = e.target.value;
             }
         });
 
-        // --- 核心函式 ---
-
-        /**
-         * 修正：根據設定更新輸入介面
-         */
         function updateInputUI() {
-            // 獲取 2K 選項
             const size2kRadio = document.getElementById('size-2k');
             const size2kLabel = size2kRadio.nextElementSibling;
 
             if (selectedMode === 'upscale') {
-                // 如果是放大模式
-                imageCountWrapper.classList.add('hidden'); // 隱藏數量
-                upscaleOptionsWrapper.classList.remove('hidden'); // 顯示放大尺寸
-                ratioBtn.disabled = true; // 禁用長寬比
+                imageCountWrapper.classList.add('hidden'); 
+                upscaleOptionsWrapper.classList.remove('hidden'); 
+                ratioBtn.disabled = true; 
                 ratioBtn.classList.add('opacity-50', 'cursor-not-allowed');
             } else {
-                // 否則 (所有生成模式)
-                imageCountWrapper.classList.remove('hidden'); // 顯示數量
-                upscaleOptionsWrapper.classList.add('hidden'); // 隱藏放大尺寸
-                ratioBtn.disabled = false; // 啟用長寬比
+                imageCountWrapper.classList.remove('hidden'); 
+                upscaleOptionsWrapper.classList.add('hidden'); 
+                ratioBtn.disabled = false; 
                 ratioBtn.classList.remove('opacity-50', 'cursor-not-allowed');
                 
-                // 修正 3：Ultra 模型不支援 2K
                 if (selectedMode === 'generate-ultra') {
                     imageCountInput.max = 1;
                     if (parseInt(imageCountInput.value) > 1) {
                         imageCountInput.value = 1;
                     }
-                    // 禁用 2K
                     size2kRadio.disabled = true;
                     size2kLabel.classList.add('opacity-50', 'cursor-not-allowed');
                     size2kLabel.title = "Ultra 模型不支援 2K";
-                    // 如果當前選了 2K，強制改回 1K
                     if (selectedSampleSize === "2048") {
                         document.getElementById('size-1k').checked = true;
                         selectedSampleSize = "1024";
@@ -511,22 +444,15 @@
                     sampleSizeNote.textContent = "注意：Ultra 模型總是 1K。";
 
                 } else {
-                    // 標準 和 高速
                     imageCountInput.max = 8;
-                    // 啟用 2K
                     size2kRadio.disabled = false;
                     size2kLabel.classList.remove('opacity-50', 'cursor-not-allowed');
                     size2kLabel.title = "";
-                    sampleSizeNote.textContent = "注意：生成 2K 圖片會更慢且更貴。";
+                    sampleSizeNote.textContent = "注意：生成 2K 圖片會生成的更慢。";
                 }
             }
         }
 
-        /**
-         * 處理圖片上傳
-         * @param {Event} e - change 事件物件
-         * @param {number} id - 圖片 ID (1)
-         */
         async function handleImageUpload(e, id) {
             const file = e.target.files[0];
             if (!file) return;
@@ -541,16 +467,13 @@
                 } 
                 
                 imagePreviewContainer.classList.remove('hidden');
-                e.target.value = null; // 清空以便下次上傳
+                e.target.value = null; 
             } catch (error) {
                 console.error("圖片讀取錯誤:", error);
                 showError("讀取圖片失敗。");
             }
         }
 
-        /**
-         * 主生成函式 (呼叫 Firebase Function)
-         */
         async function handleGeneration() {
             if (isLoading) return;
 
@@ -564,13 +487,11 @@
             
             const mode = selectedMode;
             
-            // 獲取設定值
             let aspectRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
             let sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
             let upscaleLevel = document.querySelector('input[name="upscale-level-mode"]:checked').value;
 
 
-            // 基礎檢查
             if (mode.startsWith('generate-') && !prompt && !uploadedImage) {
                 showError("請至少輸入提示詞或上傳一張圖片。"); return;
             }
@@ -578,32 +499,28 @@
                 showError("請上傳一張圖片來進行「圖片放大」。"); return;
             }
             
-            // 修正 3：如果是 Ultra，強制 1 張 且 1K
             if (mode === 'generate-ultra') {
                 numImages = 1;
-                sampleImageSize = "1024"; // Ultra 只支援 1K
+                sampleImageSize = "1024"; 
             }
-            // 修正：如果是 Upscale，強制 1 張
             if (mode === 'upscale') {
                 numImages = 1;
             }
 
             setLoading(true);
-            await simulateProgress(0, 90, 2000); // 模擬 0-90% 進度
+            await simulateProgress(0, 90, 2000); 
 
             try {
-                // 建立傳送給 Firebase Function 的 Payload
                 const payload = {
                     mode: mode,
                     prompt: prompt,
                     numImages: numImages,
-                    image: uploadedImage,       // Base64 + mimeType
+                    image: uploadedImage,       
                     aspectRatio: aspectRatio,   
                     sampleImageSize: sampleImageSize, 
                     upscaleLevel: upscaleLevel 
                 };
 
-                // 呼叫我們的後端
                 const result = await fetchWithBackoff(firebaseFunctionUrl, {
                     method: 'POST',
                     headers: {
@@ -612,14 +529,13 @@
                     body: JSON.stringify(payload)
                 });
                 
-                // 後端應回傳 { images: ["data:...", "data:..."] }
                 if (result.images && result.images.length > 0) {
                     generatedImages = result.images;
                 } else {
                     throw new Error("後端未回傳任何圖片。");
                 }
 
-                await simulateProgress(90, 100, 300); // 模擬 90-100% 進度
+                await simulateProgress(90, 100, 300); 
                 displayResults();
 
             } catch (error) {
@@ -629,24 +545,18 @@
             }
         }
 
-
-        /**
-         * 帶有指數退避重試機制的 fetch
-         */
         async function fetchWithBackoff(url, options, retries = 3, delay = 1000) {
             try {
                 const response = await fetch(url, options);
                 if (!response.ok) {
                     let errorData;
-                    const errorText = await response.text(); // 先獲取純文字
+                    const errorText = await response.text(); 
                     try {
-                        errorData = JSON.parse(errorText); // 嘗試解析 JSON 錯誤
+                        errorData = JSON.parse(errorText); 
                     } catch (e) {
-                        // 不是 JSON 錯誤，使用 pure text
                         throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unknown Status'} - ${errorText || 'No error body'}`);
                     }
                     
-                    // 從錯誤資料中提取更詳細的訊息
                     const message = errorData.error?.message || errorData.message || response.statusText || 'Unknown error';
                     if (!message || message.trim() === "") {
                         throw new Error(`HTTP ${response.status} - ${errorText}`);
@@ -654,32 +564,25 @@
                     throw new Error(message);
                 }
                 
-                // 成功，解析 JSON
                 return await response.json();
 
             } catch (error) {
                 console.warn(`Fetch 失敗 (重試 ${retries} 次): ${error.message}`);
                 if (retries > 0) {
                     await new Promise(resolve => setTimeout(resolve, delay));
-                    // 增加下次重試的延遲
                     return fetchWithBackoff(url, options, retries - 1, delay * 2);
                 } else {
-                    // 拋出最終錯誤
                     throw error;
                 }
             }
         }
 
-        /**
-         * 將圖片檔案轉為 Base64 (用於預覽和 API)
-         */
         function imageToBase64(file) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
                 reader.readAsDataURL(file);
                 reader.onload = () => {
                     const previewUrl = reader.result;
-                    // 從 data URL 中分離 MimeType 和 Base64 data
                     const base64String = previewUrl.split(',')[1];
                     const mimeType = previewUrl.split(',')[0].split(':')[1].split(';')[0];
                     resolve({ 
@@ -692,16 +595,12 @@
             });
         }
 
-        /**
-         * 顯示結果
-         */
         function displayResults() {
             if (generatedImages.length > 0) {
                 currentImageIndex = 0;
                 showImage(currentImageIndex);
                 resultsGallery.classList.remove('hidden');
                 
-                // 設定導航
                 if (generatedImages.length > 1) {
                     galleryNav.classList.remove('hidden');
                 } else {
@@ -713,9 +612,6 @@
             setLoading(false);
         }
 
-        /**
-         * 在主介面顯示指定索引的圖片
-         */
         function showImage(index) {
             if (index < 0 || index >= generatedImages.length) {
                 return;
@@ -723,28 +619,21 @@
             currentImageIndex = index;
             resultImage.classList.add('opacity-0');
             
-            // 延遲一點時間讓淡出效果先生效
             setTimeout(() => {
                 resultImage.src = generatedImages[currentImageIndex];
-                modalImage.src = generatedImages[currentImageIndex]; // 同時更新 modal
+                modalImage.src = generatedImages[currentImageIndex]; 
                 resultImage.classList.remove('opacity-0');
             }, 150);
 
-            // 更新計數器
             imageCounter.textContent = `${index + 1} / ${generatedImages.length}`;
             
-            // 更新按鈕狀態
             navLeft.disabled = index === 0;
             navRight.disabled = index === (generatedImages.length - 1);
             modalNavLeft.disabled = index === 0;
             modalNavRight.disabled = index === (generatedImages.length - 1);
         }
 
-        /**
-         * 在全螢幕 Modal 中顯示圖片
-         */
         function showModalImage(index) {
-            // 邏輯與 showImage 相同，只是目標是 modalImage
             if (index < 0 || index >= generatedImages.length) {
                 return;
             }
@@ -753,62 +642,47 @@
             
             setTimeout(() => {
                 modalImage.src = generatedImages[currentImageIndex];
-                resultImage.src = generatedImages[currentImageIndex]; // 同時更新主介面
+                resultImage.src = generatedImages[currentImageIndex]; 
                 modalImage.classList.remove('opacity-0');
             }, 150);
 
-            // 更新計數器
             imageCounter.textContent = `${index + 1} / ${generatedImages.length}`;
             
-            // 更新按鈕狀態
             navLeft.disabled = index === 0;
             navRight.disabled = index === (generatedImages.length - 1);
             modalNavLeft.disabled = index === 0;
             modalNavRight.disabled = index === (generatedImages.length - 1);
         }
 
-        /**
-         * 開啟全螢幕
-         */
         function openFullscreen() {
-            showModalImage(currentImageIndex); // 確保 modal 顯示的是當前圖片
+            showModalImage(currentImageIndex); 
             fullscreenModal.classList.remove('hidden');
             fullscreenModal.classList.add('flex');
         }
 
-        /**
-         * 關閉全螢幕
-         */
         function closeFullscreen() {
             fullscreenModal.classList.add('hidden');
             fullscreenModal.classList.remove('flex');
-            showImage(currentImageIndex); // 確保主介面同步
+            showImage(currentImageIndex); 
         }
 
-        /**
-         * 下載當前圖片 (相容性最佳化)
-         */
         async function downloadCurrentImage() {
             try {
                 const imageUrl = generatedImages[currentImageIndex];
                 
-                // Base64 Data URL (data:image/png;base64,...)
                 const response = await fetch(imageUrl);
                 const blob = await response.blob();
                 
-                // 創建一個隱藏的 <a> 標籤來觸發下載
                 const a = document.createElement('a');
                 const url = URL.createObjectURL(blob);
                 
                 a.href = url;
-                // 確保檔案名稱有副檔名
                 const extension = blob.type.split('/')[1] || 'png';
                 a.download = `generated-image-${Date.now()}.${extension}`;
                 
                 document.body.appendChild(a);
                 a.click();
                 
-                // 清理
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
 
@@ -818,30 +692,22 @@
             }
         }
 
-
-        /**
-         * 設定載入狀態
-         */
         function setLoading(state) {
             isLoading = state;
             sendBtn.disabled = state;
             if (state) {
-                // 狀態: 載入中
-                appContainer.style.justifyContent = 'flex-start'; // 上移
-                inputHub.classList.add('mt-auto'); // 推到底部
-                resultsGallery.classList.add('hidden'); // 隱藏舊結果
+                appContainer.style.justifyContent = 'flex-start'; 
+                inputHub.classList.add('mt-auto'); 
+                resultsGallery.classList.add('hidden'); 
                 progressContainer.classList.remove('hidden');
                 errorMessage.classList.add('hidden');
                 sendBtn.innerHTML = '<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             } else {
-                // 狀態: 非載入中
                 clearInterval(progressInterval);
                 if (!resultsGallery.classList.contains('hidden')) {
-                    // 修正 4：如果有結果，保持在上 (mt-auto 應保留)
                     appContainer.style.justifyContent = 'flex-start';
                     inputHub.classList.add('mt-auto');
                 } else {
-                    // 修正 4：如果沒結果 (或失敗)，回到中央
                     appContainer.style.justifyContent = 'center';
                     inputHub.classList.remove('mt-auto');
                 }
@@ -850,14 +716,11 @@
             }
         }
 
-        /**
-         * 模擬進度條
-         */
         function simulateProgress(start, end, duration) {
             return new Promise(resolve => {
                 clearInterval(progressInterval);
                 let current = start;
-                const step = (end - start) / (duration / 50); // 每 50ms 更新一次
+                const step = (end - start) / (duration / 50); 
                 
                 progressInterval = setInterval(() => {
                     current += step;
@@ -872,19 +735,29 @@
             });
         }
 
-        /**
-         * 顯示錯誤訊息
-         */
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
-            progressContainer.classList.remove('hidden'); // 確保錯誤訊息可見
-            progressBar.style.width = '0%'; // 重設進度條
+            progressContainer.classList.remove('hidden'); 
+            progressBar.style.width = '0%'; 
             progressPercent.textContent = "失敗";
         }
 
-        // 初始化UI
         updateInputUI();
+    </script>
+
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('/service-worker.js')
+            .then(registration => {
+              console.log('ServiceWorker 註冊成功:', registration.scope);
+            })
+            .catch(error => {
+              console.log('ServiceWorker 註冊失敗:', error);
+            });
+        });
+      }
     </script>
 </body>
 </html>

@@ -1,0 +1,21 @@
+{
+  "name": "AI Image",
+  "short_name": "AI Image",
+  "description": "使用 Vertex AI Imagen 4.0 生成圖片",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#111827",
+  "theme_color": "#111827",
+  "icons": [
+    {
+      "src": "icon/icon-512x512.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
