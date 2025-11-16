@@ -131,7 +131,7 @@
             <p id="error-message" class="text-center text-red-400 mt-2 hidden"></p>
         </div>
 
-        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full mt-auto"> <!-- 修正 1：這會被推到頁面底部 -->
+        <!-- 4. 輸入框核心 --><div id="input-hub" class="w-full"> <!-- 修正 4：移除了 'mt-auto' -->
             <!-- 圖片預覽 (上傳後顯示) --><div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
                 <!-- 圖片預覽 1 (主圖/放大) --><div id="image-preview-wrapper-1" class="relative w-20 h-20 hidden">
                     <img id="image-preview-1" src="" alt="圖片預覽 1" class="w-full h-full object-cover rounded-lg shadow-md">
@@ -145,7 +145,7 @@
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden">
                 
-                <!-- 長寬比按鈕 --><button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比與尺寸">
+                <!-- 長寬比按鈕 --><button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比"> <!-- 修正 3：標題移除 '與尺寸' -->
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
                 </button>
                 
@@ -224,7 +224,7 @@
                 <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型一次只能生成 1 張。</p>
             </div>
             
-            <!-- 新增 5：放大尺寸選項 (預設隱藏) --><div class="mb-4 hidden" id="upscale-options-wrapper">
+            <!-- 放大尺寸選項 (預設隱藏) --><div class="mb-4 hidden" id="upscale-options-wrapper">
                 <label class="block text-sm font-medium text-gray-300 mb-3">放大尺寸</label>
                 <fieldset class="grid grid-cols-3 gap-3" id="upscale-level-selector">
                     <!-- 2K -->
@@ -251,7 +251,7 @@
     <!-- 長寬比 Modal (預設隱藏) --><div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">長寬比與尺寸</h2>
+                <h2 class="text-xl font-bold">長寬比</h2> <!-- 修正 3：標題移除 '與尺寸' -->
                 <button id="ratio-close-btn" class="p-1 rounded-full hover:bg-gray-700">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
                 </button>
@@ -290,22 +290,7 @@
             
             <!-- 修正 4：移除自訂比例 -->
             
-            <!-- 新增 2：生成尺寸 (1K/2K) --><div class="mt-6">
-                <label class="block text-sm font-medium text-gray-300 mb-3">生成尺寸 (僅適用 4.0 標準/高速)</label>
-                <fieldset class="grid grid-cols-2 gap-3" id="sample-size-selector">
-                    <!-- 1K -->
-                    <div>
-                        <input type="radio" name="sample-size-mode" value="1024" id="size-1k" class="hidden" checked>
-                        <label for="size-1k" class="radio-label">1K (1024px)</label>
-                    </div>
-                    <!-- 2K -->
-                    <div>
-                        <input type="radio" name="sample-size-mode" value="2048" id="size-2k" class="hidden">
-                        <label for="size-2k" class="radio-label">2K (2048px)</label>
-                    </div>
-                </fieldset>
-                 <p class="text-xs text-gray-500 mt-1">注意：Ultra 模型總是 1K。</p>
-            </div>
+            <!-- 修正 3：移除生成尺寸 (1K/2K) --><!-- <div class="mt-6"> ... </div> -->
         </div>
     </div>
 
@@ -324,8 +309,8 @@
         // --- 狀態變數 (來自 Modal) ---
         let selectedMode = "generate-default"; 
         let selectedAspectRatio = "1:1"; 
-        let selectedSampleSize = "1024"; // 新增 2：1K (1024) 或 2K (2048)
-        let selectedUpscaleLevel = "2048"; // 新增 5：2K (2048), 3K (3072), 4K (4096)
+        // let selectedSampleSize = "1024"; // 修正 3：移除
+        let selectedUpscaleLevel = "2048"; // 放大尺寸 2K, 3K, 4K
 
         // --- DOM 元素 ---
         const appContainer = document.getElementById('app-container');
@@ -375,16 +360,15 @@
         const imageCountInput = document.getElementById('image-count');
         const imageCountWrapper = document.getElementById('image-count-wrapper'); 
         const modeSelector = document.getElementById('mode-selector'); 
-        const upscaleOptionsWrapper = document.getElementById('upscale-options-wrapper'); // 新增 5
-        const upscaleLevelSelector = document.getElementById('upscale-level-selector'); // 新增 5
+        const upscaleOptionsWrapper = document.getElementById('upscale-options-wrapper'); 
+        const upscaleLevelSelector = document.getElementById('upscale-level-selector'); 
 
         // 長寬比 Modal DOM
         const ratioBtn = document.getElementById('ratio-btn');
         const ratioModal = document.getElementById('ratio-modal');
         const ratioCloseBtn = document.getElementById('ratio-close-btn');
         const ratioSelector = document.getElementById('ratio-selector');
-        const sampleSizeSelector = document.getElementById('sample-size-selector'); // 新增 2
-        // 移除了 customRatioInput (修正 4)
+        // const sampleSizeSelector = document.getElementById('sample-size-selector'); // 修正 3：移除
 
         // --- 事件監聽 ---
 
@@ -435,7 +419,7 @@
             }
         });
         
-        // 新增 5：監聽放大尺寸
+        // 監聽放大尺寸
         upscaleLevelSelector.addEventListener('change', (e) => {
             if (e.target.name === 'upscale-level-mode') {
                 selectedUpscaleLevel = e.target.value;
@@ -467,12 +451,8 @@
             }
         });
         
-        // 監聽生成尺寸 (新增 2)
-        sampleSizeSelector.addEventListener('change', (e) => {
-            if (e.target.name === 'sample-size-mode') {
-                selectedSampleSize = e.target.value;
-            }
-        });
+        // 監聽生成尺寸 (修正 3：移除)
+        // sampleSizeSelector.addEventListener('change', (e) => { ... });
         
         // 移除了 customRatioInput 監聽 (修正 4)
 
@@ -550,11 +530,11 @@
             
             const mode = selectedMode;
             
-            // 修正 3/4：獲取固定的長寬比
+            // 修正 4：獲取固定的長寬比
             const aspectRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
-            // 新增 2：獲取生成尺寸
-            const sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
-            // 新增 5：獲取放大尺寸
+            // 修正 3：移除 (sampleImageSize)
+            // const sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
+            // 獲取放大尺寸
             const upscaleLevel = document.querySelector('input[name="upscale-level-mode"]:checked').value;
 
 
@@ -562,8 +542,12 @@
             if (mode.startsWith('generate-') && !prompt && !uploadedImage) {
                 showError("請至少輸入提示詞或上傳一張圖片。"); return;
             }
+            // 修正 1：放大功能也需要提示詞
             if (mode === 'upscale' && !uploadedImage) {
                 showError("請上傳一張圖片來進行「圖片放大」。"); return;
+            }
+             if (mode === 'upscale' && !prompt) {
+                showError("「圖片放大」也需要提示詞。"); return;
             }
             
             // 修正：如果是 Ultra，強制 1 張
@@ -582,12 +566,12 @@
                 // 建立傳送給 Firebase Function 的 Payload
                 const payload = {
                     mode: mode,
-                    prompt: prompt,
+                    prompt: prompt, // 修正 1：放大也需要 prompt
                     numImages: numImages,
                     image: uploadedImage,       // Base64 + mimeType
-                    aspectRatio: aspectRatio,   // 修正 3/4
-                    sampleImageSize: sampleImageSize, // 新增 2
-                    upscaleLevel: upscaleLevel // 新增 5
+                    aspectRatio: aspectRatio,   // 修正 4
+                    // sampleImageSize: sampleImageSize, // 修正 3：移除
+                    upscaleLevel: upscaleLevel 
                 };
 
                 // 呼叫我們的後端
@@ -827,9 +811,9 @@
                     // 如果有結果，保持在上
                     appContainer.style.justifyContent = 'flex-start';
                 } else {
-                    // 如果沒結果 (或失敗)，回到中央
+                    // 修正 4：如果沒結果 (或失敗)，回到中央
                     appContainer.style.justifyContent = 'center';
-                    inputHub.classList.remove('mt-auto');
+                    inputHub.classList.remove('mt-auto'); // 修正 4：移除 mt-auto
                 }
                 progressContainer.classList.add('hidden');
                 sendBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
