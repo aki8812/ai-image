@@ -13,9 +13,7 @@ const API_VERSION = "v1"; // API 版本
 
 // 模型名稱 (對應到您的文件)
 const GENERATION_MODEL = "gemini-2.5-flash-image-preview"; // NanoBanana
-// *** 修正：模型名稱改為 imagegeneration@002 ***
 const UPSCALING_MODEL = "imagegeneration@002"; // 用於圖片放大
-// *** 移除 VIRTUAL_TRY_ON_MODEL ***
 
 // Vertex AI API 端點
 const VERTEX_AI_ENDPOINT = `https://${LOCATION}-aiplatform.googleapis.com`;
@@ -52,7 +50,7 @@ exports.vertexImageGenerator = onRequest(
       };
 
       // 從前端請求中解析資料
-      const {mode, prompt, numImages, image} = req.body; // 移除了 gament
+      const {mode, prompt, numImages, image} = req.body; 
       let images = []; // 用於儲存回傳的 Base64 圖片
 
       // 根據模式呼叫不同的 Vertex AI API
@@ -68,7 +66,6 @@ exports.vertexImageGenerator = onRequest(
         case "upscale":
           images = await handleUpscaling(headers, prompt, image);
           break;
-        // *** 移除了 case "tryon" ***
         default:
           throw new Error("無效的模式 (mode)。");
       }
@@ -92,7 +89,8 @@ exports.vertexImageGenerator = onRequest(
  * 呼叫 streamGenerateContent API
  */
 async function handleGeneration(headers, prompt, image, numImages) {
-  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/publishers/google/models/${GENERATION_MODEL}:streamGenerateContent`;
+  // *** 關鍵修正：補上 projects/.../locations/... 路徑 ***
+  const apiUrl = `${VERTEX_AI_ENDPOINT}/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${GENERATION_MODEL}:streamGenerateContent`;
 
   const parts = [];
   if (prompt) {
@@ -109,7 +107,6 @@ async function handleGeneration(headers, prompt, image, numImages) {
 
   const payload = {
     contents: [{role: "user", parts: parts}],
-    // *** 修正：移除了空的 generationConfig ***
   };
 
   const generationPromises = [];
@@ -160,14 +157,12 @@ async function handleUpscaling(headers, prompt, image) {
   const payload = {
     instances: [
       {
-        // *** 修正：Upscaling 不需要 prompt ***
         image: {
           bytesBase64Encoded: image.base64Data,
         },
       },
     ],
     parameters: {
-      // *** 修正：Upscaling 不需要 'task' 或 'sampleCount' ***
       // 根據文件，只需傳送圖片即可
     },
   };
@@ -187,7 +182,6 @@ async function handleUpscaling(headers, prompt, image) {
   return [`data:image/png;base64,${base64Data}`];
 }
 
-// *** 移除了 handleVirtualTryOn 函式 ***
 
 /**
  * 封裝 Vertex AI 的 fetch 呼叫，統一處理錯誤
