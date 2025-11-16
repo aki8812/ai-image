@@ -1,9 +1,13 @@
 const {onRequest} = require("firebase-functions/v2/https");
 const {initializeApp} = require("firebase-admin/app");
+const { getStorage } = require("firebase-admin/storage");
 const {GoogleAuth} = require("google-auth-library"); 
 const fetch = require("node-fetch");
+const { v4: uuidv4 } = require('uuid'); 
 
 initializeApp();
+
+const bucket = getStorage().bucket();
 
 const PROJECT_ID = "us-computer-474205"; 
 const LOCATION = "us-central1"; 
@@ -50,11 +54,11 @@ exports.vertexImageGenerator = onRequest(
         upscaleLevel    
       } = req.body; 
       
-      let images = []; 
+      let imageUrls = []; 
 
       switch (mode) {
         case "upscale":
-          images = await handleUpscaling(
+          imageUrls = await handleUpscaling(
             headers, 
             prompt,
             image,
@@ -64,7 +68,7 @@ exports.vertexImageGenerator = onRequest(
         case "generate-default":
         case "generate-fast":
         case "generate-ultra":
-          images = await handleGeneration(
+          imageUrls = await handleGeneration(
             headers,
             mode,
             prompt,
@@ -77,8 +81,9 @@ exports.vertexImageGenerator = onRequest(
         default:
           throw new Error(`無效的模式 (mode): ${mode}`);
       }
+      
+      res.status(200).json({images: imageUrls});
 
-      res.status(200).json({images: images});
     } catch (error) {
       console.error("Firebase Function 發生錯誤:", error);
       res.status(500).json({
@@ -90,6 +95,29 @@ exports.vertexImageGenerator = onRequest(
     }
   }
 );
+
+async function saveImagesToStorage(base64DataArray) {
+  const uploadPromises = base64DataArray.map(async (base64Data) => {
+    const buffer = Buffer.from(base64Data, 'base64');
+    
+    const fileName = `ai-images/generated-${Date.now()}-${uuidv4()}.png`;
+    const file = bucket.file(fileName);
+
+    await file.save(buffer, {
+      metadata: {
+        contentType: 'image/png',
+        cacheControl: 'public, max-age=31536000', 
+      },
+    });
+
+    await file.makePublic();
+    
+    return file.publicUrl();
+  });
+
+  return Promise.all(uploadPromises);
+}
+
 
 async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio, sampleImageSize) {
   
@@ -109,7 +137,6 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   }
   instances.push(instance);
 
-  // 修正：所有模型都支援最多 4 張
   let safeNumImages = parseInt(numImages) || 1;
   safeNumImages = Math.max(1, Math.min(safeNumImages, 4)); 
 
@@ -117,7 +144,6 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
     sampleCount: safeNumImages,
   };
   
-  // 修正：Ultra 也支援 2K，所以這個邏輯是正確的
   if (sampleImageSize) {
     if (parseInt(sampleImageSize) === 2048) {
       parameters.sampleImageSize = "2K";
@@ -144,15 +170,15 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   if (!result.predictions || !Array.isArray(result.predictions)) {
       throw new Error("Imagen API 未回傳有效的 predictions 陣列。");
   }
-
-  const images = result.predictions.map(pred => {
+  
+  const base64Images = result.predictions.map(pred => {
       if (!pred.bytesBase64Encoded) {
           throw new Error("Imagen API 的 prediction 中缺少 bytesBase64Encoded。");
       }
-      return `data:image/png;base64,${pred.bytesBase64Encoded}`;
+      return pred.bytesBase64Encoded;
   });
 
-  return images;
+  return await saveImagesToStorage(base64Images);
 }
 
 async function handleUpscaling(headers, prompt, image, upscaleLevel) { 
@@ -209,7 +235,7 @@ async function handleUpscaling(headers, prompt, image, upscaleLevel) {
     throw new Error("Imagen Upscaling API 未回傳圖片資料。");
   }
 
-  return [`data:image/png;base64,${base64Data}`];
+  return await saveImagesToStorage([base64Data]);
 }
 
 async function vertexFetch(url, options) {
