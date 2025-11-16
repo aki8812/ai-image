@@ -52,7 +52,7 @@ exports.vertexImageGenerator = onRequest(
       };
 
       // 從前端請求中解析資料
-      const {mode, prompt, numImages, image} = req.body; 
+      const {mode, prompt, numImages, image, aspectRatio} = req.body; // 新增 3：獲取 aspectRatio
       let images = []; // 用於儲存回傳的 Base64 圖片
 
       // 根據模式呼叫不同的 Vertex AI API
@@ -68,7 +68,8 @@ exports.vertexImageGenerator = onRequest(
             mode,
             prompt,
             image,
-            numImages
+            numImages,
+            aspectRatio // 新增 3：傳入 aspectRatio
           );
           break;
         default:
@@ -93,7 +94,7 @@ exports.vertexImageGenerator = onRequest(
  * 1. 處理標準圖片生成 (Imagen 4.0)
  * 呼叫 :predict API
  */
-async function handleGeneration(headers, mode, prompt, image, numImages) {
+async function handleGeneration(headers, mode, prompt, image, numImages, aspectRatio) { // 新增 3：接收 aspectRatio
   
   // 根據 mode 選擇模型 ID
   let modelId = MODEL_GENERATE_DEFAULT; // 預設
@@ -117,8 +118,12 @@ async function handleGeneration(headers, mode, prompt, image, numImages) {
   // 建立 :predict 的 parameters
   const parameters = {
     sampleCount: numImages,
-    // 您可以在這裡添加其他 Imagen 參數，例如 aspect_ratio, negative_prompt 等
   };
+
+  // 新增 3：如果傳來了長寬比，就加入 parameters
+  if (aspectRatio && aspectRatio.includes(':')) {
+    parameters.aspect_ratio = aspectRatio;
+  }
 
   const payload = {
     instances: instances,
