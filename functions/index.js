@@ -109,18 +109,15 @@ async function handleGeneration(headers, mode, prompt, image, numImages, aspectR
   }
   instances.push(instance);
 
+  // 修正：所有模型都支援最多 4 張
   let safeNumImages = parseInt(numImages) || 1;
-
-  if (mode === 'generate-ultra') {
-      safeNumImages = 1;
-  } else if (mode === 'generate-default' || mode === 'generate-fast') {
-      safeNumImages = Math.max(1, Math.min(safeNumImages, 4)); 
-  }
+  safeNumImages = Math.max(1, Math.min(safeNumImages, 4)); 
 
   const parameters = {
     sampleCount: safeNumImages,
   };
   
+  // 修正：Ultra 也支援 2K，所以這個邏輯是正確的
   if (sampleImageSize) {
     if (parseInt(sampleImageSize) === 2048) {
       parameters.sampleImageSize = "2K";
