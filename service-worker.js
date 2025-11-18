@@ -5,7 +5,6 @@ const FILES_TO_CACHE = [
   '/', 
   'index.html',
   'favicon.ico',
-  'https://cdn.tailwindcss.com', 
   'icon/icon-512x512.png' 
 ];
 
@@ -41,6 +40,11 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   
   if (event.request.url.includes(API_HOST)) {
+    event.respondWith(fetch(event.request));
+    return;
+  }
+
+  if (event.request.url.includes('cdn.tailwindcss.com')) {
     event.respondWith(fetch(event.request));
     return;
   }
