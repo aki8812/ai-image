@@ -47,7 +47,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
-  // 檢查 Payload 大小 (簡易檢查，Vercel 限制通常在 4.5MB)
+  // 檢查 Payload 大小
   const contentLength = req.headers['content-length'];
   if (contentLength && parseInt(contentLength) > 4.5 * 1024 * 1024) {
       return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
@@ -81,7 +81,6 @@ export default async function handler(req, res) {
 }
 
 // === NanoBanana Pro (Gemini 3 Pro) ===
-// 修正：加入 images 參數處理
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
     const modelId = "gemini-3-pro-image-preview"; 
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
@@ -96,7 +95,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     // 1. 構建 Parts：文字 Prompt + 圖片
     const parts = [{ text: prompt }];
 
-    // 【關鍵修正】把圖片加入 payload
+    // 加入圖片到 payload
     if (images && Array.isArray(images)) {
         images.forEach(img => {
             if (img.base64Data) {
@@ -111,7 +110,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     }
 
     const payload = {
-        contents: [{ role: "user", parts: parts }], // 包含圖片的 Parts
+        contents: [{ role: "user", parts: parts }], 
         tools: [{ google_search: {} }], 
         generation_config: {
             image_config: {
@@ -121,45 +120,49 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
+    // 【關鍵修正】使用 Promise.all 並行請求，但錯開起跑時間 (Staggering)
+    // 這是為了在 Vercel 10秒限制內完成 4 張圖，同時減少 Rate Limit 機率
+    const requests = Array(safeNumImages).fill().map(async (_, i) => {
+        // 第1張馬上跑，第2張等500ms，第3張等1000ms...
+        if (i > 0) await delay(i * 500); 
+        
+        return vertexFetch(apiUrl, {
+            method: "POST",
+            headers: headers,
+            body: JSON.stringify(payload),
+        }).catch(e => ({ error: e.message }));
+    });
+
+    // 等待所有請求完成 (或是超時前盡量完成)
+    const results = await Promise.all(requests);
+    
     const validImages = [];
     const validThoughts = [];
     let refusalReason = "";
 
-    // 【關鍵修正】改用序列執行 (Serial Execution)
-    // 並行請求容易觸發 Vertex AI 預覽版的 Quota Limit，導致掉圖
-    for (let i = 0; i < safeNumImages; i++) {
-        try {
-            // 第一張不用等，之後每張間隔 1 秒緩衝
-            if (i > 0) await delay(1000); 
+    for (const result of results) {
+        if (result.error) {
+            console.error("NanoBanana generation skipped:", result.error);
+            continue;
+        }
+        
+        const candidates = result.candidates;
+        if (!candidates || candidates.length === 0) continue;
 
-            const result = await vertexFetch(apiUrl, {
-                method: "POST",
-                headers: headers,
-                body: JSON.stringify(payload),
-            });
+        const parts = candidates[0].content?.parts || [];
+        let thoughts = "";
+        let base64Image = null;
 
-            const candidates = result.candidates;
-            if (!candidates || candidates.length === 0) continue;
+        for (const part of parts) {
+            if (part.text) thoughts += part.text + "\n";
+            if (part.inlineData) base64Image = part.inlineData.data;
+        }
 
-            const parts = candidates[0].content?.parts || [];
-            let thoughts = "";
-            let base64Image = null;
-
-            for (const part of parts) {
-                if (part.text) thoughts += part.text + "\n";
-                if (part.inlineData) base64Image = part.inlineData.data;
-            }
-
-            if (base64Image) {
-                validImages.push(base64Image);
-                validThoughts.push(thoughts.trim());
-            } else if (thoughts) {
-                refusalReason = thoughts.trim();
-            }
-
-        } catch (e) {
-            console.error(`Gemini generation ${i+1} failed:`, e.message);
-            // 繼續嘗試下一張，不中斷
+        if (base64Image) {
+            validImages.push(base64Image);
+            validThoughts.push(thoughts.trim());
+        } else if (thoughts) {
+            refusalReason = thoughts.trim();
         }
     }
 
@@ -228,8 +231,8 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     const base64Images = result.predictions.map(p => p.bytesBase64Encoded);
     
     return await saveImagesToStorage(base64Images, {
-        prompt: prompt,
-        aspectRatio: aspectRatio,
+        prompt,
+        aspectRatio,
         size: sizeLabel,
         mode: mode
     });
