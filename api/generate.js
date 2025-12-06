@@ -20,10 +20,13 @@ const getCredentials = () => {
 
 const serviceAccount = getCredentials();
 
+const BUCKET_NAME = "us-computer-474205.firebasestorage.app"; 
+
+
 if (getApps().length === 0) {
   initializeApp({
     credential: cert(serviceAccount),
-    storageBucket: `${serviceAccount.project_id}.appspot.com` 
+    storageBucket: BUCKET_NAME 
   });
 }
 
@@ -96,9 +99,15 @@ export default async function handler(req, res) {
 
   } catch (error) {
     console.error("API Error:", error);
+    // 回傳更詳細的錯誤訊息以便除錯 (包含 Bucket 名稱)
+    const errorMsg = error.code === 404 && error.message.includes('bucket') 
+        ? `找不到儲存桶: ${BUCKET_NAME}。請確認 Firebase Storage 是否已啟用，或名稱是否正確。`
+        : (error.message || "伺服器發生錯誤");
+
     res.status(500).json({
       error: {
-        message: error.message || "伺服器發生錯誤",
+        message: errorMsg,
+        originalError: error
       },
     });
   }
