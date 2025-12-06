@@ -25,16 +25,12 @@ const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
 const LOCATION = "us-central1"; 
 
-// === 關鍵修正：定義兩組 API 端點 ===
-
-// 1. 區域型端點 (Regional Endpoint) - 用於 Imagen 4
-// 格式: https://{LOCATION}-aiplatform.googleapis.com
+// === 定義 API 端點 ===
+// 1. 區域型端點 (Regional) - 用於 Imagen 4 / Upscale
 const REGIONAL_BASE = `https://${LOCATION}-aiplatform.googleapis.com`;
 const V1_API_REGIONAL = `${REGIONAL_BASE}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
-// 2. 全球型端點 (Global Endpoint) - 用於 Gemini 3 Pro 預覽版
-// 格式: https://aiplatform.googleapis.com (不帶區域前綴)
-// 路徑中的 locations 必須為 'global'
+// 2. 全球型端點 (Global) - 用於 Gemini 3 Pro 預覽版
 const GLOBAL_BASE = `https://aiplatform.googleapis.com`;
 const V1BETA_API_GLOBAL = `${GLOBAL_BASE}/v1beta1/projects/${PROJECT_ID}/locations/global/publishers/google/models`;
 
@@ -63,15 +59,11 @@ export default async function handler(req, res) {
     const body = req.body;
     let generatedResults = [];
 
-    // === 路由邏輯 ===
     if (body.mode === 'generate-nanobanana') {
-        // NanoBanana Pro -> 走 Global Endpoint (Gemini 3 專用)
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
-        // Upscale -> 走 Regional Endpoint (與 Imagen 一致)
         generatedResults = await handleUpscaling(headers, body);
     } else {
-        // Imagen 4 -> 走 Regional Endpoint
         generatedResults = await handleImagen(headers, body);
     }
 
@@ -84,31 +76,29 @@ export default async function handler(req, res) {
 }
 
 // === NanoBanana Pro (Gemini 3 Pro) ===
-// 使用 Global Endpoint + v1beta1
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize }) {
     const modelId = "gemini-3-pro-image-preview"; 
-    
-    // 【關鍵修正】使用 Global Endpoint 路徑
-    // 網址結構: https://aiplatform.googleapis.com/v1beta1/projects/.../locations/global/...
+    // 使用 Global Endpoint + v1beta1
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
-    // 處理參數
     let targetImageSize;
     if (sampleImageSize === '4096') targetImageSize = "4K";
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
 
+    // 強制加上畫圖指令，引導模型生成圖片，但它可能仍會先輸出思考文字
+    const enhancedPrompt = `Generate a high-quality, realistic image of: ${prompt}`;
+
     const payload = {
         contents: [{ 
             role: "user", 
-            parts: [{ text: prompt }] 
+            parts: [{ text: enhancedPrompt }] 
         }],
         tools: [{ google_search: {} }], // Grounding
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
-                // 只有有值時才加入 image_size
                 ...(targetImageSize && { image_size: targetImageSize })
             }
         }
@@ -122,39 +112,54 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
 
     const candidates = result.candidates;
     if (!candidates || candidates.length === 0) {
-        throw new Error("Gemini 3 未回傳結果 (可能是 Prompt 被拒絕或模型暫時不可用)");
+        throw new Error("Gemini 3 未回傳結果");
     }
 
-    const imagePart = candidates[0].content?.parts?.find(p => p.inlineData);
-    
-    if (!imagePart) {
-        const textPart = candidates[0].content?.parts?.find(p => p.text);
-        if (textPart) {
-            throw new Error(`Gemini 回傳了文字而非圖片: ${textPart.text}`);
+    // === 關鍵邏輯修正：同時捕捉思考 (Thoughts) 與 圖片 (Image) ===
+    const parts = candidates[0].content?.parts || [];
+    let thoughts = "";
+    let base64Image = null;
+
+    // 遍歷所有部分，Gemini 可能把思考放在 Part 0，圖片放在 Part 1
+    for (const part of parts) {
+        if (part.text) {
+            // 收集思考過程
+            thoughts += part.text + "\n";
         }
-        throw new Error("Gemini 未生成圖片資料");
+        if (part.inlineData) {
+            // 收集圖片數據
+            base64Image = part.inlineData.data;
+        }
     }
 
-    // 顯示標籤
+    // 如果完全沒有圖片，才拋出錯誤，並把思考過程印出來幫助除錯
+    if (!base64Image) {
+        console.warn("Gemini Thoughts:", thoughts); // 在後端 Log 紀錄思考
+        // 將思考內容包含在錯誤訊息中，讓前端知道發生什麼事
+        const shortThoughts = thoughts.length > 200 ? thoughts.substring(0, 200) + "..." : thoughts;
+        throw new Error(`Gemini 僅回傳思考文字 (Thoughts) 但未生成圖片。思考內容: ${shortThoughts}`);
+    }
+
     let displaySize = "1K (Default)";
     if (targetImageSize === "2K") displaySize = "2K";
     if (targetImageSize === "4K") displaySize = "4K";
 
-    return await saveImagesToStorage([imagePart.inlineData.data], {
+    // 將圖片與思考過程一起存入並回傳
+    return await saveImagesToStorage([base64Image], {
         prompt: prompt,
         aspectRatio: targetAspectRatio,
         size: displaySize,
-        mode: "gemini-3-pro (Vertex Global)"
+        mode: "gemini-3-pro (Vertex Global)",
+        thoughts: thoughts.trim() // 【新增】將思考過程回傳給前端
     });
 }
 
-// === Imagen 4 系列 (維持 Regional v1) ===
+// === Imagen 4 系列 (維持原樣) ===
 async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
     let modelId = "imagen-4.0-generate-001";
     if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
     if (mode === "generate-ultra") modelId = "imagen-4.0-ultra-generate-001";
 
-    // 使用 Regional Endpoint
     const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
 
     const instances = [{ prompt: prompt }];
@@ -201,13 +206,12 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     });
 }
 
-// === Upscale (維持 Regional v1) ===
+// === Upscale (維持原樣) ===
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
     const modelId = "imagen-4.0-ultra-generate-001"; 
     const factor = targetSize > 2048 ? "x4" : "x2";
     
-    // 使用 Regional Endpoint
     const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
 
     if (!images || images.length === 0) throw new Error("缺少用於放大的圖片");
@@ -248,19 +252,32 @@ async function saveImagesToStorage(base64DataArray, metadata) {
     const fileName = `ai-images/gen-${Date.now()}-${uuidv4()}.png`;
     const file = bucket.file(fileName);
 
+    // 將 metadata (包含 thoughts) 存入 Firebase Storage 的 Metadata
+    // 注意：metadata 物件中的值必須是字串，如果 thoughts 太長可能需要截斷或另外存
+    // 但這裡我們先嘗試直接存
     await file.save(buffer, {
       metadata: {
         contentType: 'image/png',
         cacheControl: 'public, max-age=31536000',
-        metadata: { ...metadata }
+        metadata: {
+            prompt: metadata.prompt || "",
+            mode: metadata.mode,
+            // 為了避免 header size limit，可以選擇不把 thoughts 寫入 storage metadata
+            // 但一定要回傳給前端
+        }
       },
     });
 
     await file.makePublic();
     
+    // 回傳給前端的物件，這裡一定要包含 thoughts
     return {
         url: file.publicUrl(),
-        ...metadata
+        prompt: metadata.prompt,
+        aspectRatio: metadata.aspectRatio,
+        size: metadata.size,
+        mode: metadata.mode,
+        thoughts: metadata.thoughts // 【新增】回傳思考過程
     };
   });
   return Promise.all(uploadPromises);
