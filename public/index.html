@@ -25,6 +25,7 @@
             align-items: center;
             justify-content: center;
         }
+        /* 原本的過渡效果 */
         #app-container {
             transition: justify-content 0.5s ease-in-out;
             width: 100%; 
@@ -47,19 +48,17 @@
         .image-transition {
             transition: opacity 0.4s ease-in-out;
         }
-        input[type=number]::-webkit-inner-spin-button, 
-        input[type=number]::-webkit-outer-spin-button { 
-          -webkit-appearance: none; 
-          margin: 0; 
+        
+        /* 自定義 Radio 樣式 */
+        input[type="radio"]:checked + .radio-label {
+            background-color: #3B82F6; color: #FFFFFF; border-color: #2563EB;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
         }
-        input[type=number] {
-          -moz-appearance: textfield;
+        input[type="radio"]:focus-visible + .radio-label {
+             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
+             outline: none;
         }
-        input[type="radio"] {
-            appearance: none;
-            -webkit-appearance: none;
-            -moz-appearance: none;
-        }
+        
         .radio-label {
             cursor: pointer;
             padding: 0.5rem 1rem;
@@ -74,46 +73,39 @@
             height: 100%; 
             text-align: center; 
         }
-        input[type="radio"]:checked + .radio-label {
-            background-color: #3B82F6; 
-            color: #FFFFFF; 
-            border-color: #2563EB; 
-            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
-        }
-        input[type="radio"]:focus-visible + .radio-label {
-             box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
-             outline: none;
-        }
-        /* 載入中的閃爍效果 */
-        .loading-pulse {
-            animation: pulse-bg 1.5s infinite;
-        }
+
+        /* 載入動畫 */
+        .loading-pulse { animation: pulse-bg 1.5s infinite; }
         @keyframes pulse-bg {
             0% { background-color: #1f2937; }
             50% { background-color: #374151; }
             100% { background-color: #1f2937; }
         }
+
+        /* 更多尺寸選單的動畫 */
+        .dropdown-enter {
+            transform: scale(0.95); opacity: 0; pointer-events: none;
+        }
+        .dropdown-enter-active {
+            transform: scale(1); opacity: 1; pointer-events: auto; transition: all 0.1s ease-out;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200"> 
 
-    <div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4"> 
+    <!-- 修正：加入 mx-auto 強制水平置中，移除 transition-all 以免干擾原本 CSS -->
+    <div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4 mx-auto"> 
 
+        <!-- 結果展示區 -->
         <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4"> 
-            
-            <!-- 主圖顯示區 -->
             <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
-                
-                <!-- 1. 生成進度圓環 (Generation Loader) - 懸浮在中央 -->
+                <!-- 生成進度圓環 -->
                 <div id="generation-loader" class="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300">
                     <div class="relative w-24 h-24">
-                        <!-- 背景圓圈 -->
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" stroke-width="8"></circle>
-                            <!-- 進度圓圈 -->
                             <circle id="progress-ring" cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"></circle>
                         </svg>
-                        <!-- 中間文字 -->
                         <div class="absolute inset-0 flex items-center justify-center">
                             <span id="progress-percent" class="text-white text-lg font-bold font-mono">0%</span>
                         </div>
@@ -121,90 +113,65 @@
                     <p class="text-white mt-4 font-bold text-lg animate-pulse tracking-wider">AI 繪圖中...</p>
                 </div>
 
-                <!-- 2. 圖片讀取轉圈圈 (Image Loading Spinner) - 圖片下載時顯示 -->
+                <!-- 圖片載入動畫 -->
                 <div id="image-loader" class="absolute inset-0 flex flex-col items-center justify-center z-10 loading-pulse hidden">
-                    <svg class="animate-spin h-10 w-10 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
-                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                    <svg class="animate-spin h-10 w-10 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                     <span class="text-gray-400 text-sm">影像傳輸中...</span>
                 </div>
 
                 <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0 z-0">
 
-                <!-- 資訊與按鈕懸浮層 -->
+                <!-- 懸浮資訊層 -->
                 <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 to-transparent z-20 pointer-events-none">
-                    
-                    <!-- 資訊顯示區 (Prompt, Size, Ratio) -->
                     <div class="flex flex-col gap-1 text-xs text-white max-w-[70%] drop-shadow-md pointer-events-auto">
-                        <div class="flex gap-2">
+                        <div class="flex gap-2 flex-wrap">
+                            <span id="meta-model" class="bg-indigo-600/80 px-2 py-0.5 rounded backdrop-blur-sm font-bold"></span>
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                             <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
-                        <p id="meta-prompt" class="line-clamp-2 italic opacity-90 font-light"></p>
+                        <p id="meta-prompt" class="line-clamp-2 italic opacity-90 font-light mt-1"></p>
                     </div>
-
-                    <!-- 按鈕區 -->
                     <div class="flex gap-2 pointer-events-auto">
-                        <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm" title="下載">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-                        </button>
-                        <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm" title="全螢幕">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
-                        </button>
+                        <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
+                        <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
                     </div>
                 </div>
             </div>
 
-            <!-- 新增：歷史圖片縮圖列 -->
+            <!-- 歷史縮圖 -->
             <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
-                <!-- 清除按鈕 (左側固定) -->
-                <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30 group relative" title="清除舊圖 (保留目前圖片)">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
-                </button>
-                <div class="h-8 w-[1px] bg-gray-700"></div> <!-- 分隔線 -->
-                
-                <!-- 縮圖列表 (可捲動) -->
-                <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center">
-                    <!-- JS 會動態插入縮圖 -->
-                </div>
+                <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
+                <div class="h-8 w-[1px] bg-gray-700"></div>
+                <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center"></div>
             </div>
-
+            
             <div id="gallery-nav" class="flex justify-between items-center px-2">
-                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-                </button>
+                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
                 <span id="image-counter" class="text-sm text-gray-400 font-mono"></span>
-                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30 disabled:cursor-not-allowed">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-                </button>
+                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
         </div>
         
-        <!-- 移除舊的線性進度條 #progress-container -->
-        <p id="error-message" class="w-full text-center text-red-400 mt-2 hidden bg-red-900/20 p-2 rounded-lg"></p>
+        <p id="error-message" class="w-full text-center text-red-400 mt-2 hidden bg-red-900/20 p-2 rounded-lg text-sm"></p>
 
         <div id="input-hub" class="w-full"> 
-            <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
-                <div id="image-preview-wrapper-1" class="relative w-20 h-20 hidden">
-                    <img id="image-preview-1" src="" alt="圖片預覽 1" class="w-full h-full object-cover rounded-lg shadow-md">
-                    <button data-preview-id="1" class="remove-image-btn absolute -top-2 -right-2 bg-red-600 text-white rounded-full h-6 w-6 flex items-center justify-center text-xs font-bold shadow hover:bg-red-700 transition">&times;</button>
-                </div>
-            </div>
+            <!-- 多圖預覽區 -->
+            <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden overflow-x-auto scrollbar-hide pb-1"></div>
             
-            <div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2">
-                <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="上傳圖片 (主圖)">
+            <div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative">
+                <!-- 上傳按鈕：圖示改為加號 -->
+                <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative" title="上傳參考圖">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+                    <span id="upload-count-badge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
                 </button>
-                <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden">
+                <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden" multiple>
                 
-                <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定長寬比與尺寸">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg>
-                </button>
+                <!-- 比例按鈕：圖示改為正方形 -->
+                <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></button>
                 
-                <!-- 修正：將設定按鈕的圖示改回「調整/滑桿」樣式 (Sliders) -->
+                <!-- 設定按鈕 -->
                 <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"></line><line x1="4" y1="10" x2="4" y2="3"></line><line x1="12" y1="21" x2="12" y2="12"></line><line x1="12" y1="8" x2="12" y2="3"></line><line x1="20" y1="21" x2="20" y2="16"></line><line x1="20" y1="12" x2="20" y2="3"></line><line x1="1" y1="14" x2="7" y2="14"></line><line x1="9" y1="8" x2="15" y2="8"></line><line x1="17" y1="16" x2="23" y2="16"></line></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
 
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..." class="flex-grow bg-transparent text-lg text-gray-100 placeholder-gray-500 p-3 resize-none outline-none overflow-y-auto" style="max-height: 200px;"></textarea>
@@ -214,582 +181,436 @@
                 </button>
             </div>
         </div>
-
     </div>
 
-    <!-- Fullscreen Modal -->
+    <!-- Modals -->
     <div id="fullscreen-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
         <div class="relative w-full h-full max-w-4xl max-h-[90vh] flex items-center justify-center">
-            <button id="modal-close-btn" class="absolute -top-2 -right-2 md:top-2 md:right-2 z-10 bg-white text-black rounded-full p-1.5 shadow-lg hover:scale-110 transition">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-            </button>
-            <button id="modal-download-btn" class="absolute top-2 left-2 z-10 bg-white/80 text-black rounded-full p-2 shadow-lg hover:bg-white transition">
-                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
-            </button>
-
-            <img id="modal-image" src="" alt="全螢幕預覽" class="max-w-full max-h-full object-contain rounded-lg">
-            
-            <button id="modal-nav-left" class="absolute left-0 md:-left-12 p-2 rounded-full bg-white/30 hover:bg-white/50 transition disabled:opacity-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            </button>
-            <button id="modal-nav-right" class="absolute right-0 md:-right-12 p-2 rounded-full bg-white/30 hover:bg-white/50 transition disabled:opacity-0">
-                <svg xmlns="http://www.w3.org/2000/svg" width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
-            </button>
+            <button id="modal-close-btn" class="absolute -top-2 -right-2 md:top-2 md:right-2 z-10 bg-white text-black rounded-full p-1.5"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            <img id="modal-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
         </div>
     </div>
     
-    <!-- Settings Modal (保持不變) -->
     <div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> 
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">設定</h2>
-                <button id="settings-close-btn" class="p-1 rounded-full hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+                <button id="settings-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
             
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
-                <fieldset class="grid grid-cols-1 gap-3" id="mode-selector"> 
+                <fieldset class="grid grid-cols-1 gap-3" id="mode-selector">
+                    <!-- 新增 NanoBanana Pro 並設為預設 -->
                     <div>
-                        <input type="radio" name="generation-mode" value="generate-default" id="mode-default" class="hidden" checked>
-                        <label for="mode-default" title="imagen-4.0-generate-001" class="radio-label">Imagen 4.0 (標準)</label>
+                        <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana" class="hidden" checked>
+                        <label for="mode-nanobanana" class="radio-label border-l-4 border-l-yellow-500">NanoBanana Pro (預設)</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="generation-mode" value="generate-default" id="mode-default" class="hidden">
+                        <label for="mode-default" class="radio-label">Imagen 4.0 (標準)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-fast" id="mode-fast" class="hidden">
-                        <label for="mode-fast" title="imagen-4.0-fast-generate-001" class="radio-label">Imagen 4.0 (高速)</label>
+                        <label for="mode-fast" class="radio-label">Imagen 4.0 (高速)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra" class="hidden">
-                        <label for="mode-ultra" title="imagen-4.0-ultra-generate-001" class="radio-label">Imagen 4.0 (Ultra)</label>
+                        <label for="mode-ultra" class="radio-label">Imagen 4.0 (Ultra)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
-                        <label for="mode-upscale" title="使用 Imagen 4.0 放大" class="radio-label">圖片放大</label>
+                        <label for="mode-upscale" class="radio-label">圖片放大</label>
                     </div>
                 </fieldset>
             </div>
 
             <div class="mb-4" id="image-count-wrapper">
-                <label for="image-count" class="block text-sm font-medium text-gray-300 mb-2">生成圖片數量 (1-4)</label>
-                <input type="number" id="image-count" name="image-count" value="1" min="1" max="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
-                <p id="image-count-note" class="text-xs text-gray-500 mt-1">注意：所有模型一次最多生成 4 張。</p>
+                <label class="block text-sm font-medium text-gray-300 mb-2">生成數量 (1-4)</label>
+                <input type="number" id="image-count" value="1" min="1" max="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
             </div>
             
             <div class="mb-4 hidden" id="upscale-options-wrapper">
-                <label class="block text-sm font-medium text-gray-300 mb-3">放大尺寸 (僅支援 2K / 4K)</label>
-                <fieldset class="grid grid-cols-2 gap-3" id="upscale-level-selector"> 
-                    <div>
-                        <input type="radio" name="upscale-level-mode" value="2048" id="upscale-2k" class="hidden" checked>
-                        <label for="upscale-2k" class="radio-label">2K (x2)</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="upscale-level-mode" value="4096" id="upscale-4k" class="hidden">
-                        <label for="upscale-4k" class="radio-label">4K (x4)</label>
-                    </div>
-                </fieldset>
+                <!-- Upscale options... -->
             </div>
-            
         </div>
     </div>
     
-    <!-- Ratio Modal (保持不變) -->
+    <!-- Ratio Modal -->
     <div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">長寬比與尺寸</h2>
-                <button id="ratio-close-btn" class="p-1 rounded-full hover:bg-gray-700">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
-                </button>
+                <h2 class="text-xl font-bold">尺寸與比例</h2>
+                <button id="ratio-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
             
-            <div class="mb-4">
+            <div class="mb-4 relative">
                 <label class="block text-sm font-medium text-gray-300 mb-3">長寬比例</label>
                 <fieldset class="grid grid-cols-3 gap-3" id="ratio-selector">
-                    <div>
-                        <input type="radio" name="ratio-mode" value="1:1" id="ratio-1-1" class="hidden" checked>
-                        <label for="ratio-1-1" class="radio-label">1:1</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="ratio-mode" value="16:9" id="ratio-16-9" class="hidden">
-                        <label for="ratio-16-9" class="radio-label">16:9</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="ratio-mode" value="9:16" id="ratio-9-16" class="hidden">
-                        <label for="ratio-9-16" class="radio-label">9:16</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="ratio-mode" value="4:3" id="ratio-4-3" class="hidden">
-                        <label for="ratio-4-3" class="radio-label">4:3</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="ratio-mode" value="3:4" id="ratio-3-4" class="hidden">
-                        <label for="ratio-3-4" class="radio-label">3:4</label>
+                    <div><input type="radio" name="ratio-mode" value="1:1" id="ratio-1-1" class="hidden" checked><label for="ratio-1-1" class="radio-label">1:1</label></div>
+                    <div><input type="radio" name="ratio-mode" value="16:9" id="ratio-16-9" class="hidden"><label for="ratio-16-9" class="radio-label">16:9</label></div>
+                    <div><input type="radio" name="ratio-mode" value="9:16" id="ratio-9-16" class="hidden"><label for="ratio-9-16" class="radio-label">9:16</label></div>
+                    <div><input type="radio" name="ratio-mode" value="4:3" id="ratio-4-3" class="hidden"><label for="ratio-4-3" class="radio-label">4:3</label></div>
+                    <div><input type="radio" name="ratio-mode" value="3:4" id="ratio-3-4" class="hidden"><label for="ratio-3-4" class="radio-label">3:4</label></div>
+                    
+                    <!-- 更多尺寸按鈕 -->
+                    <div class="relative" id="more-ratios-wrapper">
+                        <button id="more-ratios-btn" class="w-full h-full bg-gray-700 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-1">
+                            <span>更多...</span>
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
+                        </button>
+                        <!-- 下拉選單 -->
+                        <div id="more-ratios-dropdown" class="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-600 rounded-xl shadow-xl z-20 hidden dropdown-enter grid grid-cols-2 gap-1 p-2">
+                            <input type="radio" name="ratio-mode" value="3:2" id="ratio-3-2" class="hidden"><label for="ratio-3-2" class="radio-label text-xs py-2">3:2</label>
+                            <input type="radio" name="ratio-mode" value="2:3" id="ratio-2-3" class="hidden"><label for="ratio-2-3" class="radio-label text-xs py-2">2:3</label>
+                            <input type="radio" name="ratio-mode" value="4:5" id="ratio-4-5" class="hidden"><label for="ratio-4-5" class="radio-label text-xs py-2">4:5</label>
+                            <input type="radio" name="ratio-mode" value="5:4" id="ratio-5-4" class="hidden"><label for="ratio-5-4" class="radio-label text-xs py-2">5:4</label>
+                            <input type="radio" name="ratio-mode" value="21:9" id="ratio-21-9" class="hidden col-span-2"><label for="ratio-21-9" class="radio-label text-xs py-2">21:9 (電影)</label>
+                        </div>
                     </div>
                 </fieldset>
             </div>
             
             <div class="mt-6">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成尺寸</label>
-                <fieldset class="grid grid-cols-2 gap-3" id="sample-size-selector">
-                    <div>
-                        <input type="radio" name="sample-size-mode" value="1024" id="size-1k" class="hidden" checked>
-                        <label for="size-1k" class="radio-label">1K (1024px)</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="sample-size-mode" value="2048" id="size-2k" class="hidden">
-                        <label for="size-2k" class="radio-label">2K (2048px)</label>
-                    </div>
+                <!-- 注意：這裡改用 flex 以便動態插入 4K 選項 -->
+                <fieldset class="flex gap-3" id="sample-size-selector">
+                    <div class="flex-1"><input type="radio" name="sample-size-mode" value="1024" id="size-1k" class="hidden" checked><label for="size-1k" class="radio-label">1K</label></div>
+                    <div class="flex-1"><input type="radio" name="sample-size-mode" value="2048" id="size-2k" class="hidden"><label for="size-2k" class="radio-label">2K</label></div>
+                    <!-- 4K 選項 (預設隱藏) -->
+                    <div class="flex-1 hidden" id="size-4k-wrapper"><input type="radio" name="sample-size-mode" value="4096" id="size-4k" class="hidden"><label for="size-4k" class="radio-label font-bold text-yellow-400">4K</label></div>
                 </fieldset>
-                 <p class="text-xs text-gray-500 mt-2" id="sample-size-note">注意：生成 2K 圖片會生成的更慢。</p>
+                 <p class="text-xs text-gray-500 mt-2" id="sample-size-note"></p>
             </div>
         </div>
     </div>
 
-
     <script>
-        // 設定 API 端點
-        const firebaseFunctionUrl = "/api/generate";
-
-        let uploadedImage = null; 
-        let sessionHistory = []; // 修改：改用全域的歷史紀錄陣列
-        let currentImageIndex = 0; // 這個 index 現在對應 sessionHistory
+        const API_URL = "/api/generate";
+        
+        let uploadedImages = []; 
+        let sessionHistory = []; 
+        let currentImageIndex = 0;
         let isLoading = false;
         let progressInterval = null;
         
-        let selectedMode = "generate-default"; 
+        let selectedMode = "generate-nanobanana"; 
         let selectedAspectRatio = "1:1"; 
         let selectedSampleSize = "1024"; 
         let selectedUpscaleLevel = "2048"; 
 
-        const appContainer = document.getElementById('app-container');
-        const inputHub = document.getElementById('input-hub');
         const promptTextarea = document.getElementById('prompt-textarea');
-        const sendBtn = document.getElementById('send-btn');
-        
-        const uploadBtn1 = document.getElementById('upload-btn-1');
-        const imageUpload1 = document.getElementById('image-upload-1');
-        
+        const imageUploadInput = document.getElementById('image-upload-1');
         const imagePreviewContainer = document.getElementById('image-preview-container');
-        const imagePreviewWrapper1 = document.getElementById('image-preview-wrapper-1');
-        const imagePreview1 = document.getElementById('image-preview-1');
-        const removeImageBtns = document.querySelectorAll('.remove-image-btn');
-
-        // 移除舊進度條變數
-        // const progressContainer = document.getElementById('progress-container');
-        // const progressBar = document.getElementById('progress-bar');
+        const uploadCountBadge = document.getElementById('upload-count-badge');
         
-        // 新進度條變數
+        const modeSelector = document.getElementById('mode-selector');
+        const size4kWrapper = document.getElementById('size-4k-wrapper');
+        const moreRatiosWrapper = document.getElementById('more-ratios-wrapper'); // 取得更多尺寸按鈕的容器
+        const moreRatiosBtn = document.getElementById('more-ratios-btn');
+        const moreRatiosDropdown = document.getElementById('more-ratios-dropdown');
+        
+        const resultImage = document.getElementById('result-image');
+        const imageLoader = document.getElementById('image-loader');
         const generationLoader = document.getElementById('generation-loader');
         const progressRing = document.getElementById('progress-ring');
         const progressPercent = document.getElementById('progress-percent');
-        const CIRCUMFERENCE = 2 * Math.PI * 40; // r=40, 2*PI*r ~= 251.327
+        const CIRCUMFERENCE = 2 * Math.PI * 40; 
 
-        const errorMessage = document.getElementById('error-message');
-
-        const resultsGallery = document.getElementById('results-gallery');
-        const resultImage = document.getElementById('result-image');
-        const imageLoader = document.getElementById('image-loader'); // 新增：Loading 遮罩
-        const downloadBtn = document.getElementById('download-btn');
-        const fullscreenBtn = document.getElementById('fullscreen-btn');
-        
-        const galleryNav = document.getElementById('gallery-nav');
-        const navLeft = document.getElementById('nav-left');
-        const navRight = document.getElementById('nav-right');
-        const imageCounter = document.getElementById('image-counter');
-        const historyGalleryList = document.getElementById('history-gallery-list'); // 新增：縮圖列表
-        const clearHistoryBtn = document.getElementById('clear-history-btn'); // 新增：清除按鈕
-
-        const fullscreenModal = document.getElementById('fullscreen-modal');
-        const modalImage = document.getElementById('modal-image');
-        const modalCloseBtn = document.getElementById('modal-close-btn');
-        const modalDownloadBtn = document.getElementById('modal-download-btn');
-        const modalNavLeft = document.getElementById('modal-nav-left');
-        const modalNavRight = document.getElementById('modal-nav-right');
-        
-        const settingsBtn = document.getElementById('settings-btn');
-        const settingsModal = document.getElementById('settings-modal');
-        const settingsCloseBtn = document.getElementById('settings-close-btn');
-        const imageCountInput = document.getElementById('image-count');
-        const imageCountWrapper = document.getElementById('image-count-wrapper'); 
-        const imageCountNote = document.getElementById('image-count-note');
-        const modeSelector = document.getElementById('mode-selector'); 
-        const upscaleOptionsWrapper = document.getElementById('upscale-options-wrapper'); 
-        const upscaleLevelSelector = document.getElementById('upscale-level-selector'); 
-
-        const ratioBtn = document.getElementById('ratio-btn');
-        const ratioModal = document.getElementById('ratio-modal');
-        const ratioCloseBtn = document.getElementById('ratio-close-btn');
-        const ratioSelector = document.getElementById('ratio-selector');
-        const sampleSizeSelector = document.getElementById('sample-size-selector'); 
-        const sampleSizeNote = document.getElementById('sample-size-note');
-        
-        // Metadata Elements
+        const metaModel = document.getElementById('meta-model');
         const metaSize = document.getElementById('meta-size');
         const metaRatio = document.getElementById('meta-ratio');
         const metaPrompt = document.getElementById('meta-prompt');
 
-        promptTextarea.addEventListener('input', () => {
-            promptTextarea.style.height = 'auto'; 
-            promptTextarea.style.height = `${promptTextarea.scrollHeight}px`;
-        });
+        updateInputUI();
 
-        uploadBtn1.addEventListener('click', () => imageUpload1.click());
-        imageUpload1.addEventListener('change', (e) => handleImageUpload(e, 1));
+        document.getElementById('upload-btn-1').onclick = () => imageUploadInput.click();
+        imageUploadInput.onchange = handleFilesUpload;
+        
+        document.getElementById('send-btn').onclick = handleGeneration;
+        promptTextarea.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGeneration(); }};
 
-        removeImageBtns.forEach(btn => {
-            btn.addEventListener('click', (e) => {
-                const id = e.currentTarget.dataset.previewId;
-                if (id === '1') {
-                    uploadedImage = null;
-                    imagePreview1.src = "";
-                    imagePreviewWrapper1.classList.add('hidden');
-                }
-                
-                if (imagePreviewWrapper1.classList.contains('hidden')) {
-                    imagePreviewContainer.classList.add('hidden');
-                }
-            });
-        });
+        document.getElementById('settings-btn').onclick = () => document.getElementById('settings-modal').classList.remove('hidden');
+        document.getElementById('settings-close-btn').onclick = () => document.getElementById('settings-modal').classList.add('hidden');
+        document.getElementById('ratio-btn').onclick = () => document.getElementById('ratio-modal').classList.remove('hidden');
+        document.getElementById('ratio-close-btn').onclick = () => document.getElementById('ratio-modal').classList.add('hidden');
 
-        sendBtn.addEventListener('click', handleGeneration);
-        promptTextarea.addEventListener('keydown', (e) => {
-            if (e.key === 'Enter' && !e.shiftKey) {
-                e.preventDefault();
-                handleGeneration();
+        moreRatiosBtn.onclick = (e) => {
+            e.stopPropagation(); 
+            const isHidden = moreRatiosDropdown.classList.contains('hidden');
+            if (isHidden) {
+                moreRatiosDropdown.classList.remove('hidden');
+                setTimeout(() => moreRatiosDropdown.classList.add('dropdown-enter-active'), 10);
+            } else {
+                moreRatiosDropdown.classList.remove('dropdown-enter-active');
+                setTimeout(() => moreRatiosDropdown.classList.add('hidden'), 100);
+            }
+        };
+        document.addEventListener('click', (e) => {
+            if (!moreRatiosBtn.contains(e.target)) {
+                moreRatiosDropdown.classList.remove('dropdown-enter-active');
+                setTimeout(() => moreRatiosDropdown.classList.add('hidden'), 100);
             }
         });
-
-        settingsBtn.addEventListener('click', () => settingsModal.classList.remove('hidden'));
-        settingsCloseBtn.addEventListener('click', () => settingsModal.classList.add('hidden'));
 
         modeSelector.addEventListener('change', (e) => {
             if (e.target.name === 'generation-mode') {
                 selectedMode = e.target.value;
                 updateInputUI();
-            }
-        });
-        
-        upscaleLevelSelector.addEventListener('change', (e) => {
-            if (e.target.name === 'upscale-level-mode') {
-                selectedUpscaleLevel = e.target.value;
+                validateUploads(); 
             }
         });
 
-        navLeft.addEventListener('click', () => showImage(currentImageIndex - 1));
-        navRight.addEventListener('click', () => showImage(currentImageIndex + 1));
-        
-        fullscreenBtn.addEventListener('click', openFullscreen);
-        modalCloseBtn.addEventListener('click', closeFullscreen);
-        modalNavLeft.addEventListener('click', () => showModalImage(currentImageIndex - 1));
-        modalNavRight.addEventListener('click', () => showModalImage(currentImageIndex + 1));
-
-        downloadBtn.addEventListener('click', downloadCurrentImage);
-        modalDownloadBtn.addEventListener('click', downloadCurrentImage);
-
-        ratioBtn.addEventListener('click', () => ratioModal.classList.remove('hidden'));
-        ratioCloseBtn.addEventListener('click', () => ratioModal.classList.add('hidden'));
-        
-        ratioSelector.addEventListener('change', (e) => {
-            if (e.target.name === 'ratio-mode') {
+        document.querySelectorAll('input[name="ratio-mode"]').forEach(input => {
+            input.addEventListener('change', (e) => {
                 selectedAspectRatio = e.target.value;
-            }
-        });
-        
-        sampleSizeSelector.addEventListener('change', (e) => {
-            if (e.target.name === 'sample-size-mode') {
-                selectedSampleSize = e.target.value;
-            }
-        });
-
-        clearHistoryBtn.addEventListener('click', clearHistory); // 綁定清除按鈕
-
-        function updateInputUI() {
-            const size2kRadio = document.getElementById('size-2k');
-            const size2kLabel = size2kRadio.nextElementSibling;
-
-            if (selectedMode === 'upscale') {
-                imageCountWrapper.classList.add('hidden'); 
-                upscaleOptionsWrapper.classList.remove('hidden'); 
-                ratioBtn.disabled = true; 
-                ratioBtn.classList.add('opacity-50', 'cursor-not-allowed');
-            } else {
-                imageCountWrapper.classList.remove('hidden'); 
-                upscaleOptionsWrapper.classList.add('hidden'); 
-                ratioBtn.disabled = false; 
-                ratioBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                
-                imageCountInput.max = 4;
-                if (parseInt(imageCountInput.value) > 4) {
-                    imageCountInput.value = 4;
+                if (e.target.closest('#more-ratios-dropdown')) {
+                    moreRatiosBtn.querySelector('span').textContent = selectedAspectRatio;
+                    moreRatiosBtn.classList.add('border-blue-500', 'text-blue-400');
+                } else {
+                    moreRatiosBtn.querySelector('span').textContent = "更多...";
+                    moreRatiosBtn.classList.remove('border-blue-500', 'text-blue-400');
                 }
-                imageCountNote.textContent = "注意：所有模型一次最多生成 4 張。";
+            });
+        });
+        document.querySelectorAll('input[name="sample-size-mode"]').forEach(input => {
+            input.addEventListener('change', (e) => selectedSampleSize = e.target.value);
+        });
 
-                size2kRadio.disabled = false;
-                size2kLabel.classList.remove('opacity-50', 'cursor-not-allowed');
-                size2kLabel.title = "";
-                sampleSizeNote.textContent = "注意：生成 2K 圖片會生成的更慢。";
+        async function handleFilesUpload(e) {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            uploadedImages = [];
+            imagePreviewContainer.innerHTML = '';
+            
+            for (const file of files) {
+                try {
+                    const { base64Data, mimeType, previewUrl } = await imageToBase64(file);
+                    uploadedImages.push({ base64Data, mimeType, previewUrl, size: file.size });
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = "relative w-16 h-16 flex-shrink-0 group";
+                    wrapper.innerHTML = `
+                        <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
+                        <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]" onclick="removeImage(${uploadedImages.length - 1})">&times;</button>
+                    `;
+                    imagePreviewContainer.appendChild(wrapper);
+                } catch (err) {
+                    console.error(err);
+                }
             }
+            
+            validateUploads();
+            imageUploadInput.value = ''; 
         }
 
-        async function handleImageUpload(e, id) {
-            const file = e.target.files[0];
-            if (!file) return;
+        window.removeImage = function(index) {
+            uploadedImages.splice(index, 1);
+            imagePreviewContainer.innerHTML = '';
+            uploadedImages.forEach((img, idx) => {
+                const wrapper = document.createElement('div');
+                wrapper.className = "relative w-16 h-16 flex-shrink-0 group";
+                wrapper.innerHTML = `
+                    <img src="${img.previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
+                    <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]" onclick="removeImage(${idx})">&times;</button>
+                `;
+                imagePreviewContainer.appendChild(wrapper);
+            });
+            validateUploads();
+        };
 
-            try {
-                const { base64Data, mimeType, previewUrl } = await imageToBase64(file);
-                
-                if (id === 1) {
-                    uploadedImage = { base64Data, mimeType, filename: file.name };
-                    imagePreview1.src = previewUrl;
-                    imagePreviewWrapper1.classList.remove('hidden');
-                } 
-                
-                imagePreviewContainer.classList.remove('hidden');
-                e.target.value = null; 
-            } catch (error) {
-                console.error("圖片讀取錯誤:", error);
-                showError("讀取圖片失敗。");
+        function validateUploads() {
+            const isNanoBanana = selectedMode === 'generate-nanobanana';
+            const maxFiles = isNanoBanana ? 14 : 1;
+            const maxTotalSize = isNanoBanana ? 20 * 1024 * 1024 : 10 * 1024 * 1024; 
+            
+            const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
+            const count = uploadedImages.length;
+
+            uploadCountBadge.textContent = count;
+            uploadCountBadge.classList.toggle('hidden', count === 0);
+            imagePreviewContainer.classList.toggle('hidden', count === 0);
+
+            const sendBtn = document.getElementById('send-btn');
+            const errorMsg = document.getElementById('error-message');
+            
+            if (count > 0) {
+                if (count > maxFiles) {
+                    showError(`圖片數量過多！目前模式最多支援 ${maxFiles} 張。`);
+                    sendBtn.disabled = true;
+                    return;
+                }
+                if (totalSize > maxTotalSize) {
+                    showError(`圖片總大小超過限制！目前模式上限為 ${maxTotalSize / 1024 / 1024}MB。`);
+                    sendBtn.disabled = true;
+                    return;
+                }
+            }
+            
+            errorMsg.classList.add('hidden');
+            sendBtn.disabled = false;
+        }
+
+        function updateInputUI() {
+            const isUpscale = selectedMode === 'upscale';
+            const isNanoBanana = selectedMode === 'generate-nanobanana';
+            const isImagen = selectedMode.startsWith('generate') && !isNanoBanana;
+            
+            // 4K 選項控制：只有 NanoBanana 顯示
+            if (isNanoBanana) {
+                size4kWrapper.classList.remove('hidden');
+                // 顯示更多尺寸按鈕
+                moreRatiosWrapper.classList.remove('invisible');
+            } else {
+                size4kWrapper.classList.add('hidden');
+                // 如果是 Imagen 系列，隱藏更多尺寸按鈕 (用 invisible 佔位，避免排版跑掉，或 hidden 完全隱藏)
+                // 這裡選用 invisible 讓版面一致，或者 hidden 讓剩下的按鈕變大？
+                // 根據需求是 "隱藏"，通常用 hidden，但上面是 grid，hidden 會留空或遞補
+                // 為了不讓使用者選到不支援的比例，我們直接隱藏
+                if (isImagen) {
+                    moreRatiosWrapper.classList.add('invisible'); 
+                    // 如果目前選中了更多選單裡的比例，強制切回 1:1
+                    const currentRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
+                    if (!['1:1', '16:9', '9:16', '4:3', '3:4'].includes(currentRatio)) {
+                        document.getElementById('ratio-1-1').click();
+                    }
+                } else {
+                    moreRatiosWrapper.classList.remove('invisible');
+                }
+
+                if (document.getElementById('size-4k').checked) {
+                    document.getElementById('size-1k').click();
+                }
+            }
+
+            document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
+            document.getElementById('upscale-options-wrapper').classList.toggle('hidden', !isUpscale);
+            
+            // 修正：Upscale 模式下禁用更多按鈕
+            if(isUpscale) {
+                 moreRatiosBtn.disabled = true;
+                 moreRatiosBtn.classList.add('opacity-50');
+            } else {
+                 moreRatiosBtn.disabled = false;
+                 moreRatiosBtn.classList.remove('opacity-50');
             }
         }
 
         async function handleGeneration() {
             if (isLoading) return;
-            
             const prompt = promptTextarea.value.trim();
-            let numImages = parseInt(imageCountInput.value) || 1;
-            
-            const mode = selectedMode;
-            
-            if (mode.startsWith('generate-') && (numImages < 1 || numImages > 4)) {
-                showError("圖片數量必須是 1 到 4 之間的整數。");
-                imageCountInput.value = Math.max(1, Math.min(numImages, 4)); 
-                return; 
-            }
+            const numImages = document.getElementById('image-count').value;
 
-            let aspectRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
-            let sampleImageSize = document.querySelector('input[name="sample-size-mode"]:checked').value;
-            let upscaleLevel = document.querySelector('input[name="upscale-level-mode"]:checked').value;
-
-
-            if (mode.startsWith('generate-') && !prompt && !uploadedImage) {
-                showError("請至少輸入提示詞或上傳一張圖片。"); return;
-            }
-            if (mode === 'upscale' && !uploadedImage) {
-                showError("請上傳一張圖片來進行「圖片放大」。"); return;
-            }
-            
-            if (mode === 'upscale') {
-                numImages = 1;
+            if (selectedMode !== 'upscale' && !prompt && uploadedImages.length === 0) {
+                return showError("請輸入提示詞或上傳圖片");
             }
 
             setLoading(true);
             await simulateProgress(0, 90, 2000); 
 
             try {
-                const payload = {
-                    mode: mode,
-                    prompt: prompt,
-                    numImages: numImages,
-                    image: uploadedImage,       
-                    aspectRatio: aspectRatio,   
-                    sampleImageSize: sampleImageSize, 
-                    upscaleLevel: upscaleLevel 
-                };
+                const imagesPayload = uploadedImages.map(img => ({
+                    base64Data: img.base64Data,
+                    mimeType: img.mimeType
+                }));
 
-                const result = await fetchWithBackoff(firebaseFunctionUrl, {
+                const response = await fetch(API_URL, {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(payload)
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        mode: selectedMode,
+                        prompt: prompt,
+                        numImages: numImages,
+                        images: imagesPayload, 
+                        aspectRatio: selectedAspectRatio,
+                        sampleImageSize: selectedSampleSize,
+                        upscaleLevel: selectedUpscaleLevel
+                    })
                 });
+
+                const data = await response.json();
+                if (data.error) throw new Error(data.error.message);
+                if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
+
+                sessionHistory = [...sessionHistory, ...data.images];
+                renderGallery();
                 
-                if (result.images && result.images.length > 0) {
-                    // 重要修改：將新圖片附加到歷史紀錄，而不是覆蓋
-                    sessionHistory = [...sessionHistory, ...result.images];
-                    
-                    // 渲染縮圖列表
-                    renderGallery();
-                    
-                    // 顯示最新生成的第一張 (即剛剛加入歷史紀錄的第一張)
-                    // 計算新圖片在 sessionHistory 中的起始索引
-                    const newImagesStartIndex = sessionHistory.length - result.images.length;
-                    
-                    // 先切換到結果檢視模式
-                    resultsGallery.classList.remove('hidden');
-                    if (sessionHistory.length > 1) {
-                        galleryNav.classList.remove('hidden');
-                    } else {
-                        galleryNav.classList.add('hidden');
-                    }
-                    
-                    // 顯示新生成的圖片
-                    showImage(newImagesStartIndex);
-                    
-                } else {
-                    throw new Error("後端未回傳任何圖片。");
-                }
+                const newIndex = sessionHistory.length - data.images.length;
+                document.getElementById('results-gallery').classList.remove('hidden');
+                showImage(newIndex);
 
                 await simulateProgress(90, 100, 300); 
-                setLoading(false);
-
             } catch (error) {
-                console.error("後端呼叫失敗:", error);
-                showError(`呼叫失敗: ${error.message}`);
+                showError(error.message);
+            } finally {
                 setLoading(false);
             }
-        }
-
-        async function fetchWithBackoff(url, options, retries = 3, delay = 1000) {
-            try {
-                const response = await fetch(url, options);
-                if (!response.ok) {
-                    let errorData;
-                    const errorText = await response.text(); 
-                    try {
-                        errorData = JSON.parse(errorText); 
-                    } catch (e) {
-                        throw new Error(`HTTP ${response.status}: ${response.statusText || 'Unknown Status'} - ${errorText || 'No error body'}`);
-                    }
-                    
-                    const message = errorData.error?.message || errorData.message || response.statusText || 'Unknown error';
-                    if (!message || message.trim() === "") {
-                        throw new Error(`HTTP ${response.status} - ${errorText}`);
-                    }
-                    throw new Error(message);
-                }
-                
-                return await response.json();
-
-            } catch (error) {
-                console.warn(`Fetch 失敗 (重試 ${retries} 次): ${error.message}`);
-                if (retries > 0) {
-                    await new Promise(resolve => setTimeout(resolve, delay));
-                    return fetchWithBackoff(url, options, retries - 1, delay * 2);
-                } else {
-                    throw error;
-                }
-            }
-        }
-
-        function imageToBase64(file) {
-            return new Promise((resolve, reject) => {
-                const reader = new FileReader();
-                reader.readAsDataURL(file);
-                reader.onload = () => {
-                    const previewUrl = reader.result;
-                    const base64String = previewUrl.split(',')[1];
-                    const mimeType = previewUrl.split(',')[0].split(':')[1].split(';')[0];
-                    resolve({ 
-                        base64Data: base64String, 
-                        mimeType: mimeType, 
-                        previewUrl: previewUrl 
-                    });
-                };
-                reader.onerror = error => reject(error);
-            });
-        }
-
-        // 新增：渲染縮圖列表
-        function renderGallery() {
-            historyGalleryList.innerHTML = ''; // 清空列表
-            
-            sessionHistory.forEach((imgData, index) => {
-                const url = typeof imgData === 'string' ? imgData : imgData.url;
-                
-                const thumbBtn = document.createElement('button');
-                thumbBtn.className = `flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${index === currentImageIndex ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-transparent hover:border-gray-500'}`;
-                thumbBtn.onclick = () => showImage(index);
-                
-                const thumbImg = document.createElement('img');
-                thumbImg.src = url;
-                thumbImg.className = "w-full h-full object-cover";
-                
-                thumbBtn.appendChild(thumbImg);
-                historyGalleryList.appendChild(thumbBtn);
-            });
-            
-            // 自動捲動到最右邊 (最新圖片)
-            setTimeout(() => {
-                historyGalleryList.scrollLeft = historyGalleryList.scrollWidth;
-            }, 100);
-        }
-
-        // 新增：清除歷史紀錄
-        function clearHistory() {
-            if (sessionHistory.length === 0) return;
-            
-            const currentImg = sessionHistory[currentImageIndex];
-            // 只保留當前正在看的那張圖片
-            sessionHistory = [currentImg];
-            currentImageIndex = 0;
-            
-            renderGallery();
-            showImage(0);
         }
 
         function showImage(index) {
-            if (index < 0 || index >= sessionHistory.length) {
-                return;
-            }
-            
-            // 如果點擊的是同一張圖，不需要重新載入動畫
-            // 但如果是第一次載入（currentImageIndex 初始值可能造成問題），則忽略此檢查
+            if (index < 0 || index >= sessionHistory.length) return;
             const isSameImage = index === currentImageIndex && !imageLoader.classList.contains('hidden');
-            
             currentImageIndex = index;
-            
             const imgData = sessionHistory[index];
             const url = typeof imgData === 'string' ? imgData : imgData.url;
 
-            // 1. 立即隱藏舊圖片並顯示 Loading 遮罩
             if (!isSameImage) {
                 resultImage.style.opacity = '0';
                 imageLoader.classList.remove('hidden');
             }
-            
-            // 2. 設定新圖片來源
-            // 使用 Image 物件預載入，確保圖片真的抓到了再顯示
+
             const tempImg = new Image();
             tempImg.src = url;
-            
             tempImg.onload = () => {
-                // 圖片載入完成後
                 resultImage.src = url;
-                modalImage.src = url;
-                
-                // 隱藏 Loading，顯示圖片 (淡入)
+                document.getElementById('modal-image').src = url;
                 imageLoader.classList.add('hidden');
-                // 稍微延遲讓 DOM 更新，觸發 CSS transition
-                requestAnimationFrame(() => {
-                    resultImage.style.opacity = '1';
-                });
+                requestAnimationFrame(() => resultImage.style.opacity = '1');
             };
 
-            // 更新 Metadata 顯示
             if (typeof imgData === 'object') {
+                metaModel.textContent = getModelDisplayName(imgData.mode);
                 metaSize.textContent = imgData.size || "Unknown";
                 metaRatio.textContent = imgData.aspectRatio || "Custom";
                 metaPrompt.textContent = imgData.prompt || "No Prompt";
-                metaPrompt.style.display = imgData.prompt && imgData.prompt.trim() !== "" ? "block" : "none";
+                metaPrompt.style.display = imgData.prompt ? "block" : "none";
             }
+            
+            document.getElementById('image-counter').textContent = `${index + 1} / ${sessionHistory.length}`;
+            updateGallerySelection(index);
+        }
 
-            // 更新計數器 (現在是針對整個歷史紀錄)
-            imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
-            
-            navLeft.disabled = index === 0;
-            navRight.disabled = index === (sessionHistory.length - 1);
-            modalNavLeft.disabled = index === 0;
-            modalNavRight.disabled = index === (sessionHistory.length - 1);
-            
-            // 更新縮圖列表的選取狀態
-            const thumbnails = historyGalleryList.querySelectorAll('button');
-            thumbnails.forEach((btn, idx) => {
+        function getModelDisplayName(mode) {
+            if (mode === 'generate-nanobanana') return 'NanoBanana Pro';
+            if (mode === 'generate-default') return 'Imagen 4.0';
+            if (mode === 'generate-fast') return 'Imagen 4.0 Fast';
+            if (mode === 'generate-ultra') return 'Imagen 4.0 Ultra';
+            return 'AI Model';
+        }
+
+        function renderGallery() {
+            const list = document.getElementById('history-gallery-list');
+            list.innerHTML = '';
+            sessionHistory.forEach((img, idx) => {
+                const btn = document.createElement('button');
+                btn.className = `flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${idx === currentImageIndex ? 'border-blue-500' : 'border-transparent hover:border-gray-500'}`;
+                btn.onclick = () => showImage(idx);
+                const i = document.createElement('img');
+                i.src = typeof img === 'string' ? img : img.url;
+                i.className = "w-full h-full object-cover";
+                btn.appendChild(i);
+                list.appendChild(btn);
+            });
+            setTimeout(() => list.scrollLeft = list.scrollWidth, 100);
+        }
+        
+        function updateGallerySelection(index) {
+            const btns = document.getElementById('history-gallery-list').querySelectorAll('button');
+            btns.forEach((btn, idx) => {
                 if (idx === index) {
                     btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500/50');
                     btn.classList.remove('border-transparent');
-                    // 確保選中的縮圖在視野內
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 } else {
                     btn.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500/50');
@@ -798,129 +619,69 @@
             });
         }
 
-        function showModalImage(index) {
-            // Modal 內的切換邏輯保持簡單，直接呼叫主函式同步狀態
-            showImage(index);
+        document.getElementById('clear-history-btn').onclick = () => {
+            if (sessionHistory.length === 0) return;
+            sessionHistory = [sessionHistory[currentImageIndex]];
+            currentImageIndex = 0;
+            renderGallery();
+            showImage(0);
+        };
+
+        function imageToBase64(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.readAsDataURL(file);
+                reader.onload = () => resolve({ base64Data: reader.result.split(',')[1], mimeType: file.type, previewUrl: reader.result });
+                reader.onerror = reject;
+            });
         }
-
-        function openFullscreen() {
-            // showModalImage(currentImageIndex); // 不需要額外呼叫，showImage 已同步 url
-            fullscreenModal.classList.remove('hidden');
-            fullscreenModal.classList.add('flex');
-        }
-
-        function closeFullscreen() {
-            fullscreenModal.classList.add('hidden');
-            fullscreenModal.classList.remove('flex');
-        }
-
-        async function downloadCurrentImage() {
-            try {
-                const imgData = sessionHistory[currentImageIndex];
-                const imageUrl = typeof imgData === 'string' ? imgData : imgData.url;
-                
-                const response = await fetch(imageUrl);
-                const blob = await response.blob();
-                
-                const a = document.createElement('a');
-                const url = URL.createObjectURL(blob);
-                
-                a.href = url;
-                const extension = blob.type.split('/')[1] || 'png';
-                a.download = `generated-image-${Date.now()}.${extension}`;
-                
-                document.body.appendChild(a);
-                a.click();
-                
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-
-            } catch (error) {
-                console.error("下載失敗:", error);
-                showError("圖片下載失敗。");
-            }
-        }
-
         function setLoading(state) {
             isLoading = state;
-            sendBtn.disabled = state;
+            const btn = document.getElementById('send-btn');
+            btn.disabled = state;
             if (state) {
-                appContainer.style.justifyContent = 'flex-start'; 
-                inputHub.classList.add('mt-auto'); 
-                
-                // 顯示結果區域 (如果是第一張，這裡會是空的，但會顯示 Loader)
-                resultsGallery.classList.remove('hidden');
-                
-                // 顯示圓環 Loader
+                document.getElementById('results-gallery').classList.remove('hidden');
                 generationLoader.classList.remove('hidden');
-                
-                errorMessage.classList.add('hidden');
-                sendBtn.innerHTML = '<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
+                document.getElementById('error-message').classList.add('hidden');
+                btn.innerHTML = '<svg class="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             } else {
                 clearInterval(progressInterval);
-                // 隱藏圓環 Loader
                 generationLoader.classList.add('hidden');
-                
-                if (sessionHistory.length === 0) {
-                    // 如果沒有任何圖片 (失敗)，隱藏畫廊
-                    resultsGallery.classList.add('hidden');
-                    appContainer.style.justifyContent = 'center';
-                    inputHub.classList.remove('mt-auto');
-                }
-                
-                sendBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
-
         function simulateProgress(start, end, duration) {
             return new Promise(resolve => {
                 clearInterval(progressInterval);
                 let current = start;
                 const step = (end - start) / (duration / 50); 
-                
                 progressInterval = setInterval(() => {
                     current += step;
-                    if (current >= end) {
-                        current = end;
-                        clearInterval(progressInterval);
-                        resolve();
-                    }
-                    
-                    // 更新圓環進度
-                    // 總長度 CIRCUMFERENCE，offset 從 CIRCUMFERENCE 降到 0 為滿
+                    if (current >= end) { current = end; clearInterval(progressInterval); resolve(); }
                     const offset = CIRCUMFERENCE - (current / 100) * CIRCUMFERENCE;
                     progressRing.style.strokeDashoffset = offset;
                     progressPercent.textContent = `${Math.floor(current)}%`;
-                    
                 }, 50);
             });
         }
-
-        function showError(message) {
-            errorMessage.textContent = message;
-            errorMessage.classList.remove('hidden');
+        function showError(msg) {
+            const el = document.getElementById('error-message');
+            el.textContent = msg;
+            el.classList.remove('hidden');
             generationLoader.classList.add('hidden');
-            // 如果只有錯誤沒有圖片，隱藏畫廊
-            if(sessionHistory.length === 0) {
-                resultsGallery.classList.add('hidden');
-                appContainer.style.justifyContent = 'center';
-            }
         }
-
-        updateInputUI();
+        async function downloadCurrentImage() {
+            const img = sessionHistory[currentImageIndex];
+            const url = typeof img === 'string' ? img : img.url;
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `nanobanana-${Date.now()}.png`; 
+            a.click();
+        }
     </script>
-
     <script>
       if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('/service-worker.js')
-            .then(registration => {
-              console.log('ServiceWorker 註冊成功:', registration.scope);
-            })
-            .catch(error => {
-              console.log('ServiceWorker 註冊失敗:', error);
-            });
-        });
+        window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => {}));
       }
     </script>
 </body>
