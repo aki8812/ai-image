@@ -83,16 +83,15 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
-    // 處理數量：Gemini 一次請求通常生成一張，若要多張需並行請求
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    // 【修改】移除強制前綴，直接使用原始 prompt
-    // const enhancedPrompt = `Generate a high-quality, realistic image of: ${prompt}`;
+    // 【修改】加回強制前綴
+    const enhancedPrompt = `Generate a high-quality, realistic image of: ${prompt}`;
 
     const payload = {
         contents: [{ 
             role: "user", 
-            parts: [{ text: prompt }] // 直接使用 prompt
+            parts: [{ text: enhancedPrompt }] 
         }],
         tools: [{ google_search: {} }], 
         generation_config: {
@@ -109,12 +108,11 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
             method: "POST",
             headers: headers,
             body: JSON.stringify(payload),
-        }).catch(e => ({ error: e.message })) // 捕捉個別錯誤避免全軍覆沒
+        }).catch(e => ({ error: e.message }))
     );
 
     const results = await Promise.all(requests);
     
-    // 收集所有成功的圖片
     const validImages = [];
     const validThoughts = [];
 
@@ -143,14 +141,13 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     }
 
     if (validImages.length === 0) {
-         throw new Error("Gemini 未生成任何有效圖片 (可能因 Prompt 被拒絕或誤判為文字對話)");
+         throw new Error("Gemini 未生成任何有效圖片");
     }
 
     let displaySize = "1K (Default)";
     if (targetImageSize === "2K") displaySize = "2K";
     if (targetImageSize === "4K") displaySize = "4K";
 
-    // 儲存所有圖片
     return await saveImagesToStorage(validImages, {
         prompt: prompt,
         aspectRatio: targetAspectRatio,
