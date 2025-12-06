@@ -25,10 +25,19 @@ const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
 const LOCATION = "us-central1"; 
 
-// 設定兩種 API 版本路徑
-const BASE_URL = `https://${LOCATION}-aiplatform.googleapis.com`;
-const V1_API = `${BASE_URL}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
-const BETA_API = `${BASE_URL}/v1beta1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
+// === 關鍵修正：定義兩組 API 端點 ===
+
+// 1. 區域型端點 (Regional Endpoint) - 用於 Imagen 4
+// 格式: https://{LOCATION}-aiplatform.googleapis.com
+const REGIONAL_BASE = `https://${LOCATION}-aiplatform.googleapis.com`;
+const V1_API_REGIONAL = `${REGIONAL_BASE}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
+
+// 2. 全球型端點 (Global Endpoint) - 用於 Gemini 3 Pro 預覽版
+// 格式: https://aiplatform.googleapis.com (不帶區域前綴)
+// 路徑中的 locations 必須為 'global'
+const GLOBAL_BASE = `https://aiplatform.googleapis.com`;
+const V1BETA_API_GLOBAL = `${GLOBAL_BASE}/v1beta1/projects/${PROJECT_ID}/locations/global/publishers/google/models`;
+
 
 const auth = new GoogleAuth({
   credentials: serviceAccount,
@@ -56,12 +65,13 @@ export default async function handler(req, res) {
 
     // === 路由邏輯 ===
     if (body.mode === 'generate-nanobanana') {
-        // NanoBanana Pro (Gemini 3) -> 必須走 v1beta1
+        // NanoBanana Pro -> 走 Global Endpoint (Gemini 3 專用)
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
+        // Upscale -> 走 Regional Endpoint (與 Imagen 一致)
         generatedResults = await handleUpscaling(headers, body);
     } else {
-        // Imagen 4 -> 走 v1 正式版
+        // Imagen 4 -> 走 Regional Endpoint
         generatedResults = await handleImagen(headers, body);
     }
 
@@ -74,11 +84,13 @@ export default async function handler(req, res) {
 }
 
 // === NanoBanana Pro (Gemini 3 Pro) ===
-// 使用 v1beta1 端點 + Vertex AI 格式
+// 使用 Global Endpoint + v1beta1
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize }) {
     const modelId = "gemini-3-pro-image-preview"; 
-    // 【關鍵修正】使用 v1beta1 端點
-    const apiUrl = `${BETA_API}/${modelId}:generateContent`;
+    
+    // 【關鍵修正】使用 Global Endpoint 路徑
+    // 網址結構: https://aiplatform.googleapis.com/v1beta1/projects/.../locations/global/...
+    const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
     // 處理參數
     let targetImageSize;
@@ -87,8 +99,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
     
     const targetAspectRatio = aspectRatio || "1:1";
 
-    // 【關鍵修正】Payload 使用 Snake Case (Vertex REST API 規範)
-    // 與 SDK 的 CamelCase 不同，直接呼叫 Vertex API 必須用下底線
     const payload = {
         contents: [{ 
             role: "user", 
@@ -134,18 +144,18 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
         prompt: prompt,
         aspectRatio: targetAspectRatio,
         size: displaySize,
-        mode: "gemini-3-pro (Vertex)"
+        mode: "gemini-3-pro (Vertex Global)"
     });
 }
 
-// === Imagen 4 系列 (維持 v1) ===
+// === Imagen 4 系列 (維持 Regional v1) ===
 async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
     let modelId = "imagen-4.0-generate-001";
     if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
     if (mode === "generate-ultra") modelId = "imagen-4.0-ultra-generate-001";
 
-    // 使用 v1 正式版路徑
-    const apiUrl = `${V1_API}/${modelId}:predict`;
+    // 使用 Regional Endpoint
+    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
 
     const instances = [{ prompt: prompt }];
     
@@ -191,13 +201,14 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     });
 }
 
-// === Upscale (維持 v1) ===
+// === Upscale (維持 Regional v1) ===
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
     const modelId = "imagen-4.0-ultra-generate-001"; 
     const factor = targetSize > 2048 ? "x4" : "x2";
     
-    const apiUrl = `${V1_API}/${modelId}:predict`;
+    // 使用 Regional Endpoint
+    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
 
     if (!images || images.length === 0) throw new Error("缺少用於放大的圖片");
 
@@ -263,7 +274,7 @@ async function vertexFetch(url, options) {
     try { errorMsg = JSON.parse(text).error?.message || text; } catch(e) {}
     
     if (response.status === 404) {
-        throw new Error(`找不到模型: ${url}。 (請確認該模型是否已在您的專案 Region 上架，且使用了正確的 v1/v1beta1 版本)`);
+        throw new Error(`找不到模型: ${url}。\n(請確認: 1. 是否使用了正確的 Regional/Global Endpoint? 2. 專案是否有權限?)`);
     }
     throw new Error(`Vertex AI Error (${response.status}): ${errorMsg}`);
   }
