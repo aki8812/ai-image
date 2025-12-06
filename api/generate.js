@@ -38,7 +38,7 @@ const auth = new GoogleAuth({
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
-// 輔助函式：延遲
+// 輔助函式：延遲 (用於避免 Rate Limit)
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default async function handler(req, res) {
@@ -86,16 +86,13 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
-    // 限制最大 4 張
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
     // 使用原始 Prompt
-    const enhancedPrompt = prompt;
-
     const payload = {
         contents: [{ 
             role: "user", 
-            parts: [{ text: enhancedPrompt }] 
+            parts: [{ text: prompt }] 
         }],
         tools: [{ google_search: {} }], 
         generation_config: {
@@ -106,10 +103,9 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 【修改】使用 Promise.all 但加入延遲 (Staggering) 以避免 Rate Limit
-    // 每個請求間隔 800ms
+    // 【修正】增加間隔至 1500ms，避免 Gemini 3 Pro Preview 的 Rate Limit
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        if (i > 0) await delay(i * 800); // 延遲發送
+        if (i > 0) await delay(i * 1500); 
         return vertexFetch(apiUrl, {
             method: "POST",
             headers: headers,
@@ -124,7 +120,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     for (const result of results) {
         if (result.error) {
-            console.error("Single NanoBanana generation failed:", result.error);
+            console.error("NanoBanana generation skipped:", result.error);
             continue;
         }
         
@@ -147,7 +143,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     }
 
     if (validImages.length === 0) {
-         throw new Error("Gemini 未生成任何有效圖片 (可能因 Prompt 被拒絕或 API 忙碌)");
+         throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被拒絕或 API 忙碌)");
     }
 
     let displaySize = "1K (Default)";
@@ -261,7 +257,6 @@ async function saveImagesToStorage(base64DataArray, metadata) {
     const fileName = `ai-images/gen-${Date.now()}-${uuidv4()}.png`;
     const file = bucket.file(fileName);
     
-    // 如果有陣列則取對應 index，否則取單一值
     const specificThoughts = metadata.thoughtsArray ? metadata.thoughtsArray[index] : metadata.thoughts;
 
     await file.save(buffer, {
