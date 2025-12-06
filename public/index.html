@@ -36,8 +36,16 @@
         #prompt-textarea::-webkit-scrollbar {
             display: none; 
         }
+        /* 隱藏縮圖列的捲軸 */
+        .scrollbar-hide::-webkit-scrollbar {
+            display: none;
+        }
+        .scrollbar-hide {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
         .image-transition {
-            transition: opacity 0.3s ease-in-out;
+            transition: opacity 0.4s ease-in-out;
         }
         #progress-bar {
             transition: width 0.3s ease-in-out;
@@ -79,22 +87,42 @@
              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.5);
              outline: none;
         }
+        /* 載入中的閃爍效果 */
+        .loading-pulse {
+            animation: pulse-bg 1.5s infinite;
+        }
+        @keyframes pulse-bg {
+            0% { background-color: #1f2937; }
+            50% { background-color: #374151; }
+            100% { background-color: #1f2937; }
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200"> 
 
     <div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4"> 
 
-        <div id="results-gallery" class="w-full mb-4 hidden"> 
-            <!-- 這裡做了修改：加入 group class 以便控制懸浮顯示 -->
-            <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto"> 
-                <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0">
+        <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4"> 
+            
+            <!-- 主圖顯示區 -->
+            <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
+                
+                <!-- 載入動畫層 (預設隱藏) -->
+                <div id="image-loader" class="absolute inset-0 flex flex-col items-center justify-center z-10 loading-pulse hidden">
+                    <svg class="animate-spin h-10 w-10 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    <span class="text-gray-400 text-sm">載入圖片中...</span>
+                </div>
 
-                <!-- 修改處：原本的按鈕區塊改為一個橫條，左邊放資訊，右邊放按鈕 -->
-                <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 to-transparent">
+                <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0 z-0">
+
+                <!-- 資訊與按鈕懸浮層 -->
+                <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 to-transparent z-20 pointer-events-none">
                     
-                    <!-- 新增：資訊顯示區 (Prompt, Size, Ratio) -->
-                    <div class="flex flex-col gap-1 text-xs text-white max-w-[70%] drop-shadow-md">
+                    <!-- 資訊顯示區 (Prompt, Size, Ratio) -->
+                    <div class="flex flex-col gap-1 text-xs text-white max-w-[70%] drop-shadow-md pointer-events-auto">
                         <div class="flex gap-2">
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                             <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
@@ -102,22 +130,37 @@
                         <p id="meta-prompt" class="line-clamp-2 italic opacity-90 font-light"></p>
                     </div>
 
-                    <!-- 原本的按鈕區 (保持不變) -->
-                    <div class="flex gap-2">
-                        <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition" title="下載">
+                    <!-- 按鈕區 -->
+                    <div class="flex gap-2 pointer-events-auto">
+                        <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm" title="下載">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                         </button>
-                        <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition" title="全螢幕">
+                        <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm" title="全螢幕">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg>
                         </button>
                     </div>
                 </div>
             </div>
-            <div id="gallery-nav" class="flex justify-between items-center mt-4 px-2 hidden">
+
+            <!-- 新增：歷史圖片縮圖列 -->
+            <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
+                <!-- 清除按鈕 (左側固定) -->
+                <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30 group relative" title="清除舊圖 (保留目前圖片)">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg>
+                </button>
+                <div class="h-8 w-[1px] bg-gray-700"></div> <!-- 分隔線 -->
+                
+                <!-- 縮圖列表 (可捲動) -->
+                <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center">
+                    <!-- JS 會動態插入縮圖 -->
+                </div>
+            </div>
+
+            <div id="gallery-nav" class="flex justify-between items-center px-2">
                 <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg>
                 </button>
-                <span id="image-counter" class="text-sm text-gray-400"></span>
+                <span id="image-counter" class="text-sm text-gray-400 font-mono"></span>
                 <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30 disabled:cursor-not-allowed">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
                 </button>
@@ -185,7 +228,7 @@
         </div>
     </div>
     
-    <!-- Settings Modal -->
+    <!-- Settings Modal (保持不變) -->
     <div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> 
             <div class="flex justify-between items-center mb-6">
@@ -240,7 +283,7 @@
         </div>
     </div>
     
-    <!-- Ratio Modal -->
+    <!-- Ratio Modal (保持不變) -->
     <div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
             <div class="flex justify-between items-center mb-6">
@@ -295,12 +338,12 @@
 
 
     <script>
-        // 設定 API 端點為 Vercel 的 Serverless Function
+        // 設定 API 端點
         const firebaseFunctionUrl = "/api/generate";
 
         let uploadedImage = null; 
-        let generatedImages = []; // 現在這個陣列會儲存物件: { url, prompt, size, ratio }
-        let currentImageIndex = 0;
+        let sessionHistory = []; // 修改：改用全域的歷史紀錄陣列
+        let currentImageIndex = 0; // 這個 index 現在對應 sessionHistory
         let isLoading = false;
         let progressInterval = null;
         
@@ -329,6 +372,7 @@
 
         const resultsGallery = document.getElementById('results-gallery');
         const resultImage = document.getElementById('result-image');
+        const imageLoader = document.getElementById('image-loader'); // 新增：Loading 遮罩
         const downloadBtn = document.getElementById('download-btn');
         const fullscreenBtn = document.getElementById('fullscreen-btn');
         
@@ -336,6 +380,8 @@
         const navLeft = document.getElementById('nav-left');
         const navRight = document.getElementById('nav-right');
         const imageCounter = document.getElementById('image-counter');
+        const historyGalleryList = document.getElementById('history-gallery-list'); // 新增：縮圖列表
+        const clearHistoryBtn = document.getElementById('clear-history-btn'); // 新增：清除按鈕
 
         const fullscreenModal = document.getElementById('fullscreen-modal');
         const modalImage = document.getElementById('modal-image');
@@ -439,6 +485,8 @@
             }
         });
 
+        clearHistoryBtn.addEventListener('click', clearHistory); // 綁定清除按鈕
+
         function updateInputUI() {
             const size2kRadio = document.getElementById('size-2k');
             const size2kLabel = size2kRadio.nextElementSibling;
@@ -541,13 +589,33 @@
                 });
                 
                 if (result.images && result.images.length > 0) {
-                    generatedImages = result.images;
+                    // 重要修改：將新圖片附加到歷史紀錄，而不是覆蓋
+                    sessionHistory = [...sessionHistory, ...result.images];
+                    
+                    // 渲染縮圖列表
+                    renderGallery();
+                    
+                    // 顯示最新生成的第一張 (即剛剛加入歷史紀錄的第一張)
+                    // 計算新圖片在 sessionHistory 中的起始索引
+                    const newImagesStartIndex = sessionHistory.length - result.images.length;
+                    
+                    // 先切換到結果檢視模式
+                    resultsGallery.classList.remove('hidden');
+                    if (sessionHistory.length > 1) {
+                        galleryNav.classList.remove('hidden');
+                    } else {
+                        galleryNav.classList.add('hidden');
+                    }
+                    
+                    // 顯示新生成的圖片
+                    showImage(newImagesStartIndex);
+                    
                 } else {
                     throw new Error("後端未回傳任何圖片。");
                 }
 
                 await simulateProgress(90, 100, 300); 
-                displayResults();
+                setLoading(false);
 
             } catch (error) {
                 console.error("後端呼叫失敗:", error);
@@ -606,92 +674,120 @@
             });
         }
 
-        function displayResults() {
-            if (generatedImages.length > 0) {
-                currentImageIndex = 0;
-                showImage(currentImageIndex);
-                resultsGallery.classList.remove('hidden');
+        // 新增：渲染縮圖列表
+        function renderGallery() {
+            historyGalleryList.innerHTML = ''; // 清空列表
+            
+            sessionHistory.forEach((imgData, index) => {
+                const url = typeof imgData === 'string' ? imgData : imgData.url;
                 
-                if (generatedImages.length > 1) {
-                    galleryNav.classList.remove('hidden');
-                } else {
-                    galleryNav.classList.add('hidden');
-                }
-            } else {
-                showError("未生成任何圖片。");
-            }
-            setLoading(false);
+                const thumbBtn = document.createElement('button');
+                thumbBtn.className = `flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${index === currentImageIndex ? 'border-blue-500 ring-2 ring-blue-500/50' : 'border-transparent hover:border-gray-500'}`;
+                thumbBtn.onclick = () => showImage(index);
+                
+                const thumbImg = document.createElement('img');
+                thumbImg.src = url;
+                thumbImg.className = "w-full h-full object-cover";
+                
+                thumbBtn.appendChild(thumbImg);
+                historyGalleryList.appendChild(thumbBtn);
+            });
+            
+            // 自動捲動到最右邊 (最新圖片)
+            setTimeout(() => {
+                historyGalleryList.scrollLeft = historyGalleryList.scrollWidth;
+            }, 100);
+        }
+
+        // 新增：清除歷史紀錄
+        function clearHistory() {
+            if (sessionHistory.length === 0) return;
+            
+            const currentImg = sessionHistory[currentImageIndex];
+            // 只保留當前正在看的那張圖片
+            sessionHistory = [currentImg];
+            currentImageIndex = 0;
+            
+            renderGallery();
+            showImage(0);
         }
 
         function showImage(index) {
-            if (index < 0 || index >= generatedImages.length) {
+            if (index < 0 || index >= sessionHistory.length) {
                 return;
             }
+            
+            // 如果點擊的是同一張圖，不需要重新載入動畫
+            // 但如果是第一次載入（currentImageIndex 初始值可能造成問題），則忽略此檢查
+            const isSameImage = index === currentImageIndex && !imageLoader.classList.contains('hidden');
+            
             currentImageIndex = index;
             
-            const imgData = generatedImages[index];
+            const imgData = sessionHistory[index];
             const url = typeof imgData === 'string' ? imgData : imgData.url;
 
-            resultImage.classList.add('opacity-0');
+            // 1. 立即隱藏舊圖片並顯示 Loading 遮罩
+            if (!isSameImage) {
+                resultImage.style.opacity = '0';
+                imageLoader.classList.remove('hidden');
+            }
             
-            setTimeout(() => {
+            // 2. 設定新圖片來源
+            // 使用 Image 物件預載入，確保圖片真的抓到了再顯示
+            const tempImg = new Image();
+            tempImg.src = url;
+            
+            tempImg.onload = () => {
+                // 圖片載入完成後
                 resultImage.src = url;
-                modalImage.src = url; 
+                modalImage.src = url;
                 
-                // 更新 Prompt, Size, Ratio 顯示
-                if (typeof imgData === 'object') {
-                    metaSize.textContent = imgData.size || "Unknown";
-                    metaRatio.textContent = imgData.aspectRatio || "Custom";
-                    metaPrompt.textContent = imgData.prompt || "No Prompt";
-                    // 如果沒有 Prompt，隱藏該行
-                    metaPrompt.style.display = imgData.prompt && imgData.prompt.trim() !== "" ? "block" : "none";
-                }
+                // 隱藏 Loading，顯示圖片 (淡入)
+                imageLoader.classList.add('hidden');
+                // 稍微延遲讓 DOM 更新，觸發 CSS transition
+                requestAnimationFrame(() => {
+                    resultImage.style.opacity = '1';
+                });
+            };
 
-                resultImage.classList.remove('opacity-0');
-            }, 150);
+            // 更新 Metadata 顯示
+            if (typeof imgData === 'object') {
+                metaSize.textContent = imgData.size || "Unknown";
+                metaRatio.textContent = imgData.aspectRatio || "Custom";
+                metaPrompt.textContent = imgData.prompt || "No Prompt";
+                metaPrompt.style.display = imgData.prompt && imgData.prompt.trim() !== "" ? "block" : "none";
+            }
 
-            imageCounter.textContent = `${index + 1} / ${generatedImages.length}`;
+            // 更新計數器 (現在是針對整個歷史紀錄)
+            imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
             
             navLeft.disabled = index === 0;
-            navRight.disabled = index === (generatedImages.length - 1);
+            navRight.disabled = index === (sessionHistory.length - 1);
             modalNavLeft.disabled = index === 0;
-            modalNavRight.disabled = index === (generatedImages.length - 1);
+            modalNavRight.disabled = index === (sessionHistory.length - 1);
+            
+            // 更新縮圖列表的選取狀態
+            const thumbnails = historyGalleryList.querySelectorAll('button');
+            thumbnails.forEach((btn, idx) => {
+                if (idx === index) {
+                    btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500/50');
+                    btn.classList.remove('border-transparent');
+                    // 確保選中的縮圖在視野內
+                    btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+                } else {
+                    btn.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500/50');
+                    btn.classList.add('border-transparent');
+                }
+            });
         }
 
         function showModalImage(index) {
-            if (index < 0 || index >= generatedImages.length) {
-                return;
-            }
-            currentImageIndex = index;
-            const imgData = generatedImages[index];
-            const url = typeof imgData === 'string' ? imgData : imgData.url;
-
-            modalImage.classList.add('opacity-0');
-            
-            setTimeout(() => {
-                modalImage.src = url;
-                resultImage.src = url; 
-                
-                // Modal 切換時也要更新底層的 Metadata
-                if (typeof imgData === 'object') {
-                    metaSize.textContent = imgData.size || "";
-                    metaRatio.textContent = imgData.aspectRatio || "";
-                    metaPrompt.textContent = imgData.prompt || "";
-                }
-
-                modalImage.classList.remove('opacity-0');
-            }, 150);
-
-            imageCounter.textContent = `${index + 1} / ${generatedImages.length}`;
-            
-            navLeft.disabled = index === 0;
-            navRight.disabled = index === (generatedImages.length - 1);
-            modalNavLeft.disabled = index === 0;
-            modalNavRight.disabled = index === (generatedImages.length - 1);
+            // Modal 內的切換邏輯保持簡單，直接呼叫主函式同步狀態
+            showImage(index);
         }
 
         function openFullscreen() {
-            showModalImage(currentImageIndex); 
+            // showModalImage(currentImageIndex); // 不需要額外呼叫，showImage 已同步 url
             fullscreenModal.classList.remove('hidden');
             fullscreenModal.classList.add('flex');
         }
@@ -699,12 +795,11 @@
         function closeFullscreen() {
             fullscreenModal.classList.add('hidden');
             fullscreenModal.classList.remove('flex');
-            showImage(currentImageIndex); 
         }
 
         async function downloadCurrentImage() {
             try {
-                const imgData = generatedImages[currentImageIndex];
+                const imgData = sessionHistory[currentImageIndex];
                 const imageUrl = typeof imgData === 'string' ? imgData : imgData.url;
                 
                 const response = await fetch(imageUrl);
@@ -735,7 +830,10 @@
             if (state) {
                 appContainer.style.justifyContent = 'flex-start'; 
                 inputHub.classList.add('mt-auto'); 
-                resultsGallery.classList.add('hidden'); 
+                
+                // 生成時不隱藏歷史紀錄，只顯示進度條
+                // resultsGallery.classList.add('hidden'); // 註解掉這行，保留顯示
+                
                 progressContainer.classList.remove('hidden');
                 errorMessage.classList.add('hidden');
                 sendBtn.innerHTML = '<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
