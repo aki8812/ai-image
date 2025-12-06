@@ -99,7 +99,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     // 1. 構建 Parts：文字 Prompt
     const parts = [{ text: prompt }];
 
-    // 【修正】確保圖片被正確加入 Payload
+    // 2. 確保圖片被正確加入 Payload
     if (images && Array.isArray(images)) {
         images.forEach(img => {
             if (img.base64Data) {
@@ -124,11 +124,11 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 【修正】使用 Promise.all 並行請求，但錯開起跑時間 (Staggering)
-    // 這是為了在 Vercel 10秒限制內完成 4 張圖，同時減少 Rate Limit 機率
+    // 【修正】縮短請求間隔至 300ms
+    // 之前 1500ms 太長，導致 Vercel 10s Timeout 強制殺掉程式，造成圖片數量不足
+    // 300ms 是在 "被 Google Rate Limit" 與 "Vercel Timeout" 之間走鋼索的最佳值
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        // 增加間隔至 1.5 秒，避免 429 Too Many Requests
-        if (i > 0) await delay(i * 1500); 
+        if (i > 0) await delay(i * 300); 
         
         return vertexFetch(apiUrl, {
             method: "POST",
@@ -165,17 +165,15 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
             validImages.push(base64Image);
             validThoughts.push(thoughts.trim());
         } else if (thoughts) {
-            // 有思考文字但沒圖片，通常是模型拒絕生成
             refusalReason = thoughts.trim();
         }
     }
 
     if (validImages.length === 0) {
-        // 如果有拒絕理由，回傳給前端顯示
         if (refusalReason) {
-            throw new Error(`Gemini 拒絕生成圖片 (Refusal): ${refusalReason.substring(0, 150)}...`);
+            throw new Error(`Gemini 拒絕生成 (Refusal): ${refusalReason.substring(0, 150)}...`);
         }
-        throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被完全過濾或 API 繁忙)");
+        throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被完全過濾或 API 忙碌)");
     }
 
     let displaySize = "1K (Default)";
