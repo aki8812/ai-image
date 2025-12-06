@@ -102,18 +102,13 @@ export default async function handler(req, res) {
 // === 上半部：NanoBanana Pro (Gemini 3 Pro Image) 修正版 ===
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize }) {
     const modelId = "gemini-3-pro-image-preview"; 
-    // Gemini 3 預覽版使用 v1beta1 端點
+
     const geminiApiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:generateContent`;
 
-    // === 畫質處理 ===
-    // 對應 Gemini 的參數： "2K" | "4K"
-    // 如果是 1024 或未設定，則不傳 image_size (使用預設)
     let targetImageSize;
     if (sampleImageSize === '4096') targetImageSize = "4K";
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
-    // === 比例處理 ===
-    // 直接使用前端傳來的 aspectRatio，若前端沒傳則預設 "1:1"
     const targetAspectRatio = aspectRatio || "1:1";
 
     const payload = {
@@ -121,15 +116,26 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
             role: "user", 
             parts: [{ text: prompt }] 
         }],
-        // 啟用 Google Search Grounding (如範例)
+        generation_config: {
+            // 🔥 關鍵通關密語：告訴模型我們要文字和圖片
+            response_modalities: ["TEXT", "IMAGE"], 
+            
+            temperature: 1,
+            top_p: 0.95,
+            max_output_tokens: 32768,  
         tools: [{ google_search: {} }],
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
-                // 只有在需要 2K/4K 時才加入此參數
                 ...(targetImageSize && { image_size: targetImageSize })
             }
         }
+        safety_settings: [
+            { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
+            { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
+            { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'OFF' },
+            { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'OFF' }
+        ]
     };
 
     const result = await vertexFetch(geminiApiUrl, {
@@ -138,18 +144,15 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
         body: JSON.stringify(payload),
     });
 
-    // 解析 Gemini 回傳格式
-    // 結構: candidates[0].content.parts[].inlineData.data
+
     const candidates = result.candidates;
     if (!candidates || candidates.length === 0) {
         throw new Error("Gemini 未回傳候選結果");
     }
 
-    // 尋找包含圖片數據的部分
     const imagePart = candidates[0].content?.parts?.find(p => p.inlineData);
     
     if (!imagePart) {
-        // 檢查是否只回傳了文字 (例如拒絕生成)
         const textPart = candidates[0].content?.parts?.find(p => p.text);
         if (textPart) {
             throw new Error(`Gemini 回傳了文字而非圖片: ${textPart.text}`);
@@ -159,7 +162,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
 
     const base64Image = imagePart.inlineData.data;
 
-    // 決定回傳給前端顯示的尺寸標籤
     let displaySize = "1K (Default)";
     if (targetImageSize === "2K") displaySize = "2K";
     if (targetImageSize === "4K") displaySize = "4K";
