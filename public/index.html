@@ -82,7 +82,6 @@
                             <span id="progress-percent" class="text-white text-lg font-bold font-mono">0%</span>
                         </div>
                     </div>
-                    <!-- (移除模擬日誌按鈕) -->
                 </div>
 
                 <!-- 圖片載入動畫 -->
@@ -111,7 +110,7 @@
                 </div>
             </div>
 
-            <!-- 歷史縮圖 -->
+            <!-- 歷史縮圖與導航 -->
             <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
                 <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
                 <div class="h-8 w-[1px] bg-gray-700"></div>
@@ -466,7 +465,8 @@
             
             const isNanoBanana = currentMode === 'generate-nanobanana';
             const maxFiles = isNanoBanana ? 14 : 1;
-            const maxTotalSize = isNanoBanana ? 20 * 1024 * 1024 : 10 * 1024 * 1024; 
+            // 【重要】降低前端限制至 3.5MB (預留 Base64 空間給 Vercel 4.5MB 限制)
+            const maxTotalSize = isNanoBanana ? 3.5 * 1024 * 1024 : 3.5 * 1024 * 1024; 
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
             const count = uploadedImages.length;
             uploadCountBadge.textContent = count;
@@ -481,7 +481,7 @@
                     return;
                 }
                 if (totalSize > maxTotalSize) {
-                    showError(`圖片總大小超過限制！目前模式上限為 ${maxTotalSize / 1024 / 1024}MB。`);
+                    showError(`圖片總大小超過限制！總大小上限為 3.5MB (伺服器限制)。`);
                     sendBtn.disabled = true;
                     return;
                 }
@@ -560,7 +560,17 @@
                     })
                 });
 
-                const data = await response.json();
+                // Catch JSON parse errors (usually from 413 or 504 HTML responses)
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    if (response.status === 413) {
+                        throw new Error("圖片總大小過大，請縮小圖片或減少數量 (上限約 3.5MB)。");
+                    }
+                    throw new Error(`伺服器回應錯誤 (${response.status})。可能請求逾時或內容過大。`);
+                }
+
                 if (data.error) throw new Error(data.error.message);
                 if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
 
