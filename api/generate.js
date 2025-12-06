@@ -33,8 +33,8 @@ if (getApps().length === 0) {
 const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
 const LOCATION = "us-central1"; 
+// Imagen 4 系列使用 v1，Gemini 3 預覽版我們會個別處理
 const API_VERSION = "v1";
-// 注意：Gemini 模型使用 generateContent 方法，路徑結構與 Imagen 略有不同
 const VERTEX_AI_BASE = `https://${LOCATION}-aiplatform.googleapis.com/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
 const auth = new GoogleAuth({
@@ -76,13 +76,13 @@ export default async function handler(req, res) {
 
     // 根據模式選擇處理函式
     if (body.mode === 'generate-nanobanana') {
-        // NanoBanana Pro (Gemini 3 Pro)
+        // NanoBanana Pro (Gemini 3 Pro) - 修正後的邏輯
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
-        // 圖片放大 (Imagen Ultra)
+        // 圖片放大 (完全照抄舊版)
         generatedResults = await handleUpscaling(headers, body);
     } else {
-        // Imagen 4 系列 (Default, Fast, Ultra)
+        // Imagen 4 系列 (完全照抄舊版)
         generatedResults = await handleImagen(headers, body);
     }
 
@@ -99,93 +99,82 @@ export default async function handler(req, res) {
   }
 }
 
-// === 處理 NanoBanana Pro (Gemini 3 Pro Image) ===
-async function handleNanoBanana(headers, { prompt, images, aspectRatio, sampleImageSize }) {
-    // 【修正】使用正確的 Gemini 3 Pro 影像模型 ID
+// === 上半部：NanoBanana Pro (Gemini 3 Pro Image) 修正版 ===
+async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize }) {
     const modelId = "gemini-3-pro-image-preview"; 
-    const apiUrl = `${VERTEX_AI_BASE}/${modelId}:generateContent`;
+    // Gemini 3 預覽版使用 v1beta1 端點
+    const geminiApiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:generateContent`;
 
-    // 構建 Gemini 的多模態輸入 (Multimodal Input)
-    const parts = [{ text: prompt }];
+    // === 畫質處理 ===
+    // 對應 Gemini 的參數： "2K" | "4K"
+    // 如果是 1024 或未設定，則不傳 image_size (使用預設)
+    let targetImageSize;
+    if (sampleImageSize === '4096') targetImageSize = "4K";
+    else if (sampleImageSize === '2048') targetImageSize = "2K";
     
-    // 支援多張圖片 (最多 14 張)
-    if (images && Array.isArray(images)) {
-        images.forEach(img => {
-            // 簡單驗證 base64
-            if (img.base64Data) {
-                parts.push({
-                    inlineData: {
-                        mimeType: img.mimeType || "image/png",
-                        data: img.base64Data
-                    }
-                });
-            }
-        });
-    }
-
-    // 參數設定
-    // Gemini 的影像生成參數通常放在 generationConfig
-    // 注意：Gemini 3 Pro 對於長寬比和解析度的控制方式可能與 Imagen 不同
-    // 我們這裡使用 Prompt 增強 + generationConfig (如果 API 支援)
-    
-    // 處理長寬比 (AspectRatio)
-    // 如果是特殊比例 (如 21:9)，Gemini 3 透過 Prompt 理解能力極強
-    let promptSuffix = "";
-    if (aspectRatio) promptSuffix += `\nAspect Ratio: ${aspectRatio}`;
-    
-    // 處理 4K 解析度
-    if (sampleImageSize === '4096') {
-        promptSuffix += `\nQuality: Ultra High Resolution (4K), Highly Detailed`;
-    }
-
-    if (promptSuffix) {
-        parts[0].text += promptSuffix;
-    }
+    // === 比例處理 ===
+    // 直接使用前端傳來的 aspectRatio，若前端沒傳則預設 "1:1"
+    const targetAspectRatio = aspectRatio || "1:1";
 
     const payload = {
-        contents: [{ role: "user", parts: parts }],
-        generationConfig: {
-            // 強制回應為影像
-            responseModalities: ["IMAGE"],
-            // 部分 Gemini 版本支援在此設定 aspectRatio，若不支援則會依賴 Prompt
-            // sampleCount: 1 // Gemini 通常一次生成一張，或由後端決定
+        contents: [{ 
+            role: "user", 
+            parts: [{ text: prompt }] 
+        }],
+        // 啟用 Google Search Grounding (如範例)
+        tools: [{ google_search: {} }],
+        generation_config: {
+            image_config: {
+                aspect_ratio: targetAspectRatio,
+                // 只有在需要 2K/4K 時才加入此參數
+                ...(targetImageSize && { image_size: targetImageSize })
+            }
         }
     };
 
-    const result = await vertexFetch(apiUrl, {
+    const result = await vertexFetch(geminiApiUrl, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(payload),
     });
 
-    // 解析 Gemini 回傳格式 (與 Imagen 不同)
-    // 成功時結構通常為: candidates[0].content.parts[0].inlineData.data (Base64)
-    if (!result.candidates?.[0]?.content?.parts) {
-        console.error("Gemini Response:", JSON.stringify(result));
-        throw new Error("NanoBanana Pro 未回傳有效的影像資料");
+    // 解析 Gemini 回傳格式
+    // 結構: candidates[0].content.parts[].inlineData.data
+    const candidates = result.candidates;
+    if (!candidates || candidates.length === 0) {
+        throw new Error("Gemini 未回傳候選結果");
     }
+
+    // 尋找包含圖片數據的部分
+    const imagePart = candidates[0].content?.parts?.find(p => p.inlineData);
     
-    // 提取所有生成的圖片 (Gemini 可能一次回傳多張，但在 parts 陣列中)
-    const base64Images = result.candidates[0].content.parts
-        .filter(part => part.inlineData && part.inlineData.data)
-        .map(part => part.inlineData.data);
-
-    if (base64Images.length === 0) {
-        throw new Error("模型未生成任何圖片 (被過濾或錯誤)");
+    if (!imagePart) {
+        // 檢查是否只回傳了文字 (例如拒絕生成)
+        const textPart = candidates[0].content?.parts?.find(p => p.text);
+        if (textPart) {
+            throw new Error(`Gemini 回傳了文字而非圖片: ${textPart.text}`);
+        }
+        throw new Error("Gemini 未生成圖片資料");
     }
 
-    // 決定顯示給前端的尺寸標籤
-    let sizeLabel = "1K";
-    if (sampleImageSize === '2048') sizeLabel = "2K";
-    if (sampleImageSize === '4096') sizeLabel = "4K";
+    const base64Image = imagePart.inlineData.data;
 
-    return await saveImagesToStorage(base64Images, {
+    // 決定回傳給前端顯示的尺寸標籤
+    let displaySize = "1K (Default)";
+    if (targetImageSize === "2K") displaySize = "2K";
+    if (targetImageSize === "4K") displaySize = "4K";
+
+    return await saveImagesToStorage([base64Image], {
         prompt: prompt,
-        aspectRatio: aspectRatio || "1:1",
-        size: sizeLabel,
+        aspectRatio: targetAspectRatio,
+        size: displaySize,
         mode: "generate-nanobanana"
     });
 }
+
+// ==========================================================
+// === 下半部：完全照抄您原本的 generate.js (Imagen 4 & Upscale) ===
+// ==========================================================
 
 // === 處理 Imagen 4 系列 (單圖輸入) ===
 async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
