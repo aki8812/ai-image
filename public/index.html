@@ -47,9 +47,6 @@
         .image-transition {
             transition: opacity 0.4s ease-in-out;
         }
-        #progress-bar {
-            transition: width 0.3s ease-in-out;
-        }
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { 
           -webkit-appearance: none; 
@@ -107,13 +104,30 @@
             <!-- 主圖顯示區 -->
             <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
                 
-                <!-- 載入動畫層 (預設隱藏) -->
+                <!-- 1. 生成進度圓環 (Generation Loader) - 懸浮在中央 -->
+                <div id="generation-loader" class="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300">
+                    <div class="relative w-24 h-24">
+                        <!-- 背景圓圈 -->
+                        <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
+                            <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" stroke-width="8"></circle>
+                            <!-- 進度圓圈 -->
+                            <circle id="progress-ring" cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"></circle>
+                        </svg>
+                        <!-- 中間文字 -->
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <span id="progress-percent" class="text-white text-lg font-bold font-mono">0%</span>
+                        </div>
+                    </div>
+                    <p class="text-white mt-4 font-bold text-lg animate-pulse tracking-wider">AI 繪圖中...</p>
+                </div>
+
+                <!-- 2. 圖片讀取轉圈圈 (Image Loading Spinner) - 圖片下載時顯示 -->
                 <div id="image-loader" class="absolute inset-0 flex flex-col items-center justify-center z-10 loading-pulse hidden">
                     <svg class="animate-spin h-10 w-10 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
                         <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    <span class="text-gray-400 text-sm">載入圖片中...</span>
+                    <span class="text-gray-400 text-sm">影像傳輸中...</span>
                 </div>
 
                 <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0 z-0">
@@ -167,13 +181,8 @@
             </div>
         </div>
         
-        <div id="progress-container" class="w-full px-2 my-10 hidden">
-            <div class="w-full bg-gray-700 rounded-full h-2.5">
-                <div id="progress-bar" class="bg-blue-500 h-2.5 rounded-full" style="width: 0%"></div>
-            </div>
-            <p id="progress-percent" class="text-center text-sm text-gray-400 mt-2">生成中... 0%</p>
-            <p id="error-message" class="text-center text-red-400 mt-2 hidden"></p>
-        </div>
+        <!-- 移除舊的線性進度條 #progress-container -->
+        <p id="error-message" class="w-full text-center text-red-400 mt-2 hidden bg-red-900/20 p-2 rounded-lg"></p>
 
         <div id="input-hub" class="w-full"> 
             <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden">
@@ -194,7 +203,7 @@
                 </button>
                 
                 <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
 
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..." class="flex-grow bg-transparent text-lg text-gray-100 placeholder-gray-500 p-3 resize-none outline-none overflow-y-auto" style="max-height: 200px;"></textarea>
@@ -365,9 +374,16 @@
         const imagePreview1 = document.getElementById('image-preview-1');
         const removeImageBtns = document.querySelectorAll('.remove-image-btn');
 
-        const progressContainer = document.getElementById('progress-container');
-        const progressBar = document.getElementById('progress-bar');
+        // 移除舊進度條變數
+        // const progressContainer = document.getElementById('progress-container');
+        // const progressBar = document.getElementById('progress-bar');
+        
+        // 新進度條變數
+        const generationLoader = document.getElementById('generation-loader');
+        const progressRing = document.getElementById('progress-ring');
         const progressPercent = document.getElementById('progress-percent');
+        const CIRCUMFERENCE = 2 * Math.PI * 40; // r=40, 2*PI*r ~= 251.327
+
         const errorMessage = document.getElementById('error-message');
 
         const resultsGallery = document.getElementById('results-gallery');
@@ -831,22 +847,26 @@
                 appContainer.style.justifyContent = 'flex-start'; 
                 inputHub.classList.add('mt-auto'); 
                 
-                // 生成時不隱藏歷史紀錄，只顯示進度條
-                // resultsGallery.classList.add('hidden'); // 註解掉這行，保留顯示
+                // 顯示結果區域 (如果是第一張，這裡會是空的，但會顯示 Loader)
+                resultsGallery.classList.remove('hidden');
                 
-                progressContainer.classList.remove('hidden');
+                // 顯示圓環 Loader
+                generationLoader.classList.remove('hidden');
+                
                 errorMessage.classList.add('hidden');
                 sendBtn.innerHTML = '<svg class="animate-spin h-6 w-6" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             } else {
                 clearInterval(progressInterval);
-                if (!resultsGallery.classList.contains('hidden')) {
-                    appContainer.style.justifyContent = 'flex-start';
-                    inputHub.classList.add('mt-auto');
-                } else {
+                // 隱藏圓環 Loader
+                generationLoader.classList.add('hidden');
+                
+                if (sessionHistory.length === 0) {
+                    // 如果沒有任何圖片 (失敗)，隱藏畫廊
+                    resultsGallery.classList.add('hidden');
                     appContainer.style.justifyContent = 'center';
                     inputHub.classList.remove('mt-auto');
                 }
-                progressContainer.classList.add('hidden');
+                
                 sendBtn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
@@ -864,8 +884,13 @@
                         clearInterval(progressInterval);
                         resolve();
                     }
-                    progressBar.style.width = `${Math.floor(current)}%`;
-                    progressPercent.textContent = `生成中... ${Math.floor(current)}%`;
+                    
+                    // 更新圓環進度
+                    // 總長度 CIRCUMFERENCE，offset 從 CIRCUMFERENCE 降到 0 為滿
+                    const offset = CIRCUMFERENCE - (current / 100) * CIRCUMFERENCE;
+                    progressRing.style.strokeDashoffset = offset;
+                    progressPercent.textContent = `${Math.floor(current)}%`;
+                    
                 }, 50);
             });
         }
@@ -873,9 +898,12 @@
         function showError(message) {
             errorMessage.textContent = message;
             errorMessage.classList.remove('hidden');
-            progressContainer.classList.remove('hidden'); 
-            progressBar.style.width = '0%'; 
-            progressPercent.textContent = "失敗";
+            generationLoader.classList.add('hidden');
+            // 如果只有錯誤沒有圖片，隱藏畫廊
+            if(sessionHistory.length === 0) {
+                resultsGallery.classList.add('hidden');
+                appContainer.style.justifyContent = 'center';
+            }
         }
 
         updateInputUI();
