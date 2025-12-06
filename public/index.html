@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image</title> 
+    <title>AI Image - NanoBanana Pro</title> 
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827"> 
@@ -89,19 +89,24 @@
         .dropdown-enter-active {
             transform: scale(1); opacity: 1; pointer-events: auto; transition: all 0.1s ease-out;
         }
+
+        /* Markdown 樣式簡化 */
+        .markdown-body { font-size: 0.9rem; line-height: 1.6; }
+        .markdown-body p { margin-bottom: 0.5em; }
+        .markdown-body strong { color: #fbbf24; } /* 黃色強調 */
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200"> 
 
-    <!-- 修正：加入 mx-auto 強制水平置中，移除 transition-all 以免干擾原本 CSS -->
     <div id="app-container" class="w-full max-w-2xl min-h-screen flex flex-col items-center justify-center p-4 mx-auto"> 
 
         <!-- 結果展示區 -->
         <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4"> 
             <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
-                <!-- 生成進度圓環 -->
-                <div id="generation-loader" class="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/60 backdrop-blur-sm hidden transition-opacity duration-300">
-                    <div class="relative w-24 h-24">
+                
+                <!-- 生成進度圓環 (位置調整至上方) -->
+                <div id="generation-loader" class="absolute inset-0 flex flex-col items-center justify-start pt-32 z-30 bg-black/80 backdrop-blur-sm hidden transition-opacity duration-300">
+                    <div class="relative w-24 h-24 mb-8">
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" stroke-width="8"></circle>
                             <circle id="progress-ring" cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"></circle>
@@ -110,7 +115,12 @@
                             <span id="progress-percent" class="text-white text-lg font-bold font-mono">0%</span>
                         </div>
                     </div>
-                    <p class="text-white mt-4 font-bold text-lg animate-pulse tracking-wider">AI 繪圖中...</p>
+                    
+                    <!-- 載入時的狀態文字 -->
+                    <div class="text-center px-8 max-w-sm">
+                        <h3 class="text-xl font-bold text-yellow-400 mb-2 animate-pulse">NanoBanana 正在思考...</h3>
+                        <p id="loading-hint" class="text-gray-400 text-sm">Gemini 3 正在進行多模態推理與繪圖架構分析</p>
+                    </div>
                 </div>
 
                 <!-- 圖片載入動畫 -->
@@ -123,7 +133,7 @@
 
                 <!-- 懸浮資訊層 -->
                 <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 to-transparent z-20 pointer-events-none">
-                    <div class="flex flex-col gap-1 text-xs text-white max-w-[70%] drop-shadow-md pointer-events-auto">
+                    <div class="flex flex-col gap-1 text-xs text-white max-w-[60%] drop-shadow-md pointer-events-auto">
                         <div class="flex gap-2 flex-wrap">
                             <span id="meta-model" class="bg-indigo-600/80 px-2 py-0.5 rounded backdrop-blur-sm font-bold"></span>
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
@@ -132,6 +142,10 @@
                         <p id="meta-prompt" class="line-clamp-2 italic opacity-90 font-light mt-1"></p>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
+                        <!-- 思考按鈕 (僅在有思考內容時顯示) -->
+                        <button id="thoughts-btn" class="bg-yellow-600/80 text-white rounded-full p-2 hover:bg-yellow-500 transition backdrop-blur-sm hidden" title="查看 AI 思考過程">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M3 12h1m8-9v1m8 8h1m-9 8v1M5.6 5.6l.7.7m12.1-.7-.7.7m0 12.1.7.7m-12.1-.7-.7.7"/></svg>
+                        </button>
                         <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
                         <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
                     </div>
@@ -159,14 +173,14 @@
             <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden overflow-x-auto scrollbar-hide pb-1"></div>
             
             <div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative">
-                <!-- 上傳按鈕：圖示改為加號 -->
+                <!-- 上傳按鈕 -->
                 <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative" title="上傳參考圖">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span id="upload-count-badge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden" multiple>
                 
-                <!-- 比例按鈕：圖示改為正方形 -->
+                <!-- 比例按鈕 -->
                 <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></button>
                 
                 <!-- 設定按鈕 -->
@@ -183,8 +197,22 @@
         </div>
     </div>
 
+    <!-- Thoughts Modal (New!) -->
+    <div id="thoughts-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
+        <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-gray-700 max-h-[80vh] flex flex-col">
+            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
+                <div class="flex items-center gap-2">
+                    <svg class="text-yellow-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
+                    <h2 class="text-lg font-bold text-gray-100">Gemini 3 思考過程</h2>
+                </div>
+                <button id="thoughts-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
+            </div>
+            <div id="thoughts-content" class="overflow-y-auto flex-grow text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap"></div>
+        </div>
+    </div>
+
     <!-- Modals -->
-    <div id="fullscreen-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
+    <div id="fullscreen-modal" class="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4 hidden transition-opacity">
         <div class="relative w-full h-full max-w-4xl max-h-[90vh] flex items-center justify-center">
             <button id="modal-close-btn" class="absolute -top-2 -right-2 md:top-2 md:right-2 z-10 bg-white text-black rounded-full p-1.5"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             <img id="modal-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
@@ -192,7 +220,7 @@
     </div>
     
     <div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md"> 
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-700"> 
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">設定</h2>
                 <button id="settings-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
@@ -201,44 +229,44 @@
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
                 <fieldset class="grid grid-cols-1 gap-3" id="mode-selector">
-                    <!-- 新增 NanoBanana Pro 並設為預設 -->
                     <div>
                         <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana" class="hidden" checked>
-                        <label for="mode-nanobanana" class="radio-label border-l-4 border-l-yellow-500">NanoBanana Pro (預設)</label>
+                        <label for="mode-nanobanana" class="radio-label border-l-4 border-l-yellow-500 hover:bg-gray-700">
+                            <div class="text-left w-full pl-2">
+                                <div class="font-bold text-yellow-400">NanoBanana Pro (預設)</div>
+                                <div class="text-xs text-gray-400">Gemini 3 • 4K 畫質 • 具備思考能力</div>
+                            </div>
+                        </label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-default" id="mode-default" class="hidden">
-                        <label for="mode-default" class="radio-label">Imagen 4.0 (標準)</label>
+                        <label for="mode-default" class="radio-label text-left pl-4">Imagen 4.0 (標準)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-fast" id="mode-fast" class="hidden">
-                        <label for="mode-fast" class="radio-label">Imagen 4.0 (高速)</label>
+                        <label for="mode-fast" class="radio-label text-left pl-4">Imagen 4.0 (高速)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra" class="hidden">
-                        <label for="mode-ultra" class="radio-label">Imagen 4.0 (Ultra)</label>
+                        <label for="mode-ultra" class="radio-label text-left pl-4">Imagen 4.0 (Ultra)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
-                        <label for="mode-upscale" class="radio-label">圖片放大</label>
+                        <label for="mode-upscale" class="radio-label text-left pl-4">圖片放大</label>
                     </div>
                 </fieldset>
             </div>
 
             <div class="mb-4" id="image-count-wrapper">
                 <label class="block text-sm font-medium text-gray-300 mb-2">生成數量 (1-4)</label>
-                <input type="number" id="image-count" value="1" min="1" max="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white">
-            </div>
-            
-            <div class="mb-4 hidden" id="upscale-options-wrapper">
-                <!-- Upscale options... -->
+                <input type="number" id="image-count" value="1" min="1" max="4" class="w-full bg-gray-700 border border-gray-600 rounded-lg p-2 text-white outline-none focus:ring-2 focus:ring-blue-500">
             </div>
         </div>
     </div>
     
     <!-- Ratio Modal -->
     <div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
-        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md">
+        <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-700">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">尺寸與比例</h2>
                 <button id="ratio-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
@@ -253,19 +281,17 @@
                     <div><input type="radio" name="ratio-mode" value="4:3" id="ratio-4-3" class="hidden"><label for="ratio-4-3" class="radio-label">4:3</label></div>
                     <div><input type="radio" name="ratio-mode" value="3:4" id="ratio-3-4" class="hidden"><label for="ratio-3-4" class="radio-label">3:4</label></div>
                     
-                    <!-- 更多尺寸按鈕 -->
                     <div class="relative" id="more-ratios-wrapper">
                         <button id="more-ratios-btn" class="w-full h-full bg-gray-700 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-1">
                             <span>更多...</span>
                             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"></polyline></svg>
                         </button>
-                        <!-- 下拉選單 -->
                         <div id="more-ratios-dropdown" class="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-600 rounded-xl shadow-xl z-20 hidden dropdown-enter grid grid-cols-2 gap-1 p-2">
                             <input type="radio" name="ratio-mode" value="3:2" id="ratio-3-2" class="hidden"><label for="ratio-3-2" class="radio-label text-xs py-2">3:2</label>
                             <input type="radio" name="ratio-mode" value="2:3" id="ratio-2-3" class="hidden"><label for="ratio-2-3" class="radio-label text-xs py-2">2:3</label>
                             <input type="radio" name="ratio-mode" value="4:5" id="ratio-4-5" class="hidden"><label for="ratio-4-5" class="radio-label text-xs py-2">4:5</label>
                             <input type="radio" name="ratio-mode" value="5:4" id="ratio-5-4" class="hidden"><label for="ratio-5-4" class="radio-label text-xs py-2">5:4</label>
-                            <input type="radio" name="ratio-mode" value="21:9" id="ratio-21-9" class="hidden col-span-2"><label for="ratio-21-9" class="radio-label text-xs py-2">21:9 (電影)</label>
+                            <input type="radio" name="ratio-mode" value="21:9" id="ratio-21-9" class="hidden col-span-2"><label for="ratio-21-9" class="radio-label text-xs py-2">21:9</label>
                         </div>
                     </div>
                 </fieldset>
@@ -273,14 +299,11 @@
             
             <div class="mt-6">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成尺寸</label>
-                <!-- 注意：這裡改用 flex 以便動態插入 4K 選項 -->
                 <fieldset class="flex gap-3" id="sample-size-selector">
                     <div class="flex-1"><input type="radio" name="sample-size-mode" value="1024" id="size-1k" class="hidden" checked><label for="size-1k" class="radio-label">1K</label></div>
                     <div class="flex-1"><input type="radio" name="sample-size-mode" value="2048" id="size-2k" class="hidden"><label for="size-2k" class="radio-label">2K</label></div>
-                    <!-- 4K 選項 (預設隱藏) -->
-                    <div class="flex-1 hidden" id="size-4k-wrapper"><input type="radio" name="sample-size-mode" value="4096" id="size-4k" class="hidden"><label for="size-4k" class="radio-label font-bold text-yellow-400">4K</label></div>
+                    <div class="flex-1 hidden" id="size-4k-wrapper"><input type="radio" name="sample-size-mode" value="4096" id="size-4k" class="hidden"><label for="size-4k" class="radio-label font-bold text-yellow-400 border-yellow-500/50">4K</label></div>
                 </fieldset>
-                 <p class="text-xs text-gray-500 mt-2" id="sample-size-note"></p>
             </div>
         </div>
     </div>
@@ -306,7 +329,7 @@
         
         const modeSelector = document.getElementById('mode-selector');
         const size4kWrapper = document.getElementById('size-4k-wrapper');
-        const moreRatiosWrapper = document.getElementById('more-ratios-wrapper'); // 取得更多尺寸按鈕的容器
+        const moreRatiosWrapper = document.getElementById('more-ratios-wrapper'); 
         const moreRatiosBtn = document.getElementById('more-ratios-btn');
         const moreRatiosDropdown = document.getElementById('more-ratios-dropdown');
         
@@ -317,10 +340,17 @@
         const progressPercent = document.getElementById('progress-percent');
         const CIRCUMFERENCE = 2 * Math.PI * 40; 
 
+        // Metadata elements
         const metaModel = document.getElementById('meta-model');
         const metaSize = document.getElementById('meta-size');
         const metaRatio = document.getElementById('meta-ratio');
         const metaPrompt = document.getElementById('meta-prompt');
+        const thoughtsBtn = document.getElementById('thoughts-btn');
+        
+        // Thoughts Modal elements
+        const thoughtsModal = document.getElementById('thoughts-modal');
+        const thoughtsContent = document.getElementById('thoughts-content');
+        const thoughtsCloseBtn = document.getElementById('thoughts-close-btn');
 
         updateInputUI();
 
@@ -329,11 +359,32 @@
         
         document.getElementById('send-btn').onclick = handleGeneration;
         promptTextarea.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGeneration(); }};
+        
+        document.getElementById('download-btn').onclick = downloadCurrentImage;
+        document.getElementById('fullscreen-btn').onclick = () => {
+            const img = sessionHistory[currentImageIndex];
+            const url = typeof img === 'string' ? img : img.url;
+            document.getElementById('modal-image').src = url;
+            document.getElementById('fullscreen-modal').classList.remove('hidden');
+        };
+        document.getElementById('modal-close-btn').onclick = () => document.getElementById('fullscreen-modal').classList.add('hidden');
+        document.getElementById('fullscreen-modal').onclick = (e) => { if(e.target === document.getElementById('fullscreen-modal')) document.getElementById('fullscreen-modal').classList.add('hidden'); };
 
         document.getElementById('settings-btn').onclick = () => document.getElementById('settings-modal').classList.remove('hidden');
         document.getElementById('settings-close-btn').onclick = () => document.getElementById('settings-modal').classList.add('hidden');
         document.getElementById('ratio-btn').onclick = () => document.getElementById('ratio-modal').classList.remove('hidden');
         document.getElementById('ratio-close-btn').onclick = () => document.getElementById('ratio-modal').classList.add('hidden');
+        
+        // Thoughts Modal Logic
+        thoughtsBtn.onclick = () => {
+            const imgData = sessionHistory[currentImageIndex];
+            if (imgData && imgData.thoughts) {
+                thoughtsContent.textContent = imgData.thoughts;
+                thoughtsModal.classList.remove('hidden');
+            }
+        };
+        thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
+        thoughtsModal.onclick = (e) => { if(e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
         moreRatiosBtn.onclick = (e) => {
             e.stopPropagation(); 
@@ -457,20 +508,17 @@
             const isNanoBanana = selectedMode === 'generate-nanobanana';
             const isImagen = selectedMode.startsWith('generate') && !isNanoBanana;
             
-            // 4K 選項控制：只有 NanoBanana 顯示
+            // UI 文字提示更新
+            const hint = document.getElementById('loading-hint');
             if (isNanoBanana) {
+                hint.textContent = "Gemini 3 正在進行多模態推理與繪圖架構分析...";
                 size4kWrapper.classList.remove('hidden');
-                // 顯示更多尺寸按鈕
                 moreRatiosWrapper.classList.remove('invisible');
             } else {
+                hint.textContent = "正在透過 Vertex AI 生成高品質影像...";
                 size4kWrapper.classList.add('hidden');
-                // 如果是 Imagen 系列，隱藏更多尺寸按鈕 (用 invisible 佔位，避免排版跑掉，或 hidden 完全隱藏)
-                // 這裡選用 invisible 讓版面一致，或者 hidden 讓剩下的按鈕變大？
-                // 根據需求是 "隱藏"，通常用 hidden，但上面是 grid，hidden 會留空或遞補
-                // 為了不讓使用者選到不支援的比例，我們直接隱藏
                 if (isImagen) {
                     moreRatiosWrapper.classList.add('invisible'); 
-                    // 如果目前選中了更多選單裡的比例，強制切回 1:1
                     const currentRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
                     if (!['1:1', '16:9', '9:16', '4:3', '3:4'].includes(currentRatio)) {
                         document.getElementById('ratio-1-1').click();
@@ -485,9 +533,7 @@
             }
 
             document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
-            document.getElementById('upscale-options-wrapper').classList.toggle('hidden', !isUpscale);
             
-            // 修正：Upscale 模式下禁用更多按鈕
             if(isUpscale) {
                  moreRatiosBtn.disabled = true;
                  moreRatiosBtn.classList.add('opacity-50');
@@ -569,12 +615,21 @@
                 requestAnimationFrame(() => resultImage.style.opacity = '1');
             };
 
+            // Metadata Update
             if (typeof imgData === 'object') {
                 metaModel.textContent = getModelDisplayName(imgData.mode);
                 metaSize.textContent = imgData.size || "Unknown";
                 metaRatio.textContent = imgData.aspectRatio || "Custom";
                 metaPrompt.textContent = imgData.prompt || "No Prompt";
-                metaPrompt.style.display = imgData.prompt ? "block" : "none";
+                
+                // Thoughts Button Logic
+                if (imgData.thoughts) {
+                    thoughtsBtn.classList.remove('hidden');
+                } else {
+                    thoughtsBtn.classList.add('hidden');
+                }
+            } else {
+                thoughtsBtn.classList.add('hidden');
             }
             
             document.getElementById('image-counter').textContent = `${index + 1} / ${sessionHistory.length}`;
@@ -582,6 +637,7 @@
         }
 
         function getModelDisplayName(mode) {
+            if (mode && mode.includes('gemini-3')) return 'NanoBanana Pro';
             if (mode === 'generate-nanobanana') return 'NanoBanana Pro';
             if (mode === 'generate-default') return 'Imagen 4.0';
             if (mode === 'generate-fast') return 'Imagen 4.0 Fast';
