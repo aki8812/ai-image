@@ -25,20 +25,18 @@ const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
 const LOCATION = "us-central1"; 
 
-// === 定義 API 端點 ===
 const REGIONAL_BASE = `https://${LOCATION}-aiplatform.googleapis.com`;
 const V1_API_REGIONAL = `${REGIONAL_BASE}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
 const GLOBAL_BASE = `https://aiplatform.googleapis.com`;
 const V1BETA_API_GLOBAL = `${GLOBAL_BASE}/v1beta1/projects/${PROJECT_ID}/locations/global/publishers/google/models`;
 
-
 const auth = new GoogleAuth({
   credentials: serviceAccount,
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
-// 輔助函式：延遲 (用於避免 Rate Limit)
+// 輔助函式：延遲
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default async function handler(req, res) {
@@ -48,6 +46,12 @@ export default async function handler(req, res) {
 
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
+
+  // 檢查 Payload 大小 (簡易檢查，Vercel 限制通常在 4.5MB)
+  const contentLength = req.headers['content-length'];
+  if (contentLength && parseInt(contentLength) > 4.5 * 1024 * 1024) {
+      return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
+  }
 
   try {
     const client = await auth.getClient();
@@ -60,7 +64,6 @@ export default async function handler(req, res) {
     const body = req.body;
     let generatedResults = [];
 
-    // 根據模式選擇處理函式
     if (body.mode === 'generate-nanobanana') {
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
@@ -78,7 +81,8 @@ export default async function handler(req, res) {
 }
 
 // === NanoBanana Pro (Gemini 3 Pro) ===
-async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages }) {
+// 修正：加入 images 參數處理
+async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
     const modelId = "gemini-3-pro-image-preview"; 
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
@@ -89,11 +93,25 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     const targetAspectRatio = aspectRatio || "1:1";
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
+    // 1. 構建 Parts：文字 Prompt + 圖片
+    const parts = [{ text: prompt }];
+
+    // 【關鍵修正】把圖片加入 payload
+    if (images && Array.isArray(images)) {
+        images.forEach(img => {
+            if (img.base64Data) {
+                parts.push({
+                    inlineData: {
+                        mimeType: img.mimeType || "image/png",
+                        data: img.base64Data
+                    }
+                });
+            }
+        });
+    }
+
     const payload = {
-        contents: [{ 
-            role: "user", 
-            parts: [{ text: prompt }] 
-        }],
+        contents: [{ role: "user", parts: parts }], // 包含圖片的 Parts
         tools: [{ google_search: {} }], 
         generation_config: {
             image_config: {
@@ -103,56 +121,53 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 每個請求間隔 1.5 秒，避免 429 Too Many Requests
-    const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        if (i > 0) await delay(i * 1500); 
-        return vertexFetch(apiUrl, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(payload),
-        }).catch(e => ({ error: e.message }));
-    });
-
-    const results = await Promise.all(requests);
-    
     const validImages = [];
     const validThoughts = [];
     let refusalReason = "";
 
-    for (const result of results) {
-        if (result.error) {
-            console.error("NanoBanana request failed:", result.error);
-            continue;
-        }
-        
-        const candidates = result.candidates;
-        // 如果沒有候選結果，通常是嚴重的 API 錯誤
-        if (!candidates || candidates.length === 0) continue;
+    // 【關鍵修正】改用序列執行 (Serial Execution)
+    // 並行請求容易觸發 Vertex AI 預覽版的 Quota Limit，導致掉圖
+    for (let i = 0; i < safeNumImages; i++) {
+        try {
+            // 第一張不用等，之後每張間隔 1 秒緩衝
+            if (i > 0) await delay(1000); 
 
-        const parts = candidates[0].content?.parts || [];
-        let thoughts = "";
-        let base64Image = null;
+            const result = await vertexFetch(apiUrl, {
+                method: "POST",
+                headers: headers,
+                body: JSON.stringify(payload),
+            });
 
-        for (const part of parts) {
-            if (part.text) thoughts += part.text + "\n";
-            if (part.inlineData) base64Image = part.inlineData.data;
-        }
+            const candidates = result.candidates;
+            if (!candidates || candidates.length === 0) continue;
 
-        if (base64Image) {
-            validImages.push(base64Image);
-            validThoughts.push(thoughts.trim());
-        } else if (thoughts) {
-            // 有思考文字但沒圖片，通常是模型拒絕生成
-            refusalReason = thoughts.trim();
+            const parts = candidates[0].content?.parts || [];
+            let thoughts = "";
+            let base64Image = null;
+
+            for (const part of parts) {
+                if (part.text) thoughts += part.text + "\n";
+                if (part.inlineData) base64Image = part.inlineData.data;
+            }
+
+            if (base64Image) {
+                validImages.push(base64Image);
+                validThoughts.push(thoughts.trim());
+            } else if (thoughts) {
+                refusalReason = thoughts.trim();
+            }
+
+        } catch (e) {
+            console.error(`Gemini generation ${i+1} failed:`, e.message);
+            // 繼續嘗試下一張，不中斷
         }
     }
 
     if (validImages.length === 0) {
-        // 如果有拒絕理由，回傳給前端顯示
         if (refusalReason) {
-            throw new Error(`Gemini 拒絕生成圖片 (Refusal): ${refusalReason.substring(0, 100)}...`);
+            throw new Error(`Gemini 拒絕生成 (Refusal): ${refusalReason.substring(0, 100)}...`);
         }
-        throw new Error("Gemini 未生成任何圖片 (可能因 API 忙碌或 Prompt 被完全過濾)");
+        throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被過濾或 API 忙碌)");
     }
 
     let displaySize = "1K (Default)";
@@ -213,8 +228,8 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     const base64Images = result.predictions.map(p => p.bytesBase64Encoded);
     
     return await saveImagesToStorage(base64Images, {
-        prompt,
-        aspectRatio,
+        prompt: prompt,
+        aspectRatio: aspectRatio,
         size: sizeLabel,
         mode: mode
     });
@@ -300,6 +315,9 @@ async function vertexFetch(url, options) {
     let errorMsg = text;
     try { errorMsg = JSON.parse(text).error?.message || text; } catch(e) {}
     
+    if (response.status === 413) {
+        throw new Error("請求內容過大 (413 Payload Too Large)。請減少上傳的圖片數量或大小。");
+    }
     if (response.status === 404) {
         throw new Error(`找不到模型: ${url}`);
     }
