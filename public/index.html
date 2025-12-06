@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Image - NanoBanana Pro</title> 
+    <title>AI Image</title> 
     
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827"> 
@@ -25,7 +25,6 @@
             align-items: center;
             justify-content: center;
         }
-        /* 原本的過渡效果 */
         #app-container {
             transition: justify-content 0.5s ease-in-out;
             width: 100%; 
@@ -37,7 +36,6 @@
         #prompt-textarea::-webkit-scrollbar {
             display: none; 
         }
-        /* 隱藏縮圖列的捲軸 */
         .scrollbar-hide::-webkit-scrollbar {
             display: none;
         }
@@ -49,7 +47,6 @@
             transition: opacity 0.4s ease-in-out;
         }
         
-        /* 自定義 Radio 樣式 */
         input[type="radio"]:checked + .radio-label {
             background-color: #3B82F6; color: #FFFFFF; border-color: #2563EB;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3);
@@ -74,7 +71,6 @@
             text-align: center; 
         }
 
-        /* 載入動畫 */
         .loading-pulse { animation: pulse-bg 1.5s infinite; }
         @keyframes pulse-bg {
             0% { background-color: #1f2937; }
@@ -82,18 +78,21 @@
             100% { background-color: #1f2937; }
         }
 
-        /* 更多尺寸選單的動畫 */
-        .dropdown-enter {
-            transform: scale(0.95); opacity: 0; pointer-events: none;
+        /* 自定義好看的 Scrollbar */
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
         }
-        .dropdown-enter-active {
-            transform: scale(1); opacity: 1; pointer-events: auto; transition: all 0.1s ease-out;
+        .custom-scrollbar::-webkit-scrollbar-track {
+            background: rgba(31, 41, 55, 0.5); 
+            border-radius: 4px;
         }
-
-        /* Markdown 樣式簡化 */
-        .markdown-body { font-size: 0.9rem; line-height: 1.6; }
-        .markdown-body p { margin-bottom: 0.5em; }
-        .markdown-body strong { color: #fbbf24; } /* 黃色強調 */
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5); 
+            border-radius: 4px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+            background: rgba(156, 163, 175, 0.8); 
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200"> 
@@ -104,9 +103,9 @@
         <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4"> 
             <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
                 
-                <!-- 生成進度圓環 (位置調整至上方) -->
-                <div id="generation-loader" class="absolute inset-0 flex flex-col items-center justify-start pt-32 z-30 bg-black/80 backdrop-blur-sm hidden transition-opacity duration-300">
-                    <div class="relative w-24 h-24 mb-8">
+                <!-- 生成進度圓環 (純淨版，移除所有文字) -->
+                <div id="generation-loader" class="absolute inset-0 flex flex-col items-center justify-center z-30 bg-black/80 backdrop-blur-sm hidden transition-opacity duration-300">
+                    <div class="relative w-24 h-24">
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" stroke-width="8"></circle>
                             <circle id="progress-ring" cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"></circle>
@@ -114,12 +113,6 @@
                         <div class="absolute inset-0 flex items-center justify-center">
                             <span id="progress-percent" class="text-white text-lg font-bold font-mono">0%</span>
                         </div>
-                    </div>
-                    
-                    <!-- 載入時的狀態文字 -->
-                    <div class="text-center px-8 max-w-sm">
-                        <h3 class="text-xl font-bold text-yellow-400 mb-2 animate-pulse">NanoBanana 正在思考...</h3>
-                        <p id="loading-hint" class="text-gray-400 text-sm">Gemini 3 正在進行多模態推理與繪圖架構分析</p>
                     </div>
                 </div>
 
@@ -129,9 +122,23 @@
                     <span class="text-gray-400 text-sm">影像傳輸中...</span>
                 </div>
 
-                <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0 z-0">
+                <img id="result-image" src="" alt="生成的圖片" class="w-full h-full object-contain image-transition opacity-0 z-0 relative z-0">
 
-                <!-- 懸浮資訊層 -->
+                <!-- 思路面板 (位於圖片區域最底部，向下展開) -->
+                <div id="thoughts-panel-wrapper" class="absolute bottom-0 left-0 w-full z-20 flex flex-col items-center justify-end pointer-events-none transition-all duration-300">
+                    
+                    <!-- 展開的思路內容 -->
+                    <div id="thoughts-content-box" class="w-full bg-black/80 backdrop-blur-md border-t border-gray-700 p-4 transition-all duration-300 transform translate-y-full absolute bottom-0 max-h-[50%] overflow-y-auto custom-scrollbar pointer-events-auto hidden text-left">
+                        <div id="thoughts-text" class="text-gray-200 text-sm font-mono leading-relaxed whitespace-pre-wrap"></div>
+                    </div>
+                    
+                    <!-- 觸發按鈕 (長橢圓) -->
+                    <button id="toggle-thoughts-btn" class="mb-4 pointer-events-auto bg-yellow-600/90 hover:bg-yellow-500 text-white text-xs font-bold py-1.5 px-6 rounded-full shadow-lg backdrop-blur-sm transition-transform active:scale-95 hidden border border-yellow-400/30">
+                        查看 AI 思路
+                    </button>
+                </div>
+
+                <!-- 懸浮資訊層 (Top) -->
                 <div class="absolute top-0 left-0 w-full p-3 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 to-transparent z-20 pointer-events-none">
                     <div class="flex flex-col gap-1 text-xs text-white max-w-[60%] drop-shadow-md pointer-events-auto">
                         <div class="flex gap-2 flex-wrap">
@@ -139,51 +146,42 @@
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                             <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
-                        <p id="meta-prompt" class="line-clamp-2 italic opacity-90 font-light mt-1"></p>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
-                        <!-- 思考按鈕 (僅在有思考內容時顯示) -->
-                        <button id="thoughts-btn" class="bg-yellow-600/80 text-white rounded-full p-2 hover:bg-yellow-500 transition backdrop-blur-sm hidden" title="查看 AI 思考過程">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"/><path d="M3 12h1m8-9v1m8 8h1m-9 8v1M5.6 5.6l.7.7m12.1-.7-.7.7m0 12.1.7.7m-12.1-.7-.7.7"/></svg>
-                        </button>
                         <button id="download-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg></button>
                         <button id="fullscreen-btn" class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"></path></svg></button>
                     </div>
                 </div>
             </div>
 
-            <!-- 歷史縮圖 -->
+            <!-- 歷史縮圖 (左右箭頭功能已修復) -->
             <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
                 <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
                 <div class="h-8 w-[1px] bg-gray-700"></div>
-                <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center"></div>
+                <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center scroll-smooth"></div>
             </div>
             
             <div id="gallery-nav" class="flex justify-between items-center px-2">
-                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
                 <span id="image-counter" class="text-sm text-gray-400 font-mono"></span>
-                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition disabled:opacity-30"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
         </div>
         
         <p id="error-message" class="w-full text-center text-red-400 mt-2 hidden bg-red-900/20 p-2 rounded-lg text-sm"></p>
 
         <div id="input-hub" class="w-full"> 
-            <!-- 多圖預覽區 -->
             <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden overflow-x-auto scrollbar-hide pb-1"></div>
             
             <div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative">
-                <!-- 上傳按鈕 -->
                 <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative" title="上傳參考圖">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span id="upload-count-badge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
                 </button>
                 <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden" multiple>
                 
-                <!-- 比例按鈕 -->
                 <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></button>
                 
-                <!-- 設定按鈕 -->
                 <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
@@ -194,20 +192,6 @@
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
                 </button>
             </div>
-        </div>
-    </div>
-
-    <!-- Thoughts Modal (New!) -->
-    <div id="thoughts-modal" class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
-        <div class="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-gray-700 max-h-[80vh] flex flex-col">
-            <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
-                <div class="flex items-center gap-2">
-                    <svg class="text-yellow-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-                    <h2 class="text-lg font-bold text-gray-100">Gemini 3 思考過程</h2>
-                </div>
-                <button id="thoughts-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
-            </div>
-            <div id="thoughts-content" class="overflow-y-auto flex-grow text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap"></div>
         </div>
     </div>
 
@@ -231,11 +215,10 @@
                 <fieldset class="grid grid-cols-1 gap-3" id="mode-selector">
                     <div>
                         <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana" class="hidden" checked>
-                        <label for="mode-nanobanana" class="radio-label border-l-4 border-l-yellow-500 hover:bg-gray-700">
-                            <div class="text-left w-full pl-2">
-                                <div class="font-bold text-yellow-400">NanoBanana Pro (預設)</div>
-                                <div class="text-xs text-gray-400">Gemini 3 • 4K 畫質 • 具備思考能力</div>
-                            </div>
+                        <!-- NanoBanana 按鈕樣式大改：置中、大字、小字 -->
+                        <label for="mode-nanobanana" class="radio-label border-l-4 border-l-yellow-500 hover:bg-gray-700 flex flex-col items-center justify-center py-4">
+                            <span class="text-xl font-bold text-yellow-400">NanoBanana Pro</span>
+                            <span class="text-xs text-gray-400 mt-1">(gemini-3-pro-image-preview)</span>
                         </label>
                     </div>
                     <div>
@@ -264,7 +247,6 @@
         </div>
     </div>
     
-    <!-- Ratio Modal -->
     <div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-700">
             <div class="flex justify-between items-center mb-6">
@@ -344,13 +326,14 @@
         const metaModel = document.getElementById('meta-model');
         const metaSize = document.getElementById('meta-size');
         const metaRatio = document.getElementById('meta-ratio');
-        const metaPrompt = document.getElementById('meta-prompt');
-        const thoughtsBtn = document.getElementById('thoughts-btn');
+        const toggleThoughtsBtn = document.getElementById('toggle-thoughts-btn');
+        const thoughtsContentBox = document.getElementById('thoughts-content-box');
+        const thoughtsText = document.getElementById('thoughts-text');
         
-        // Thoughts Modal elements
-        const thoughtsModal = document.getElementById('thoughts-modal');
-        const thoughtsContent = document.getElementById('thoughts-content');
-        const thoughtsCloseBtn = document.getElementById('thoughts-close-btn');
+        // Navigation Buttons
+        const navLeft = document.getElementById('nav-left');
+        const navRight = document.getElementById('nav-right');
+        const historyList = document.getElementById('history-gallery-list');
 
         updateInputUI();
 
@@ -375,16 +358,36 @@
         document.getElementById('ratio-btn').onclick = () => document.getElementById('ratio-modal').classList.remove('hidden');
         document.getElementById('ratio-close-btn').onclick = () => document.getElementById('ratio-modal').classList.add('hidden');
         
-        // Thoughts Modal Logic
-        thoughtsBtn.onclick = () => {
-            const imgData = sessionHistory[currentImageIndex];
-            if (imgData && imgData.thoughts) {
-                thoughtsContent.textContent = imgData.thoughts;
-                thoughtsModal.classList.remove('hidden');
+        // === 思路按鈕邏輯 (修復版) ===
+        // 點擊橢圓按鈕 -> 展開/收起下方區塊
+        toggleThoughtsBtn.onclick = (e) => {
+            e.stopPropagation(); // 防止冒泡
+            const isHidden = thoughtsContentBox.classList.contains('hidden');
+            if (isHidden) {
+                // 展開：先移除 hidden，再移除 translate (滑上來)
+                thoughtsContentBox.classList.remove('hidden');
+                // 使用 setTimeout 確保 transition 生效
+                setTimeout(() => {
+                    thoughtsContentBox.classList.remove('translate-y-full');
+                }, 10);
+                toggleThoughtsBtn.textContent = "隱藏 AI 思路";
+            } else {
+                // 收起：先加 translate (滑下去)，再加 hidden
+                thoughtsContentBox.classList.add('translate-y-full');
+                setTimeout(() => {
+                    thoughtsContentBox.classList.add('hidden');
+                }, 300); // 等動畫結束
+                toggleThoughtsBtn.textContent = "查看 AI 思路";
             }
         };
-        thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
-        thoughtsModal.onclick = (e) => { if(e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
+
+        // === 左右導航箭頭修復 ===
+        navLeft.onclick = () => {
+            historyList.scrollBy({ left: -200, behavior: 'smooth' });
+        };
+        navRight.onclick = () => {
+            historyList.scrollBy({ left: 200, behavior: 'smooth' });
+        };
 
         moreRatiosBtn.onclick = (e) => {
             e.stopPropagation(); 
@@ -508,14 +511,11 @@
             const isNanoBanana = selectedMode === 'generate-nanobanana';
             const isImagen = selectedMode.startsWith('generate') && !isNanoBanana;
             
-            // UI 文字提示更新
-            const hint = document.getElementById('loading-hint');
+            // UI 更新
             if (isNanoBanana) {
-                hint.textContent = "Gemini 3 正在進行多模態推理與繪圖架構分析...";
                 size4kWrapper.classList.remove('hidden');
                 moreRatiosWrapper.classList.remove('invisible');
             } else {
-                hint.textContent = "正在透過 Vertex AI 生成高品質影像...";
                 size4kWrapper.classList.add('hidden');
                 if (isImagen) {
                     moreRatiosWrapper.classList.add('invisible'); 
@@ -584,7 +584,7 @@
                 
                 const newIndex = sessionHistory.length - data.images.length;
                 document.getElementById('results-gallery').classList.remove('hidden');
-                showImage(newIndex);
+                showImage(newIndex); // 顯示這批的第一張
 
                 await simulateProgress(90, 100, 300); 
             } catch (error) {
@@ -604,6 +604,9 @@
             if (!isSameImage) {
                 resultImage.style.opacity = '0';
                 imageLoader.classList.remove('hidden');
+                // 每次切換圖片，先收起思路面板，避免狀態錯亂
+                thoughtsContentBox.classList.add('translate-y-full', 'hidden');
+                toggleThoughtsBtn.textContent = "查看 AI 思路";
             }
 
             const tempImg = new Image();
@@ -620,20 +623,32 @@
                 metaModel.textContent = getModelDisplayName(imgData.mode);
                 metaSize.textContent = imgData.size || "Unknown";
                 metaRatio.textContent = imgData.aspectRatio || "Custom";
-                metaPrompt.textContent = imgData.prompt || "No Prompt";
                 
-                // Thoughts Button Logic
+                // === 思路顯示邏輯 ===
                 if (imgData.thoughts) {
-                    thoughtsBtn.classList.remove('hidden');
+                    toggleThoughtsBtn.classList.remove('hidden');
+                    // 格式化思路內容：處理粗體與換行
+                    thoughtsText.innerHTML = formatThoughts(imgData.thoughts);
                 } else {
-                    thoughtsBtn.classList.add('hidden');
+                    toggleThoughtsBtn.classList.add('hidden');
                 }
             } else {
-                thoughtsBtn.classList.add('hidden');
+                toggleThoughtsBtn.classList.add('hidden');
             }
             
             document.getElementById('image-counter').textContent = `${index + 1} / ${sessionHistory.length}`;
             updateGallerySelection(index);
+        }
+
+        // 格式化思路的 Helper
+        function formatThoughts(text) {
+            if (!text) return "";
+            // 1. 將 **text** 轉為 <strong class="text-yellow-400">text</strong>
+            let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400 block mt-4 mb-1 text-base">$1</strong>');
+            // 2. 將 \n 轉為 <br>
+            // 處理多餘的換行：先 trim，然後將連續換行合併
+            formatted = formatted.replace(/\n/g, '<br>');
+            return formatted;
         }
 
         function getModelDisplayName(mode) {
