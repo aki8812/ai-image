@@ -23,11 +23,17 @@
             margin: 0;
         }
         
+        /* 全域自訂滑桿 */
         ::-webkit-scrollbar { width: 8px; height: 8px; }
         ::-webkit-scrollbar-track { background: #111827; }
         ::-webkit-scrollbar-thumb { background: #4B5563; border-radius: 4px; }
         ::-webkit-scrollbar-thumb:hover { background: #6B7280; }
 
+        /* 思路視窗專用滑桿 (更細緻) */
+        .custom-scrollbar::-webkit-scrollbar { width: 6px; }
+        .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
+        .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
+        
         #app-container { transition: justify-content 0.5s ease-in-out; width: 100%; min-height: 100%; }
         #prompt-textarea { transition: height 0.2s ease-in-out; scrollbar-width: none; }
         #prompt-textarea::-webkit-scrollbar { display: none; }
@@ -68,24 +74,15 @@
         <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4"> 
             <div id="image-display-wrapper" class="relative w-full max-h-[60vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
                 
-                <!-- 生成進度與思路區 -->
-                <div id="generation-loader" class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm hidden flex flex-col items-center justify-start pt-16 transition-opacity duration-300">
-                    <div class="relative w-24 h-24 mb-6">
+                <!-- 生成進度 (移除文字) -->
+                <div id="generation-loader" class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm hidden flex flex-col items-center justify-start pt-24 transition-opacity duration-300">
+                    <div class="relative w-24 h-24">
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" stroke-width="8"></circle>
                             <circle id="progress-ring" cx="50" cy="50" r="40" fill="transparent" stroke="#3B82F6" stroke-width="8" stroke-dasharray="251.2" stroke-dashoffset="251.2" stroke-linecap="round"></circle>
                         </svg>
                         <div class="absolute inset-0 flex items-center justify-center">
                             <span id="progress-percent" class="text-white text-lg font-bold font-mono">0%</span>
-                        </div>
-                    </div>
-
-                    <div class="w-full px-6 flex flex-col items-center">
-                        <button id="toggle-loader-thoughts-btn" class="bg-yellow-600/90 hover:bg-yellow-500 text-white text-sm font-bold py-2 px-8 rounded-full shadow-lg backdrop-blur-sm transition-transform active:scale-95 border border-yellow-400/30 mb-4 z-40">
-                            顯示 AI 思路
-                        </button>
-                        <div id="loader-thoughts-panel" class="w-full bg-gray-900/90 border border-gray-700 rounded-xl p-4 h-48 overflow-y-auto text-left hidden transition-all duration-300">
-                            <div id="loader-thoughts-content" class="text-green-400 font-mono text-xs leading-relaxed whitespace-pre-wrap"></div>
                         </div>
                     </div>
                 </div>
@@ -104,9 +101,11 @@
                         <div class="flex gap-2 flex-wrap">
                             <span id="meta-model" class="bg-indigo-600/80 px-2 py-0.5 rounded backdrop-blur-sm font-bold"></span>
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
+                            <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
+                        <!-- 閃電按鈕 -->
                         <button id="lightning-thoughts-btn" class="bg-yellow-500/90 text-white rounded-full p-2 hover:bg-yellow-400 transition backdrop-blur-sm hidden shadow-lg shadow-yellow-500/20" title="查看完整 AI 思路">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
                         </button>
@@ -120,14 +119,15 @@
             <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
                 <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
                 <div class="h-8 w-[1px] bg-gray-700"></div>
+                <!-- 縮圖列表 -->
                 <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center scroll-smooth"></div>
             </div>
             
             <!-- 恢復顯示圖片計數器 -->
             <div id="gallery-nav" class="flex justify-between items-center px-2">
-                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
                 <span id="image-counter" class="text-sm text-gray-400 font-mono">0 / 0</span>
-                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
         </div>
         
@@ -168,7 +168,8 @@
                 </div>
                 <button id="thoughts-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></button>
             </div>
-            <div id="thoughts-content" class="overflow-y-auto flex-grow text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2"></div>
+            <!-- 使用自訂滑桿的區域 -->
+            <div id="thoughts-content" class="overflow-y-auto flex-grow text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2 custom-scrollbar"></div>
         </div>
     </div>
 
@@ -221,9 +222,9 @@
             <div class="mb-4" id="image-count-wrapper">
                 <label class="block text-sm font-medium text-gray-300 mb-2">生成數量</label>
                 <div class="flex items-center w-full bg-gray-700 border border-gray-600 rounded-lg overflow-hidden">
-                    <button id="count-dec" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition">-</button>
-                    <input type="number" id="image-count" value="1" min="1" max="4" class="w-full bg-transparent text-center text-white outline-none" readonly>
-                    <button id="count-inc" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition">+</button>
+                    <button id="count-dec" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition w-12 flex justify-center items-center">-</button>
+                    <input type="number" id="image-count" value="1" min="1" max="4" class="flex-grow bg-transparent text-center text-white outline-none" readonly>
+                    <button id="count-inc" class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition w-12 flex justify-center items-center">+</button>
                 </div>
             </div>
         </div>
@@ -273,7 +274,7 @@
     </div>
 
     <script>
-        // === 變數宣告區 (全部移至頂層) ===
+        // === 1. 變數與 DOM 元素 (置頂宣告) ===
         const API_URL = "/api/generate";
         
         let uploadedImages = []; 
@@ -281,16 +282,16 @@
         let currentImageIndex = 0;
         let isLoading = false;
         let progressInterval = null;
-        let loaderThoughtsInterval = null;
         
         let selectedMode = "generate-nanobanana"; 
         let selectedAspectRatio = "1:1"; 
         let selectedSampleSize = "1024"; 
         let selectedUpscaleLevel = "2048"; 
 
-        // DOM 元素 (確保在任何函式呼叫前宣告)
+        // DOM Elements
         const metaModel = document.getElementById('meta-model');
         const metaSize = document.getElementById('meta-size');
+        const metaRatio = document.getElementById('meta-ratio');
         
         const promptTextarea = document.getElementById('prompt-textarea');
         const imageUploadInput = document.getElementById('image-upload-1');
@@ -311,10 +312,6 @@
         const CIRCUMFERENCE = 2 * Math.PI * 40; 
 
         // Thoughts Elements
-        const toggleLoaderThoughtsBtn = document.getElementById('toggle-loader-thoughts-btn');
-        const loaderThoughtsPanel = document.getElementById('loader-thoughts-panel');
-        const loaderThoughtsContent = document.getElementById('loader-thoughts-content');
-        
         const lightningThoughtsBtn = document.getElementById('lightning-thoughts-btn');
         const thoughtsModal = document.getElementById('thoughts-modal');
         const thoughtsContent = document.getElementById('thoughts-content');
@@ -324,14 +321,14 @@
         const navLeft = document.getElementById('nav-left');
         const navRight = document.getElementById('nav-right');
         const historyList = document.getElementById('history-gallery-list');
-        const imageCounter = document.getElementById('image-counter'); // 確保獲取
+        const imageCounter = document.getElementById('image-counter');
 
-        // Count Control Elements
+        // Count Control
         const countDec = document.getElementById('count-dec');
         const countInc = document.getElementById('count-inc');
         const countInput = document.getElementById('image-count');
 
-        // === 初始化邏輯 ===
+        // === 2. 初始化邏輯 ===
         updateInputUI();
 
         document.getElementById('upload-btn-1').onclick = () => imageUploadInput.click();
@@ -360,7 +357,7 @@
         document.getElementById('ratio-btn').onclick = () => document.getElementById('ratio-modal').classList.remove('hidden');
         document.getElementById('ratio-close-btn').onclick = () => document.getElementById('ratio-modal').classList.add('hidden');
         
-        // --- 數量選擇器邏輯 ---
+        // Count Logic
         countDec.onclick = () => {
             let val = parseInt(countInput.value) || 1;
             if (val > 1) countInput.value = val - 1;
@@ -370,19 +367,7 @@
             if (val < 4) countInput.value = val + 1;
         };
 
-        // --- 思路 UI 邏輯 ---
-        toggleLoaderThoughtsBtn.onclick = (e) => {
-            e.stopPropagation();
-            const isHidden = loaderThoughtsPanel.classList.contains('hidden');
-            if (isHidden) {
-                loaderThoughtsPanel.classList.remove('hidden');
-                toggleLoaderThoughtsBtn.textContent = "隱藏 AI 思路";
-            } else {
-                loaderThoughtsPanel.classList.add('hidden');
-                toggleLoaderThoughtsBtn.textContent = "顯示 AI 思路";
-            }
-        };
-
+        // Thoughts Logic
         lightningThoughtsBtn.onclick = () => {
             const imgData = sessionHistory[currentImageIndex];
             if (imgData && imgData.thoughts) {
@@ -393,18 +378,17 @@
         thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
         thoughtsModal.onclick = (e) => { if(e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
-
-        // --- 導航修復 ---
-        // 使用 scrollLeft += 數值，比 scrollBy 更穩定
+        // Nav Logic (Fixed)
         navLeft.onclick = () => {
-            historyList.scrollLeft -= 200;
+            historyList.scrollBy({ left: -200, behavior: 'smooth' });
         };
         navRight.onclick = () => {
-            historyList.scrollLeft += 200;
+            historyList.scrollBy({ left: 200, behavior: 'smooth' });
         };
 
-        moreRatiosBtn.onclick = (e) => {
-            e.stopPropagation(); 
+        // ... (Ratios & Upload - Kept clean) ...
+        moreRatiosBtn.onclick = (e) => { e.stopPropagation(); toggleRatioDropdown(); };
+        function toggleRatioDropdown() {
             const isHidden = moreRatiosDropdown.classList.contains('hidden');
             if (isHidden) {
                 moreRatiosDropdown.classList.remove('hidden');
@@ -413,7 +397,7 @@
                 moreRatiosDropdown.classList.remove('dropdown-enter-active');
                 setTimeout(() => moreRatiosDropdown.classList.add('hidden'), 100);
             }
-        };
+        }
         document.addEventListener('click', (e) => {
             if (!moreRatiosBtn.contains(e.target)) {
                 moreRatiosDropdown.classList.remove('dropdown-enter-active');
@@ -552,12 +536,7 @@
             }
 
             setLoading(true);
-            
-            if (selectedMode === 'generate-nanobanana') {
-                startSimulatedThoughts();
-            }
-
-            await simulateProgress(0, 90, 2000); 
+            await simulateProgress(0, 90, 3000); // 稍微增加時間，因為後端有 delay
 
             try {
                 const imagesPayload = uploadedImages.map(img => ({
@@ -595,47 +574,7 @@
                 showError(error.message);
             } finally {
                 setLoading(false);
-                stopSimulatedThoughts();
             }
-        }
-
-        function startSimulatedThoughts() {
-            toggleLoaderThoughtsBtn.classList.remove('hidden');
-            loaderThoughtsContent.innerHTML = "";
-            const logs = [
-                "**Initializing NanoBanana Pro...**\n",
-                "  Connecting to Gemini 3 Neural Network...\n",
-                "**Analyzing Prompt Semantics**\n",
-                "  Extracting key entities and style descriptors...\n",
-                "  Interpreting user intent: High-quality visualization...\n",
-                "**Constructing Scene Graph**\n",
-                "  Establishing composition and lighting...\n",
-                "  Calculating geometry for 4K resolution...\n",
-                "**Rendering**\n",
-                "  Synthesizing textures and details...\n",
-                "  Applying post-processing filters...\n",
-                "  Finalizing output...\n"
-            ];
-            let i = 0;
-            loaderThoughtsInterval = setInterval(() => {
-                if (i < logs.length) {
-                    const line = logs[i];
-                    const formatted = line.startsWith('**') 
-                        ? `<strong class="text-yellow-400 block mt-2">${line.replace(/\*\*/g, '')}</strong>` 
-                        : `<span class="pl-4 block opacity-80">${line}</span>`;
-                    loaderThoughtsContent.innerHTML += formatted;
-                    loaderThoughtsPanel.scrollTop = loaderThoughtsPanel.scrollHeight;
-                    i++;
-                } else {
-                    clearInterval(loaderThoughtsInterval);
-                }
-            }, 800);
-        }
-
-        function stopSimulatedThoughts() {
-            clearInterval(loaderThoughtsInterval);
-            loaderThoughtsPanel.classList.add('hidden');
-            toggleLoaderThoughtsBtn.textContent = "顯示 AI 思路";
         }
 
         function showImage(index) {
@@ -660,10 +599,11 @@
                 requestAnimationFrame(() => resultImage.style.opacity = '1');
             };
 
-            // Metadata Update (Fixed: metaModel is now globally defined)
+            // Metadata & Thoughts
             if (typeof imgData === 'object') {
                 metaModel.textContent = getModelDisplayName(imgData.mode);
                 metaSize.textContent = imgData.size || "Unknown";
+                metaRatio.textContent = imgData.aspectRatio || "Custom";
                 
                 if (imgData.thoughts) {
                     lightningThoughtsBtn.classList.remove('hidden');
@@ -672,9 +612,11 @@
                 }
             } else {
                 lightningThoughtsBtn.classList.add('hidden');
+                metaModel.textContent = "";
+                metaSize.textContent = "";
+                metaRatio.textContent = "";
             }
             
-            // Image Counter Update
             imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
             updateGallerySelection(index);
         }
@@ -700,7 +642,6 @@
             list.innerHTML = '';
             sessionHistory.forEach((img, idx) => {
                 const btn = document.createElement('button');
-                // 這裡的 border-transparent 是關鍵，選中時移除它
                 btn.className = `flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${idx === currentImageIndex ? 'border-blue-500' : 'border-transparent hover:border-gray-500'}`;
                 btn.onclick = () => showImage(idx);
                 const i = document.createElement('img');
@@ -717,11 +658,11 @@
             btns.forEach((btn, idx) => {
                 if (idx === index) {
                     btn.classList.add('border-blue-500', 'ring-2', 'ring-blue-500/50');
-                    btn.classList.remove('border-transparent'); // 移除透明邊框
+                    btn.classList.remove('border-transparent');
                     btn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
                 } else {
                     btn.classList.remove('border-blue-500', 'ring-2', 'ring-blue-500/50');
-                    btn.classList.add('border-transparent'); // 加回透明邊框
+                    btn.classList.add('border-transparent');
                 }
             });
         }
@@ -750,10 +691,6 @@
                 document.getElementById('results-gallery').classList.remove('hidden');
                 generationLoader.classList.remove('hidden');
                 document.getElementById('error-message').classList.add('hidden');
-                toggleLoaderThoughtsBtn.classList.add('hidden'); 
-                if(selectedMode === 'generate-nanobanana') {
-                     toggleLoaderThoughtsBtn.classList.remove('hidden');
-                }
                 btn.innerHTML = '<svg class="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             } else {
                 clearInterval(progressInterval);
