@@ -22,7 +22,10 @@ const serviceAccount = getCredentials();
 
 // =========== 設定區域 ===========
 const BUCKET_NAME = "us-computer-474205.firebasestorage.app"; 
+const PROJECT_ID = serviceAccount.project_id;
+const LOCATION = "us-central1"; 
 
+// 初始化 Firebase
 if (getApps().length === 0) {
   initializeApp({
     credential: cert(serviceAccount),
@@ -31,105 +34,103 @@ if (getApps().length === 0) {
 }
 
 const bucket = getStorage().bucket();
-const PROJECT_ID = serviceAccount.project_id;
-const LOCATION = "us-central1"; 
-// Imagen 4 系列使用 v1，Gemini 3 預覽版我們會個別處理
-const API_VERSION = "v1";
-const VERTEX_AI_BASE = `https://${LOCATION}-aiplatform.googleapis.com/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
 const auth = new GoogleAuth({
   credentials: serviceAccount,
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
-export default async function handler(req, res) {
-  // CORS 設定
-  res.setHeader('Access-Control-Allow-Credentials', true);
-  res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
-  res.setHeader(
-    'Access-Control-Allow-Headers',
-    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
-  );
-
-  if (req.method === 'OPTIONS') {
-    res.status(200).end();
-    return;
+// 通用 Fetch 函式 (放在最外面方便呼叫)
+async function vertexFetch(url, options) {
+  const response = await fetch(url, options);
+  if (!response.ok) {
+    const text = await response.text();
+    let errorMsg = text;
+    try {
+        const json = JSON.parse(text);
+        errorMsg = json.error?.message || text;
+    } catch(e) {}
+    throw new Error(`Vertex AI Error (${response.status}): ${errorMsg}`);
   }
-
-  if (req.method !== "POST") {
-    res.status(405).send("Method Not Allowed");
-    return;
-  }
-
-  try {
-    const client = await auth.getClient();
-    const authToken = await client.getAccessToken();
-    
-    const headers = {
-      "Authorization": `Bearer ${authToken.token}`,
-      "Content-Type": "application/json",
-    };
-
-    const body = req.body;
-    let generatedResults = [];
-
-    // 根據模式選擇處理函式
-    if (body.mode === 'generate-nanobanana') {
-        // NanoBanana Pro (Gemini 3 Pro) - 修正後的邏輯
-        generatedResults = await handleNanoBanana(headers, body);
-    } else if (body.mode === 'upscale') {
-        // 圖片放大 (完全照抄舊版)
-        generatedResults = await handleUpscaling(headers, body);
-    } else {
-        // Imagen 4 系列 (完全照抄舊版)
-        generatedResults = await handleImagen(headers, body);
-    }
-
-    res.status(200).json({ images: generatedResults });
-
-  } catch (error) {
-    console.error("API Error:", error);
-    res.status(500).json({
-      error: {
-        message: error.message || "伺服器發生錯誤",
-        detail: error.originalError
-      },
-    });
-  }
+  return await response.json();
 }
 
-// === 上半部：NanoBanana Pro (Gemini 3 Pro Image) 修正版 ===
+// 通用儲存函式
+async function saveImagesToStorage(base64DataArray, metadata) {
+  const uploadPromises = base64DataArray.map(async (base64Data) => {
+    const buffer = Buffer.from(base64Data, 'base64');
+    const fileName = `ai-images/gen-${Date.now()}-${uuidv4()}.png`;
+    const file = bucket.file(fileName);
+
+    await file.save(buffer, {
+      metadata: {
+        contentType: 'image/png',
+        cacheControl: 'public, max-age=31536000',
+        metadata: {
+            prompt: metadata.prompt || "",
+            mode: metadata.mode
+        }
+      },
+    });
+
+    await file.makePublic();
+    
+    return {
+        url: file.publicUrl(),
+        prompt: metadata.prompt,
+        aspectRatio: metadata.aspectRatio,
+        size: metadata.size,
+        mode: metadata.mode
+    };
+  });
+
+  return Promise.all(uploadPromises);
+}
+
+// ==========================================
+// 核心處理邏輯 (Gemini 3 Pro / Imagen / Upscale)
+// ==========================================
+
+// 1. NanoBanana Pro (Gemini 3 Pro Image) - 修正版
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize }) {
     const modelId = "gemini-3-pro-image-preview"; 
-
     const geminiApiUrl = `https://${LOCATION}-aiplatform.googleapis.com/v1beta1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models/${modelId}:generateContent`;
 
-    let targetImageSize;
-    if (sampleImageSize === '4096') targetImageSize = "4K";
-    else if (sampleImageSize === '2048') targetImageSize = "2K";
+    // 處理尺寸標籤 (僅供顯示用，實際生成尺寸由 image_size 參數決定)
+    let targetImageSizeString;
+    let displaySize = "1K (Default)";
     
+    // 注意：Gemini 3 目前主要支援 "1K"，若要強制傳送其他字串需確認 API 支援度
+    // 這裡保留你的邏輯，但建議預設不傳 image_size 除非有特殊需求
+    if (sampleImageSize === '4096') {
+        targetImageSizeString = "4K"; // 若 API 不支援此字串可能會報錯，建議先測試 1K
+        displaySize = "4K";
+    } else if (sampleImageSize === '2048') {
+        targetImageSizeString = "2K";
+        displaySize = "2K";
+    }
+
     const targetAspectRatio = aspectRatio || "1:1";
 
+    // ✅ 修正後的 Payload 結構
     const payload = {
         contents: [{ 
             role: "user", 
             parts: [{ text: prompt }] 
         }],
         generation_config: {
-            // 🔥 關鍵通關密語：告訴模型我們要文字和圖片
+            // 告訴模型我們要圖片
             response_modalities: ["TEXT", "IMAGE"], 
-            
             temperature: 1,
             top_p: 0.95,
-            max_output_tokens: 32768,  
-        tools: [{ google_search: {} }],
-        generation_config: {
+            max_output_tokens: 32768,
             image_config: {
                 aspect_ratio: targetAspectRatio,
-                ...(targetImageSize && { image_size: targetImageSize })
+                // 如果有設定尺寸才加入參數
+                ...(targetImageSizeString && { image_size: targetImageSizeString })
             }
-        }
+        },
+        // 安全設定 (正確放置在 root 層級)
         safety_settings: [
             { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'OFF' },
             { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'OFF' },
@@ -138,33 +139,34 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
         ]
     };
 
+    console.log("NanoBanana Request Payload:", JSON.stringify(payload));
+
     const result = await vertexFetch(geminiApiUrl, {
         method: "POST",
         headers: headers,
         body: JSON.stringify(payload),
     });
 
-
+    // 解析結果
     const candidates = result.candidates;
     if (!candidates || candidates.length === 0) {
         throw new Error("Gemini 未回傳候選結果");
     }
 
-    const imagePart = candidates[0].content?.parts?.find(p => p.inlineData);
+    // 尋找圖片部分
+    // 優先找 inlineData (圖片)，其次找文字報錯
+    const parts = candidates[0].content?.parts || [];
+    const imagePart = parts.find(p => p.inlineData && p.inlineData.mimeType.startsWith('image'));
     
     if (!imagePart) {
-        const textPart = candidates[0].content?.parts?.find(p => p.text);
+        const textPart = parts.find(p => p.text);
         if (textPart) {
-            throw new Error(`Gemini 回傳了文字而非圖片: ${textPart.text}`);
+            throw new Error(`Gemini 拒絕畫圖並回應: ${textPart.text}`);
         }
-        throw new Error("Gemini 未生成圖片資料");
+        throw new Error("Gemini 生成失敗，未包含圖片數據");
     }
 
     const base64Image = imagePart.inlineData.data;
-
-    let displaySize = "1K (Default)";
-    if (targetImageSize === "2K") displaySize = "2K";
-    if (targetImageSize === "4K") displaySize = "4K";
 
     return await saveImagesToStorage([base64Image], {
         prompt: prompt,
@@ -174,12 +176,12 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize 
     });
 }
 
-// ==========================================================
-// === 下半部：完全照抄您原本的 generate.js (Imagen 4 & Upscale) ===
-// ==========================================================
-
-// === 處理 Imagen 4 系列 (單圖輸入) ===
+// 2. Imagen 4 系列 (Legacy / Stable)
 async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
+    // Imagen 預設使用 v1
+    const API_VERSION = "v1";
+    const VERTEX_AI_BASE = `https://${LOCATION}-aiplatform.googleapis.com/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
+
     let modelId = "imagen-4.0-generate-001";
     if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
     if (mode === "generate-ultra") modelId = "imagen-4.0-ultra-generate-001";
@@ -188,7 +190,6 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
 
     const instances = [{ prompt: prompt }];
     
-    // Imagen 只支援單張參考圖，取第一張
     if (images && images.length > 0) {
         instances[0].image = { bytesBase64Encoded: images[0].base64Data };
     }
@@ -200,10 +201,8 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
         sampleCount: safeNumImages,
     };
 
-    // 處理尺寸 (Imagen 支援 1K/2K)
     let sizeLabel = "1024x1024";
     if (sampleImageSize === '2048' || sampleImageSize === '4096') { 
-        // 即使前端選 4K，Imagen 最高只支援 2K，所以降級處理但標示清楚
         parameters.sampleImageSize = "2K";
         sizeLabel = "2048x2048";
     } else {
@@ -233,10 +232,13 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     });
 }
 
-// === 處理放大 (Upscale) ===
+// 3. Upscale (放大)
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
+    const API_VERSION = "v1";
+    const VERTEX_AI_BASE = `https://${LOCATION}-aiplatform.googleapis.com/${API_VERSION}/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
+    
     const targetSize = parseInt(upscaleLevel) || 2048;
-    const modelId = "imagen-4.0-ultra-generate-001"; // 使用 Ultra 進行放大
+    const modelId = "imagen-4.0-ultra-generate-001"; 
     const factor = targetSize > 2048 ? "x4" : "x2";
     
     const apiUrl = `${VERTEX_AI_BASE}/${modelId}:predict`;
@@ -272,49 +274,59 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     });
 }
 
-// === 通用函式：儲存到 Firebase ===
-async function saveImagesToStorage(base64DataArray, metadata) {
-  const uploadPromises = base64DataArray.map(async (base64Data) => {
-    const buffer = Buffer.from(base64Data, 'base64');
-    const fileName = `ai-images/gen-${Date.now()}-${uuidv4()}.png`;
-    const file = bucket.file(fileName);
+// ==========================================
+// 主程式入口 (Main Handler)
+// ==========================================
+module.exports = async function handler(req, res) {
+  // CORS 設定
+  res.setHeader('Access-Control-Allow-Credentials', true);
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader(
+    'Access-Control-Allow-Headers',
+    'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version'
+  );
 
-    await file.save(buffer, {
-      metadata: {
-        contentType: 'image/png',
-        cacheControl: 'public, max-age=31536000',
-        metadata: {
-            prompt: metadata.prompt || "",
-            mode: metadata.mode
-        }
+  if (req.method === 'OPTIONS') {
+    res.status(200).end();
+    return;
+  }
+
+  if (req.method !== "POST") {
+    res.status(405).send("Method Not Allowed");
+    return;
+  }
+
+  try {
+    const client = await auth.getClient();
+    const authToken = await client.getAccessToken();
+    
+    const headers = {
+      "Authorization": `Bearer ${authToken.token}`,
+      "Content-Type": "application/json",
+    };
+
+    const body = req.body;
+    let generatedResults = [];
+
+    // 根據模式選擇處理函式
+    if (body.mode === 'generate-nanobanana') {
+        generatedResults = await handleNanoBanana(headers, body);
+    } else if (body.mode === 'upscale') {
+        generatedResults = await handleUpscaling(headers, body);
+    } else {
+        generatedResults = await handleImagen(headers, body);
+    }
+
+    res.status(200).json({ images: generatedResults });
+
+  } catch (error) {
+    console.error("API Error:", error);
+    res.status(500).json({
+      error: {
+        message: error.message || "伺服器發生錯誤",
+        detail: error.originalError
       },
     });
-
-    await file.makePublic();
-    
-    return {
-        url: file.publicUrl(),
-        prompt: metadata.prompt,
-        aspectRatio: metadata.aspectRatio,
-        size: metadata.size,
-        mode: metadata.mode
-    };
-  });
-
-  return Promise.all(uploadPromises);
-}
-
-// === 通用函式：API 請求 ===
-async function vertexFetch(url, options) {
-  const response = await fetch(url, options);
-  if (!response.ok) {
-    const text = await response.text();
-    let errorMsg = text;
-    try {
-        const json = JSON.parse(text);
-        errorMsg = json.error?.message || text;
-    } catch(e) {}
-    throw new Error(`Vertex AI Error (${response.status}): ${errorMsg}`);
   }
-  return await response.json();
-}
+};
