@@ -60,6 +60,7 @@ export default async function handler(req, res) {
     const body = req.body;
     let generatedResults = [];
 
+    // 根據模式選擇處理函式
     if (body.mode === 'generate-nanobanana') {
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
@@ -88,7 +89,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     const targetAspectRatio = aspectRatio || "1:1";
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    // 使用原始 Prompt
     const payload = {
         contents: [{ 
             role: "user", 
@@ -103,7 +103,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 【修正】增加間隔至 1500ms，避免 Gemini 3 Pro Preview 的 Rate Limit
+    // 每個請求間隔 1.5 秒，避免 429 Too Many Requests
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
         if (i > 0) await delay(i * 1500); 
         return vertexFetch(apiUrl, {
@@ -117,14 +117,16 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     
     const validImages = [];
     const validThoughts = [];
+    let refusalReason = "";
 
     for (const result of results) {
         if (result.error) {
-            console.error("NanoBanana generation skipped:", result.error);
+            console.error("NanoBanana request failed:", result.error);
             continue;
         }
         
         const candidates = result.candidates;
+        // 如果沒有候選結果，通常是嚴重的 API 錯誤
         if (!candidates || candidates.length === 0) continue;
 
         const parts = candidates[0].content?.parts || [];
@@ -139,11 +141,18 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         if (base64Image) {
             validImages.push(base64Image);
             validThoughts.push(thoughts.trim());
+        } else if (thoughts) {
+            // 有思考文字但沒圖片，通常是模型拒絕生成
+            refusalReason = thoughts.trim();
         }
     }
 
     if (validImages.length === 0) {
-         throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被拒絕或 API 忙碌)");
+        // 如果有拒絕理由，回傳給前端顯示
+        if (refusalReason) {
+            throw new Error(`Gemini 拒絕生成圖片 (Refusal): ${refusalReason.substring(0, 100)}...`);
+        }
+        throw new Error("Gemini 未生成任何圖片 (可能因 API 忙碌或 Prompt 被完全過濾)");
     }
 
     let displaySize = "1K (Default)";
