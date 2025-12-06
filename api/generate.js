@@ -25,18 +25,20 @@ const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
 const LOCATION = "us-central1"; 
 
+// === 定義 API 端點 ===
 const REGIONAL_BASE = `https://${LOCATION}-aiplatform.googleapis.com`;
 const V1_API_REGIONAL = `${REGIONAL_BASE}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
 const GLOBAL_BASE = `https://aiplatform.googleapis.com`;
 const V1BETA_API_GLOBAL = `${GLOBAL_BASE}/v1beta1/projects/${PROJECT_ID}/locations/global/publishers/google/models`;
 
+
 const auth = new GoogleAuth({
   credentials: serviceAccount,
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
-// 輔助函式：延遲
+// 輔助函式：延遲 (用於避免 Rate Limit)
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default async function handler(req, res) {
@@ -47,7 +49,7 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
-  // 檢查 Payload 大小
+  // 檢查 Payload 大小 (Vercel 限制 4.5MB)
   const contentLength = req.headers['content-length'];
   if (contentLength && parseInt(contentLength) > 4.5 * 1024 * 1024) {
       return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
@@ -64,6 +66,7 @@ export default async function handler(req, res) {
     const body = req.body;
     let generatedResults = [];
 
+    // 根據模式選擇處理函式
     if (body.mode === 'generate-nanobanana') {
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
@@ -90,12 +93,13 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
+    // 限制最大 4 張
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    // 1. 構建 Parts：文字 Prompt + 圖片
+    // 1. 構建 Parts：文字 Prompt
     const parts = [{ text: prompt }];
 
-    // 加入圖片到 payload
+    // 【修正】確保圖片被正確加入 Payload
     if (images && Array.isArray(images)) {
         images.forEach(img => {
             if (img.base64Data) {
@@ -120,11 +124,11 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 【關鍵修正】使用 Promise.all 並行請求，但錯開起跑時間 (Staggering)
+    // 【修正】使用 Promise.all 並行請求，但錯開起跑時間 (Staggering)
     // 這是為了在 Vercel 10秒限制內完成 4 張圖，同時減少 Rate Limit 機率
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        // 第1張馬上跑，第2張等500ms，第3張等1000ms...
-        if (i > 0) await delay(i * 500); 
+        // 增加間隔至 1.5 秒，避免 429 Too Many Requests
+        if (i > 0) await delay(i * 1500); 
         
         return vertexFetch(apiUrl, {
             method: "POST",
@@ -133,7 +137,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }).catch(e => ({ error: e.message }));
     });
 
-    // 等待所有請求完成 (或是超時前盡量完成)
     const results = await Promise.all(requests);
     
     const validImages = [];
@@ -142,7 +145,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     for (const result of results) {
         if (result.error) {
-            console.error("NanoBanana generation skipped:", result.error);
+            console.error("NanoBanana partial failure:", result.error);
             continue;
         }
         
@@ -162,15 +165,17 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
             validImages.push(base64Image);
             validThoughts.push(thoughts.trim());
         } else if (thoughts) {
+            // 有思考文字但沒圖片，通常是模型拒絕生成
             refusalReason = thoughts.trim();
         }
     }
 
     if (validImages.length === 0) {
+        // 如果有拒絕理由，回傳給前端顯示
         if (refusalReason) {
-            throw new Error(`Gemini 拒絕生成 (Refusal): ${refusalReason.substring(0, 100)}...`);
+            throw new Error(`Gemini 拒絕生成圖片 (Refusal): ${refusalReason.substring(0, 150)}...`);
         }
-        throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被過濾或 API 忙碌)");
+        throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被完全過濾或 API 繁忙)");
     }
 
     let displaySize = "1K (Default)";
