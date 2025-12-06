@@ -38,6 +38,9 @@ const auth = new GoogleAuth({
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
+// 輔助函式：延遲
+const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
 export default async function handler(req, res) {
   res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -83,10 +86,11 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
+    // 限制最大 4 張
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    // 【修改】加回強制前綴
-    const enhancedPrompt = `Generate a high-quality, realistic image of: ${prompt}`;
+    // 使用原始 Prompt
+    const enhancedPrompt = prompt;
 
     const payload = {
         contents: [{ 
@@ -102,14 +106,16 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 建立並行請求陣列
-    const requests = Array(safeNumImages).fill().map(() => 
-        vertexFetch(apiUrl, {
+    // 【修改】使用 Promise.all 但加入延遲 (Staggering) 以避免 Rate Limit
+    // 每個請求間隔 800ms
+    const requests = Array(safeNumImages).fill().map(async (_, i) => {
+        if (i > 0) await delay(i * 800); // 延遲發送
+        return vertexFetch(apiUrl, {
             method: "POST",
             headers: headers,
             body: JSON.stringify(payload),
-        }).catch(e => ({ error: e.message }))
-    );
+        }).catch(e => ({ error: e.message }));
+    });
 
     const results = await Promise.all(requests);
     
@@ -141,7 +147,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     }
 
     if (validImages.length === 0) {
-         throw new Error("Gemini 未生成任何有效圖片");
+         throw new Error("Gemini 未生成任何有效圖片 (可能因 Prompt 被拒絕或 API 忙碌)");
     }
 
     let displaySize = "1K (Default)";
@@ -255,6 +261,7 @@ async function saveImagesToStorage(base64DataArray, metadata) {
     const fileName = `ai-images/gen-${Date.now()}-${uuidv4()}.png`;
     const file = bucket.file(fileName);
     
+    // 如果有陣列則取對應 index，否則取單一值
     const specificThoughts = metadata.thoughtsArray ? metadata.thoughtsArray[index] : metadata.thoughts;
 
     await file.save(buffer, {
