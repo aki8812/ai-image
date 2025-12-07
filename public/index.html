@@ -32,7 +32,6 @@
         .custom-scrollbar::-webkit-scrollbar-track { background: rgba(0,0,0,0.2); }
         .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.2); border-radius: 3px; }
         
-        /* 增加 duration-700 讓置中切換到置頂時更優雅 */
         #app-container { transition: all 0.7s ease-in-out; width: 100%; min-height: 100%; }
         
         #prompt-textarea { transition: height 0.2s ease-in-out; scrollbar-width: none; }
@@ -67,12 +66,10 @@
 </head>
 <body class="bg-gray-900 text-gray-200"> 
 
-    <!-- 初始狀態：justify-center (垂直置中), items-center (水平置中) -->
-    <div id="app-container" class="w-full max-w-2xl mx-auto flex flex-col justify-center items-center p-4"> 
+    <div id="app-container" class="w-full max-w-2xl mx-auto min-h-screen flex flex-col justify-center items-center p-4 py-10"> 
 
-        <!-- 結果展示區 (初始隱藏) -->
-        <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4"> 
-            <!-- 最大高度 50vh -->
+        <!-- 結果展示區 -->
+        <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4 transition-all duration-500"> 
             <div id="image-display-wrapper" class="relative w-full max-h-[50vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center"> 
                 
                 <!-- 生成進度 -->
@@ -102,6 +99,8 @@
                         <div class="flex gap-2 flex-wrap">
                             <span id="meta-model" class="bg-indigo-600/80 px-2 py-0.5 rounded backdrop-blur-sm font-bold"></span>
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
+                            <!-- 【修正】加回 meta-ratio 避免 JS 報錯 -->
+                            <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
@@ -118,7 +117,6 @@
             <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
                 <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
                 <div class="h-8 w-[1px] bg-gray-700"></div>
-                <!-- 縮圖列表 -->
                 <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center scroll-smooth"></div>
             </div>
             
@@ -144,7 +142,7 @@
                 <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></button>
                 
                 <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition" title="設定生成模式">
-                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
                 </button>
 
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..." class="flex-grow bg-transparent text-lg text-gray-100 placeholder-gray-500 p-3 resize-none outline-none overflow-y-auto" style="max-height: 200px;"></textarea>
@@ -366,7 +364,7 @@
             let val = parseInt(countInput.value) || 1;
             // Dynamic limit based on selected mode
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
-            const max = currentMode === 'generate-nanobanana' ? 2 : 4;
+            const max = currentMode === 'generate-nanobanana' ? 1 : 4; // 修正：NanoBanana 限制為 1
             
             if (val < max) countInput.value = val + 1;
         };
@@ -509,8 +507,8 @@
             
             // Limit count for NanoBanana
             const currentCount = parseInt(countInput.value) || 1;
-            if (isNanoBanana && currentCount > 2) {
-                countInput.value = 2;
+            if (isNanoBanana && currentCount > 1) { // 修正：限制為 1
+                countInput.value = 1;
             }
 
             if (isNanoBanana) {
@@ -636,6 +634,7 @@
             if (typeof imgData === 'object') {
                 metaModel.textContent = getModelDisplayName(imgData.mode);
                 metaSize.textContent = imgData.size || "Unknown";
+                // 【修正】加上防呆，避免 undefined
                 metaRatio.textContent = imgData.aspectRatio || "Custom";
                 
                 if (imgData.thoughts) {
@@ -647,6 +646,7 @@
                 lightningThoughtsBtn.classList.add('hidden');
                 metaModel.textContent = "";
                 metaSize.textContent = "";
+                metaRatio.textContent = "";
             }
             
             imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
@@ -666,6 +666,8 @@
             if (mode === 'generate-default') return 'Imagen 4.0';
             if (mode === 'generate-fast') return 'Imagen 4.0 Fast';
             if (mode === 'generate-ultra') return 'Imagen 4.0 Ultra';
+            // 【修正】Upscale 顯示名稱
+            if (mode === 'upscale') return 'Upscale';
             return 'AI Model';
         }
 
