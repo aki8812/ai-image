@@ -89,7 +89,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     
     const targetAspectRatio = aspectRatio || "1:1";
     
-    // 【關鍵修正】為了穩定性，NanoBanana Pro 強制限制最大 2 張
+    // 強制限制最大 2 張，避免超時
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2));
 
     const parts = [{ text: prompt }];
@@ -118,7 +118,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 請求間隔 500ms，2 張圖只需 0.5s 等待，非常安全
+    // 請求間隔 500ms
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
         if (i > 0) await delay(i * 500); 
         return vertexFetch(apiUrl, {
@@ -180,7 +180,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     });
 }
 
-// === Imagen 4 系列 (保持原樣，支援 4 張) ===
+// === Imagen 4 系列 ===
 async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
     let modelId = "imagen-4.0-generate-001";
     if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
@@ -235,7 +235,8 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
 // === Upscale ===
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
-    const modelId = "imagen-4.0-ultra-generate-001"; 
+    // 【修正】使用標準版 generate-001 進行放大，避免 Ultra 版超時
+    const modelId = "imagen-4.0-generate-001"; 
     const factor = targetSize > 2048 ? "x4" : "x2";
     
     const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
@@ -313,7 +314,7 @@ async function vertexFetch(url, options) {
     try { errorMsg = JSON.parse(text).error?.message || text; } catch(e) {}
     
     if (response.status === 413) {
-        throw new Error("請求內容過大 (413 Payload Too Large)。請減少圖片大小。");
+        throw new Error("請求內容過大 (413 Payload Too Large)。請減少上傳的圖片數量或大小。");
     }
     if (response.status === 404) {
         throw new Error(`找不到模型: ${url}`);
