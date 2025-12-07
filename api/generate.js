@@ -25,20 +25,17 @@ const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
 const LOCATION = "us-central1"; 
 
-// === 定義 API 端點 ===
 const REGIONAL_BASE = `https://${LOCATION}-aiplatform.googleapis.com`;
 const V1_API_REGIONAL = `${REGIONAL_BASE}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
 const GLOBAL_BASE = `https://aiplatform.googleapis.com`;
 const V1BETA_API_GLOBAL = `${GLOBAL_BASE}/v1beta1/projects/${PROJECT_ID}/locations/global/publishers/google/models`;
 
-
 const auth = new GoogleAuth({
   credentials: serviceAccount,
   scopes: "https://www.googleapis.com/auth/cloud-platform",
 });
 
-// 輔助函式：延遲 (用於避免 Rate Limit)
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
 export default async function handler(req, res) {
@@ -49,7 +46,6 @@ export default async function handler(req, res) {
   if (req.method === 'OPTIONS') { res.status(200).end(); return; }
   if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
-  // 檢查 Payload 大小 (Vercel 限制 4.5MB)
   const contentLength = req.headers['content-length'];
   if (contentLength && parseInt(contentLength) > 4.5 * 1024 * 1024) {
       return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
@@ -66,7 +62,6 @@ export default async function handler(req, res) {
     const body = req.body;
     let generatedResults = [];
 
-    // 根據模式選擇處理函式
     if (body.mode === 'generate-nanobanana') {
         generatedResults = await handleNanoBanana(headers, body);
     } else if (body.mode === 'upscale') {
@@ -93,13 +88,12 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
-    // 限制最大 4 張
-    const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
+    
+    // 【關鍵修正】為了穩定性，NanoBanana Pro 強制限制最大 2 張
+    const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2));
 
-    // 1. 構建 Parts：文字 Prompt
     const parts = [{ text: prompt }];
 
-    // 2. 確保圖片被正確加入 Payload
     if (images && Array.isArray(images)) {
         images.forEach(img => {
             if (img.base64Data) {
@@ -124,12 +118,9 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
-    // 【修正】縮短請求間隔至 300ms
-    // 之前 1500ms 太長，導致 Vercel 10s Timeout 強制殺掉程式，造成圖片數量不足
-    // 300ms 是在 "被 Google Rate Limit" 與 "Vercel Timeout" 之間走鋼索的最佳值
+    // 請求間隔 500ms，2 張圖只需 0.5s 等待，非常安全
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        if (i > 0) await delay(i * 300); 
-        
+        if (i > 0) await delay(i * 500); 
         return vertexFetch(apiUrl, {
             method: "POST",
             headers: headers,
@@ -171,9 +162,9 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     if (validImages.length === 0) {
         if (refusalReason) {
-            throw new Error(`Gemini 拒絕生成 (Refusal): ${refusalReason.substring(0, 150)}...`);
+            throw new Error(`Gemini 拒絕生成圖片: ${refusalReason.substring(0, 150)}...`);
         }
-        throw new Error("Gemini 未生成任何圖片 (可能因 Prompt 被完全過濾或 API 忙碌)");
+        throw new Error("Gemini 未生成任何圖片 (API 忙碌或 Prompt 被拒絕)");
     }
 
     let displaySize = "1K (Default)";
@@ -189,7 +180,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     });
 }
 
-// === Imagen 4 系列 ===
+// === Imagen 4 系列 (保持原樣，支援 4 張) ===
 async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
     let modelId = "imagen-4.0-generate-001";
     if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
@@ -322,7 +313,7 @@ async function vertexFetch(url, options) {
     try { errorMsg = JSON.parse(text).error?.message || text; } catch(e) {}
     
     if (response.status === 413) {
-        throw new Error("請求內容過大 (413 Payload Too Large)。請減少上傳的圖片數量或大小。");
+        throw new Error("請求內容過大 (413 Payload Too Large)。請減少圖片大小。");
     }
     if (response.status === 404) {
         throw new Error(`找不到模型: ${url}`);
