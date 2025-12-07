@@ -97,6 +97,8 @@
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                             <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
+                        <!-- 新增：提示詞顯示區塊 -->
+                        <p id="meta-prompt" class="text-xs text-gray-200 mt-2 line-clamp-2 opacity-90 font-medium font-sans leading-snug drop-shadow-sm hidden"></p>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
                         <button id="lightning-thoughts-btn" class="bg-yellow-500/90 text-white rounded-full p-2 hover:bg-yellow-400 transition backdrop-blur-sm hidden shadow-lg shadow-yellow-500/20" title="查看完整 AI 思路">
@@ -284,6 +286,8 @@
         const metaModel = document.getElementById('meta-model');
         const metaSize = document.getElementById('meta-size');
         const metaRatio = document.getElementById('meta-ratio');
+        // 新增變數
+        const metaPrompt = document.getElementById('meta-prompt');
         
         const promptTextarea = document.getElementById('prompt-textarea');
         const imageUploadInput = document.getElementById('image-upload-1');
@@ -397,15 +401,16 @@
         thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
         thoughtsModal.onclick = (e) => { if(e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
+        // 修正後的導航邏輯：移除長度限制檢查，確保按鈕始終有反應
         navLeft.onclick = () => {
-            if (sessionHistory.length <= 1) return;
+            if (sessionHistory.length === 0) return;
             let newIndex = currentImageIndex - 1;
             if (newIndex < 0) newIndex = sessionHistory.length - 1;
             showImage(newIndex);
         };
 
         navRight.onclick = () => {
-            if (sessionHistory.length <= 1) return;
+            if (sessionHistory.length === 0) return;
             let newIndex = currentImageIndex + 1;
             if (newIndex >= sessionHistory.length) newIndex = 0;
             showImage(newIndex);
@@ -653,6 +658,14 @@
                 metaSize.textContent = imgData.size || "Unknown";
                 metaRatio.textContent = imgData.aspectRatio || "Custom";
                 
+                // 新增：顯示 Prompt
+                if (imgData.prompt) {
+                    metaPrompt.textContent = imgData.prompt;
+                    metaPrompt.classList.remove('hidden');
+                } else {
+                    metaPrompt.classList.add('hidden');
+                }
+                
                 if (imgData.thoughts) {
                     lightningThoughtsBtn.classList.remove('hidden');
                 } else {
@@ -663,6 +676,7 @@
                 metaModel.textContent = "";
                 metaSize.textContent = "";
                 metaRatio.textContent = "";
+                metaPrompt.classList.add('hidden');
             }
             
             imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
