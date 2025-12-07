@@ -78,7 +78,7 @@ export default async function handler(req, res) {
   }
 }
 
-// === NanoBanana Pro (Gemini 3 Pro) ===
+// === NanoBanana Pro ===
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
     const modelId = "gemini-3-pro-image-preview"; 
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
@@ -88,7 +88,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
-    
     // 強制限制最大 2 張，避免超時
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2));
 
@@ -232,10 +231,10 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     });
 }
 
-// === Upscale ===
+// === Upscale (已改為標準版) ===
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
-    // 【修正】使用標準版 generate-001 進行放大，避免 Ultra 版超時
+    // 使用標準版 generate-001 進行放大，避免 Ultra 版超時
     const modelId = "imagen-4.0-generate-001"; 
     const factor = targetSize > 2048 ? "x4" : "x2";
     
