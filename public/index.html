@@ -98,6 +98,7 @@
                         <div class="flex gap-2 flex-wrap">
                             <span id="meta-model" class="bg-indigo-600/80 px-2 py-0.5 rounded backdrop-blur-sm font-bold"></span>
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
+                            <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
@@ -114,14 +115,16 @@
             <div id="history-gallery-section" class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
                 <button id="clear-history-btn" class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"></path><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path></svg></button>
                 <div class="h-8 w-[1px] bg-gray-700"></div>
-                <!-- 縮圖列表 (加入 scroll-smooth) -->
+                <!-- 縮圖列表 -->
                 <div id="history-gallery-list" class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center scroll-smooth"></div>
             </div>
             
+            <!-- 導航區域：隱藏按鈕，只留計數器 -->
             <div id="gallery-nav" class="flex justify-between items-center px-2">
-                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
-                <span id="image-counter" class="text-sm text-gray-400 font-mono">0 / 0</span>
-                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
+                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90 hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"></polyline></svg></button>
+                <!-- 計數器置中 -->
+                <span id="image-counter" class="text-sm text-gray-400 font-mono mx-auto">0 / 0</span>
+                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90 hidden"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg></button>
             </div>
         </div>
         
@@ -313,6 +316,7 @@
         const thoughtsCloseBtn = document.getElementById('thoughts-close-btn');
 
         // Nav
+        // 雖然隱藏了按鈕，但保留元素宣告以免報錯
         const navLeft = document.getElementById('nav-left');
         const navRight = document.getElementById('nav-right');
         const historyList = document.getElementById('history-gallery-list');
@@ -359,7 +363,11 @@
         };
         countInc.onclick = () => {
             let val = parseInt(countInput.value) || 1;
-            if (val < 4) countInput.value = val + 1;
+            // Dynamic limit based on selected mode
+            const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
+            const max = currentMode === 'generate-nanobanana' ? 2 : 4;
+            
+            if (val < max) countInput.value = val + 1;
         };
 
         // Thoughts Logic
@@ -372,14 +380,6 @@
         };
         thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
         thoughtsModal.onclick = (e) => { if(e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
-
-        // Nav Logic (Fixed: Use scrollLeft directly for maximum compatibility)
-        navLeft.onclick = () => {
-            historyList.scrollLeft -= 200;
-        };
-        navRight.onclick = () => {
-            historyList.scrollLeft += 200;
-        };
 
         // ... (Ratios & Upload - Kept clean) ...
         moreRatiosBtn.onclick = (e) => { e.stopPropagation(); toggleRatioDropdown(); };
@@ -498,6 +498,12 @@
             const isNanoBanana = currentMode === 'generate-nanobanana';
             const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
             
+            // Limit count for NanoBanana
+            const currentCount = parseInt(countInput.value) || 1;
+            if (isNanoBanana && currentCount > 2) {
+                countInput.value = 2;
+            }
+
             if (isNanoBanana) {
                 size4kWrapper.classList.remove('hidden');
                 moreRatiosWrapper.classList.remove('invisible');
@@ -531,7 +537,6 @@
             const prompt = promptTextarea.value.trim();
             const numImages = parseInt(document.getElementById('image-count').value) || 1;
             
-            // FIX: Directly get the mode from DOM to avoid stale state
             const currentMode = document.querySelector('input[name="generation-mode"]:checked').value;
 
             if (currentMode !== 'upscale' && !prompt && uploadedImages.length === 0) {
@@ -561,7 +566,6 @@
                     })
                 });
 
-                // Catch JSON parse errors (usually from 413 or 504 HTML responses)
                 let data;
                 try {
                     data = await response.json();
@@ -612,10 +616,10 @@
                 requestAnimationFrame(() => resultImage.style.opacity = '1');
             };
 
-            // Metadata Update (Fixed: metaModel is now globally defined)
             if (typeof imgData === 'object') {
                 metaModel.textContent = getModelDisplayName(imgData.mode);
                 metaSize.textContent = imgData.size || "Unknown";
+                metaRatio.textContent = imgData.aspectRatio || "Custom";
                 
                 if (imgData.thoughts) {
                     lightningThoughtsBtn.classList.remove('hidden');
@@ -653,7 +657,6 @@
             list.innerHTML = '';
             sessionHistory.forEach((img, idx) => {
                 const btn = document.createElement('button');
-                // FIX: Correct border logic for selection
                 const isSelected = idx === currentImageIndex;
                 btn.className = `flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-blue-500' : 'border-transparent hover:border-gray-500'}`;
                 btn.onclick = () => showImage(idx);
