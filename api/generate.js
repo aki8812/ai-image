@@ -88,12 +88,13 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     else if (sampleImageSize === '2048') targetImageSize = "2K";
     
     const targetAspectRatio = aspectRatio || "1:1";
-    
-    // 【重要修正】強制限制為 1 張，以確保在 Vercel 10秒限制內完成
-    // Gemini 3 生成一張約需 6-8 秒，生成兩張必超時
-    const safeNumImages = 1;
+    // 強制限制最大 2 張，避免超時
+    const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2)); // 修正：限制為 2 (為了穩定性)
 
-    const parts = [{ text: prompt }];
+    // 【關鍵修正】加回前綴，這對 Gemini 3 非常重要
+    const enhancedPrompt = `Generate a high quality, realistic image of: ${prompt}`;
+
+    const parts = [{ text: enhancedPrompt }];
 
     if (images && Array.isArray(images)) {
         images.forEach(img => {
@@ -119,6 +120,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         }
     };
 
+    // 請求間隔 500ms
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
         if (i > 0) await delay(i * 500); 
         return vertexFetch(apiUrl, {
