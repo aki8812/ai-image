@@ -62,6 +62,13 @@
         
         input[type=number]::-webkit-inner-spin-button, 
         input[type=number]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+
+        /* 拖放時的視覺效果 */
+        .drag-active {
+            border-color: #3B82F6 !important;
+            box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
+            background-color: #374151 !important;
+        }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200"> 
@@ -97,7 +104,6 @@
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                             <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
-                        <!-- 新增：提示詞顯示區塊 -->
                         <p id="meta-prompt" class="text-xs text-gray-200 mt-2 line-clamp-2 opacity-90 font-medium font-sans leading-snug drop-shadow-sm hidden"></p>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
@@ -128,7 +134,8 @@
         <div id="input-hub" class="w-full"> 
             <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden overflow-x-auto scrollbar-hide pb-1"></div>
             
-            <div class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative">
+            <!-- 加入 id="input-bar" 用於拖放目標識別，以及 transition 效果 -->
+            <div id="input-bar" class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative transition-all duration-200">
                 <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative" title="上傳參考圖">
                     <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
                     <span id="upload-count-badge" class="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
@@ -286,7 +293,6 @@
         const metaModel = document.getElementById('meta-model');
         const metaSize = document.getElementById('meta-size');
         const metaRatio = document.getElementById('meta-ratio');
-        // 新增變數
         const metaPrompt = document.getElementById('meta-prompt');
         
         const promptTextarea = document.getElementById('prompt-textarea');
@@ -294,6 +300,9 @@
         const imagePreviewContainer = document.getElementById('image-preview-container');
         const uploadCountBadge = document.getElementById('upload-count-badge');
         
+        // 新增 inputBar 參考
+        const inputBar = document.getElementById('input-bar');
+
         const modeSelector = document.getElementById('mode-selector');
         const size4kWrapper = document.getElementById('size-4k-wrapper');
         const moreRatiosWrapper = document.getElementById('more-ratios-wrapper'); 
@@ -328,7 +337,96 @@
         updateInputUI();
 
         document.getElementById('upload-btn-1').onclick = () => imageUploadInput.click();
-        imageUploadInput.onchange = handleFilesUpload;
+        
+        // 修改：使用新的共用處理函式
+        imageUploadInput.onchange = (e) => {
+             // 保持原本的邏輯：從按鈕上傳時，重置目前的圖片（或是您可以選擇追加）
+             // 根據需求描述 "不更改其他功能"，維持 input[type=file] 的預設行為（替換）
+             uploadedImages = []; 
+             imagePreviewContainer.innerHTML = '';
+             handleFiles(e.target.files);
+             imageUploadInput.value = ''; // 允許重複上傳相同檔案
+        };
+        
+        // === 新增：貼上圖片處理邏輯 ===
+        promptTextarea.addEventListener('paste', (e) => {
+            const items = (e.clipboardData || e.originalEvent.clipboardData).items;
+            const files = [];
+            let hasImage = false;
+            
+            for (let item of items) {
+                if (item.kind === 'file' && item.type.startsWith('image/')) {
+                    files.push(item.getAsFile());
+                    hasImage = true;
+                }
+            }
+            
+            if (hasImage) {
+                e.preventDefault(); // 阻止貼上二進位亂碼
+                handleFiles(files); // 貼上採用「追加」模式
+            }
+        });
+
+        // === 新增：拖放 (Drag & Drop) 處理邏輯 ===
+        // 防止瀏覽器預設開啟圖片
+        ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
+            inputBar.addEventListener(eventName, preventDefaults, false);
+            document.body.addEventListener(eventName, preventDefaults, false);
+        });
+
+        function preventDefaults(e) {
+            e.preventDefault();
+            e.stopPropagation();
+        }
+
+        // 拖曳視覺回饋
+        ['dragenter', 'dragover'].forEach(eventName => {
+            inputBar.addEventListener(eventName, () => inputBar.classList.add('drag-active'), false);
+        });
+
+        ['dragleave', 'drop'].forEach(eventName => {
+            inputBar.addEventListener(eventName, () => inputBar.classList.remove('drag-active'), false);
+        });
+
+        // 處理放置
+        inputBar.addEventListener('drop', (e) => {
+            const dt = e.dataTransfer;
+            const files = dt.files;
+            handleFiles(files); // 拖放採用「追加」模式
+        }, false);
+
+        // === 統一的檔案處理函式 (重構原本的 handleFilesUpload) ===
+        async function handleFiles(fileList) {
+            if (!fileList || fileList.length === 0) return;
+            
+            const files = Array.from(fileList).filter(file => file.type.startsWith('image/'));
+            if (files.length === 0) return;
+
+            for (const file of files) {
+                try {
+                    const { base64Data, mimeType, previewUrl } = await imageToBase64(file);
+                    uploadedImages.push({ base64Data, mimeType, previewUrl, size: file.size });
+                    
+                    const wrapper = document.createElement('div');
+                    wrapper.className = "relative w-16 h-16 flex-shrink-0 group animate-fade-in"; // 加入簡單動畫 class
+                    // 為了閉包正確捕捉 index，我們在 onclick 動態計算 index
+                    wrapper.innerHTML = `
+                        <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
+                        <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600 transition" data-action="remove">&times;</button>
+                    `;
+                    
+                    // 綁定移除事件，不使用 onclick 字串以避免索引錯誤
+                    wrapper.querySelector('button').onclick = function() {
+                        // 找出這個 wrapper 在 container 中的 index
+                        const idx = Array.from(imagePreviewContainer.children).indexOf(wrapper);
+                        removeImage(idx);
+                    };
+
+                    imagePreviewContainer.appendChild(wrapper);
+                } catch (err) { console.error(err); }
+            }
+            validateUploads();
+        }
         
         document.getElementById('send-btn').onclick = handleGeneration;
         promptTextarea.onkeydown = (e) => { if(e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGeneration(); }};
@@ -401,7 +499,6 @@
         thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
         thoughtsModal.onclick = (e) => { if(e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
-        // 修正後的導航邏輯：移除長度限制檢查，確保按鈕始終有反應
         navLeft.onclick = () => {
             if (sessionHistory.length === 0) return;
             let newIndex = currentImageIndex - 1;
@@ -458,38 +555,19 @@
             input.addEventListener('change', (e) => selectedSampleSize = e.target.value);
         });
 
-        async function handleFilesUpload(e) {
-            const files = Array.from(e.target.files);
-            if (files.length === 0) return;
-            uploadedImages = [];
-            imagePreviewContainer.innerHTML = '';
-            for (const file of files) {
-                try {
-                    const { base64Data, mimeType, previewUrl } = await imageToBase64(file);
-                    uploadedImages.push({ base64Data, mimeType, previewUrl, size: file.size });
-                    const wrapper = document.createElement('div');
-                    wrapper.className = "relative w-16 h-16 flex-shrink-0 group";
-                    wrapper.innerHTML = `
-                        <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                        <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]" onclick="removeImage(${uploadedImages.length - 1})">&times;</button>
-                    `;
-                    imagePreviewContainer.appendChild(wrapper);
-                } catch (err) { console.error(err); }
-            }
-            validateUploads();
-            imageUploadInput.value = ''; 
-        }
-
+        // 移除原有的 handleFilesUpload，改用上方通用的 handleFiles
+        // 為了相容性，保留 removeImage 函式
         window.removeImage = function(index) {
             uploadedImages.splice(index, 1);
-            imagePreviewContainer.innerHTML = '';
+            imagePreviewContainer.innerHTML = ''; // 清空重建，這是最安全的方式
             uploadedImages.forEach((img, idx) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = "relative w-16 h-16 flex-shrink-0 group";
                 wrapper.innerHTML = `
                     <img src="${img.previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                    <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px]" onclick="removeImage(${idx})">&times;</button>
+                    <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600 transition">&times;</button>
                 `;
+                wrapper.querySelector('button').onclick = () => removeImage(idx);
                 imagePreviewContainer.appendChild(wrapper);
             });
             validateUploads();
@@ -658,7 +736,6 @@
                 metaSize.textContent = imgData.size || "Unknown";
                 metaRatio.textContent = imgData.aspectRatio || "Custom";
                 
-                // 新增：顯示 Prompt
                 if (imgData.prompt) {
                     metaPrompt.textContent = imgData.prompt;
                     metaPrompt.classList.remove('hidden');
