@@ -92,7 +92,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2)); // 修正：限制為 2 (為了穩定性)
 
     // 【關鍵修正】加回前綴，這對 Gemini 3 非常重要
-    const enhancedPrompt = `Generate a high quality, realistic image of: ${prompt}`;
+    const enhancedPrompt = `Focus strictly on the subject itself as a direct, clear view. Avoid depicting the           image as a physical object, such as a framed painting on a wall or a photo within a gallery setting, unless          the user explicitly asks for it. Present the scene directly: ${prompt}`;
 
     const parts = [{ text: enhancedPrompt }];
 
