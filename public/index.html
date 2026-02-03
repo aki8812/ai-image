@@ -150,11 +150,31 @@
             margin: 0;
         }
 
-        /* 拖放時的視覺效果 */
         .drag-active {
             border-color: #3B82F6 !important;
             box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.3) !important;
             background-color: #374151 !important;
+        }
+
+        #aki-footer {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            color: #ffeb3b;
+            font-weight: bold;
+            font-size: 1rem;
+            font-family: 'Courier New', Courier, monospace;
+            cursor: default;
+            user-select: none;
+            display: flex;
+            gap: 2px;
+            z-index: 999;
+        }
+
+        .char-span {
+            display: inline-block;
+            transition: transform 0.1s ease-out;
+            will-change: transform;
         }
     </style>
 </head>
@@ -281,7 +301,6 @@
             <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden overflow-x-auto scrollbar-hide pb-1">
             </div>
 
-            <!-- 加入 id="input-bar" 用於拖放目標識別，以及 transition 效果 -->
             <div id="input-bar"
                 class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative transition-all duration-200">
                 <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative"
@@ -542,7 +561,6 @@
         const imagePreviewContainer = document.getElementById('image-preview-container');
         const uploadCountBadge = document.getElementById('upload-count-badge');
 
-        // 新增 inputBar 參考
         const inputBar = document.getElementById('input-bar');
 
         const modeSelector = document.getElementById('mode-selector');
@@ -580,17 +598,13 @@
 
         document.getElementById('upload-btn-1').onclick = () => imageUploadInput.click();
 
-        // 修改：使用新的共用處理函式
         imageUploadInput.onchange = (e) => {
-            // 保持原本的邏輯：從按鈕上傳時，重置目前的圖片（或是您可以選擇追加）
-            // 根據需求描述 "不更改其他功能"，維持 input[type=file] 的預設行為（替換）
             uploadedImages = [];
             imagePreviewContainer.innerHTML = '';
             handleFiles(e.target.files);
-            imageUploadInput.value = ''; // 允許重複上傳相同檔案
+            imageUploadInput.value = '';
         };
 
-        // === 新增：貼上圖片處理邏輯 ===
         promptTextarea.addEventListener('paste', (e) => {
             const items = (e.clipboardData || e.originalEvent.clipboardData).items;
             const files = [];
@@ -604,13 +618,11 @@
             }
 
             if (hasImage) {
-                e.preventDefault(); // 阻止貼上二進位亂碼
-                handleFiles(files); // 貼上採用「追加」模式
+                e.preventDefault();
+                handleFiles(files);
             }
         });
 
-        // === 新增：拖放 (Drag & Drop) 處理邏輯 ===
-        // 防止瀏覽器預設開啟圖片
         ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(eventName => {
             inputBar.addEventListener(eventName, preventDefaults, false);
             document.body.addEventListener(eventName, preventDefaults, false);
@@ -621,7 +633,6 @@
             e.stopPropagation();
         }
 
-        // 拖曳視覺回饋
         ['dragenter', 'dragover'].forEach(eventName => {
             inputBar.addEventListener(eventName, () => inputBar.classList.add('drag-active'), false);
         });
@@ -630,14 +641,12 @@
             inputBar.addEventListener(eventName, () => inputBar.classList.remove('drag-active'), false);
         });
 
-        // 處理放置
         inputBar.addEventListener('drop', (e) => {
             const dt = e.dataTransfer;
             const files = dt.files;
-            handleFiles(files); // 拖放採用「追加」模式
+            handleFiles(files);
         }, false);
 
-        // === 統一的檔案處理函式 (重構原本的 handleFilesUpload) ===
         async function handleFiles(fileList) {
             if (!fileList || fileList.length === 0) return;
 
@@ -650,16 +659,13 @@
                     uploadedImages.push({ base64Data, mimeType, previewUrl, size: file.size });
 
                     const wrapper = document.createElement('div');
-                    wrapper.className = "relative w-16 h-16 flex-shrink-0 group animate-fade-in"; // 加入簡單動畫 class
-                    // 為了閉包正確捕捉 index，我們在 onclick 動態計算 index
+                    wrapper.className = "relative w-16 h-16 flex-shrink-0 group animate-fade-in";
                     wrapper.innerHTML = `
                         <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
                         <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600 transition" data-action="remove">&times;</button>
                     `;
 
-                    // 綁定移除事件，不使用 onclick 字串以避免索引錯誤
                     wrapper.querySelector('button').onclick = function () {
-                        // 找出這個 wrapper 在 container 中的 index
                         const idx = Array.from(imagePreviewContainer.children).indexOf(wrapper);
                         removeImage(idx);
                     };
@@ -797,11 +803,9 @@
             input.addEventListener('change', (e) => selectedSampleSize = e.target.value);
         });
 
-        // 移除原有的 handleFilesUpload，改用上方通用的 handleFiles
-        // 為了相容性，保留 removeImage 函式
         window.removeImage = function (index) {
             uploadedImages.splice(index, 1);
-            imagePreviewContainer.innerHTML = ''; // 清空重建，這是最安全的方式
+            imagePreviewContainer.innerHTML = '';
             uploadedImages.forEach((img, idx) => {
                 const wrapper = document.createElement('div');
                 wrapper.className = "relative w-16 h-16 flex-shrink-0 group";
@@ -1142,6 +1146,47 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => { }));
+        }
+    </script>
+    <div id="aki-footer">Made by Aki</div>
+    <script>
+        const footer = document.getElementById('aki-footer');
+        if (footer) {
+            const text = footer.textContent;
+            footer.textContent = '';
+            const spans = [];
+            for (let char of text) {
+                const span = document.createElement('span');
+                span.textContent = char;
+                if (char === ' ') span.style.width = '0.5em';
+                span.className = 'char-span';
+                footer.appendChild(span);
+                spans.push(span);
+            }
+
+            document.addEventListener('mousemove', (e) => {
+                const mouseX = e.clientX;
+                const mouseY = e.clientY;
+
+                spans.forEach(span => {
+                    const rect = span.getBoundingClientRect();
+                    const charX = rect.left + rect.width / 2;
+                    const charY = rect.top + rect.height / 2;
+                    const distX = mouseX - charX;
+                    const distY = mouseY - charY;
+                    const distance = Math.sqrt(distX * distX + distY * distY);
+                    const maxDist = 60;
+
+                    if (distance < maxDist) {
+                        const force = (maxDist - distance) / maxDist;
+                        const moveX = -(distX / distance) * force * 10;
+                        const moveY = -(distY / distance) * force * 10;
+                        span.style.transform = `translate(${moveX}px, ${moveY}px)`;
+                    } else {
+                        span.style.transform = `translate(0, 0)`;
+                    }
+                });
+            });
         }
     </script>
 </body>

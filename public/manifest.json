@@ -1,7 +1,7 @@
 {
   "name": "AI Image",
   "short_name": "AI Image",
-  "description": "使用 Vertex AI Imagen 4.0 生成圖片",
+  "description": "AI生成圖片",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#111827",
