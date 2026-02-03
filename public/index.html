@@ -11,6 +11,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon/icon-512x512.png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
     <link rel="icon" href="favicon.ico" />
     <script src="https://cdn.tailwindcss.com"></script>
@@ -161,23 +162,16 @@
             bottom: 20px;
             left: 20px;
             color: #ffeb3b;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.8);
             font-weight: bold;
-            font-size: 1.2rem;
-            font-family: 'Courier New', Courier, monospace;
+            font-size: 1rem;
+            font-family: 'Roboto Mono', monospace;
             cursor: default;
             user-select: none;
             display: flex;
             gap: 2px;
             z-index: 2147483647;
-            pointer-events: none;
-            /* Let clicks pass through if needed, but we want interaction */
             pointer-events: auto;
-            background-color: rgba(0, 0, 0, 0.2);
-            /* Slight background to verify position */
-            padding: 5px 10px;
-            border-radius: 5px;
-            backdrop-filter: blur(2px);
+        }
         }
 
         .char-span {
@@ -1160,7 +1154,6 @@
     <div id="aki-footer">Made by Aki</div>
     <script>
         const footer = document.getElementById('aki-footer');
-        console.log('Aki Footer initialized:', footer);
         if (footer) {
             const text = footer.textContent;
             footer.textContent = '';
