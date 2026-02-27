@@ -932,33 +932,29 @@
             };
 
             async function fetchOneImage(slotIndex) {
-                const MAX_ATTEMPTS = 2;
-                let lastErr;
-                for (let attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
-                    if (attempt > 0) await new Promise(r => setTimeout(r, 3000));
-                    try {
-                        const response = await fetch(API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(requestBody)
-                        });
-                        let data;
-                        try { data = await response.json(); }
-                        catch (e) {
-                            if (response.status === 413) throw new Error("\u5716\u7247\u7e3d\u5927\u5c0f\u904e\u5927\uff0c\u8acb\u7e2e\u5c0f\u5716\u7247\u6216\u6e1b\u5c11\u6578\u91cf (\u4e0a\u9650\u7d04 3.5MB)\u3002");
-                            throw new Error(`\u4f3a\u670d\u5668\u56de\u61c9\u932f\u8aa4 (${response.status})\u3002`);
-                        }
-                        if (data.error) throw new Error(data.error.message);
-                        if (!data.images || data.images.length === 0) throw new Error("\u672a\u751f\u6210\u5716\u7247");
-                        onSingleImageReady(slotIndex, data.images[0]);
-                        return true;
-                    } catch (err) { lastErr = err; }
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(requestBody)
+                    });
+                    let data;
+                    try { data = await response.json(); }
+                    catch (e) {
+                        if (response.status === 413) throw new Error("\u5716\u7247\u7e3d\u5927\u5c0f\u904e\u5927\uff0c\u8acb\u7e2e\u5c0f\u5716\u7247\u6216\u6e1b\u5c11\u6578\u91cf (\u4e0a\u9650\u7d04 3.5MB)\u3002");
+                        throw new Error(`\u4f3a\u670d\u5668\u56de\u61c9\u932f\u8aa4 (${response.status})\u3002`);
+                    }
+                    if (data.error) throw new Error(data.error.message);
+                    if (!data.images || data.images.length === 0) throw new Error("\u672a\u751f\u6210\u5716\u7247");
+                    onSingleImageReady(slotIndex, data.images[0]);
+                    return true;
+                } catch (err) {
+                    sessionHistory[slotIndex] = { pending: false, error: true };
+                    renderGallery();
+                    if (currentImageIndex === slotIndex) showImage(slotIndex);
+                    showError(err.message);
+                    return false;
                 }
-                sessionHistory[slotIndex] = { pending: false, error: true };
-                renderGallery();
-                if (currentImageIndex === slotIndex) showImage(slotIndex);
-                showError(lastErr.message);
-                return false;
             }
 
             let completedCount = 0;
