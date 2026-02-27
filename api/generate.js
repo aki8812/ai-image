@@ -353,9 +353,9 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
     const factor = targetSize > 2048 ? "x4" : "x2";
-    const apiUrl = `${V1_API_REGIONAL}/imagen-4.0-generate-001:predict`;
+    const apiUrl = `${V1_API_REGIONAL}/imagen-4.0-upscale-preview:predict`;
 
-    if (!images || images.length === 0) throw new Error("缺少用於放大的圖片");
+    if (!images || images.length === 0) throw new Error("\u7f3a\u5c11\u7528\u65bc\u653e\u5927\u7684\u5716\u7247");
 
     const payload = {
         instances: [{
@@ -370,18 +370,17 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     };
 
     let result;
-    for (let attempt = 0; attempt < 2; attempt++) {
-        if (attempt > 0) await delay(3000);
-        try {
-            result = await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
-            break;
-        } catch (e) {
-            if (attempt === 1) throw e;
+    try {
+        result = await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+    } catch (e) {
+        if (e.message.includes('499') || e.message.includes('cancelled')) {
+            throw new Error("\u653e\u5927\u8d85\u6642\uff1aVercel \u514d\u8cbb\u65b9\u6848\u5f37\u5236\u9650\u5236 60 \u79d2\uff0c\u5716\u7247\u653e\u5927\u53ef\u80fd\u8d85\u6642\u3002\u8acb\u8a66\u8457\u4e0a\u50b3\u8f03\u5c0f\u7684\u5716\u7247\u3002");
         }
+        throw e;
     }
 
     const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
-    if (!base64Data) throw new Error("放大失敗");
+    if (!base64Data) throw new Error("\u653e\u5927\u5931\u6557");
 
     return await saveImagesToStorage([base64Data], {
         prompt: "Upscaled Image",
