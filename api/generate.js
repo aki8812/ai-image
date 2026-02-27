@@ -193,7 +193,7 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
     else if (sampleImageSize === '2048') targetImageSize = "2K";
 
     const targetAspectRatio = aspectRatio || "1:1";
-    const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2));
+    const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
     const enhancedPrompt = `Directly generate the content as described by the user without adding any unrequested context, settings, or presentation styles. The image should be a pure, literal representation of the prompt: ${prompt}`;
 
@@ -214,6 +214,7 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
 
     const payload = {
         contents: [{ role: "user", parts: parts }],
+        tools: [{ google_search: {} }],
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
