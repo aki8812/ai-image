@@ -232,7 +232,7 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
         if (i > 0) await delay(i * 800);
         let lastErr;
         for (let attempt = 0; attempt < 3; attempt++) {
-            if (attempt > 0) await delay(2000 * attempt);
+            if (attempt > 0) await delay(attempt === 1 ? 15000 : 30000);
             try {
                 return await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
             } catch (e) {
