@@ -546,6 +546,7 @@
         let sessionHistory = [];
         let currentImageIndex = 0;
         let isLoading = false;
+        let pendingCount = 0;
         let progressInterval = null;
         let loaderThoughtsInterval = null;
 
@@ -895,75 +896,108 @@
             if (isLoading) return;
             const prompt = promptTextarea.value.trim();
             const numImages = parseInt(document.getElementById('image-count').value) || 1;
-
             const currentMode = document.querySelector('input[name="generation-mode"]:checked').value;
 
             if (currentMode !== 'upscale' && !prompt && uploadedImages.length === 0) {
                 return showError("請輸入提示詞或上傳圖片");
             }
 
-            setLoading(true);
+            setLoading(true, numImages);
 
             if (appContainer.classList.contains('justify-center')) {
                 appContainer.classList.remove('justify-center');
                 appContainer.classList.add('justify-start', 'pt-10');
             }
 
-            await simulateProgress(0, 90, 3000);
+            const imagesPayload = uploadedImages.map(img => ({
+                base64Data: img.base64Data,
+                mimeType: img.mimeType
+            }));
 
-            try {
-                const imagesPayload = uploadedImages.map(img => ({
-                    base64Data: img.base64Data,
-                    mimeType: img.mimeType
-                }));
+            const startIndex = sessionHistory.length;
+            for (let i = 0; i < numImages; i++) {
+                sessionHistory.push({ pending: true });
+            }
+            document.getElementById('results-gallery').classList.remove('hidden');
+            renderGallery();
+            showImage(startIndex);
 
-                const response = await fetch(API_URL, {
+            simulateProgress(0, 85, numImages * 2500);
+
+            let completedCount = 0;
+            for (let i = 0; i < numImages; i++) {
+                const slotIndex = startIndex + i;
+                fetch(API_URL, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
                         mode: currentMode,
                         prompt: prompt,
-                        numImages: numImages,
+                        numImages: 1,
                         images: imagesPayload,
                         aspectRatio: selectedAspectRatio,
                         sampleImageSize: selectedSampleSize,
                         upscaleLevel: selectedUpscaleLevel
                     })
-                });
-
-                let data;
-                try {
-                    data = await response.json();
-                } catch (e) {
-                    if (response.status === 413) {
-                        throw new Error("圖片總大小過大，請縮小圖片或減少數量 (上限約 3.5MB)。");
-                    }
-                    throw new Error(`伺服器回應錯誤 (${response.status})。可能請求逾時或內容過大。`);
-                }
-
-                if (data.error) throw new Error(data.error.message);
-                if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
-
-                sessionHistory = [...sessionHistory, ...data.images];
-                renderGallery();
-
-                const newIndex = sessionHistory.length - data.images.length;
-                document.getElementById('results-gallery').classList.remove('hidden');
-                showImage(newIndex);
-
-                await simulateProgress(90, 100, 300);
-            } catch (error) {
-                showError(error.message);
-            } finally {
-                setLoading(false);
+                })
+                    .then(async response => {
+                        let data;
+                        try {
+                            data = await response.json();
+                        } catch (e) {
+                            if (response.status === 413) throw new Error("圖片總大小過大，請縮小圖片或減少數量 (上限約 3.5MB)。");
+                            throw new Error(`伺服器回應錯誤 (${response.status})。`);
+                        }
+                        if (data.error) throw new Error(data.error.message);
+                        if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
+                        onSingleImageReady(slotIndex, data.images[0]);
+                    })
+                    .catch(err => {
+                        sessionHistory[slotIndex] = { pending: false, error: true };
+                        renderGallery();
+                        if (currentImageIndex === slotIndex) showImage(slotIndex);
+                        showError(err.message);
+                    })
+                    .finally(() => {
+                        completedCount++;
+                        if (completedCount === numImages) {
+                            simulateProgress(85, 100, 400).then(() => setLoading(false, 0));
+                        }
+                    });
             }
         }
 
+        function onSingleImageReady(slotIndex, imageData) {
+            sessionHistory[slotIndex] = imageData;
+            renderGallery();
+            if (currentImageIndex === slotIndex) {
+                showImage(slotIndex);
+            }
+        }
+
+
         function showImage(index) {
             if (index < 0 || index >= sessionHistory.length) return;
-            const isSameImage = index === currentImageIndex && !imageLoader.classList.contains('hidden');
+            const isSameImage = index === currentImageIndex;
             currentImageIndex = index;
             const imgData = sessionHistory[index];
+
+            if (!imgData || imgData.pending) {
+                resultImage.style.opacity = '0';
+                imageLoader.classList.add('hidden');
+                generationLoader.classList.remove('hidden');
+                lightningThoughtsBtn.classList.add('hidden');
+                metaModel.textContent = '生成中...';
+                metaSize.textContent = '';
+                metaRatio.textContent = '';
+                metaPrompt.classList.add('hidden');
+                imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
+                updateGallerySelection(index);
+                return;
+            }
+
+            generationLoader.classList.add('hidden');
+
             const url = typeof imgData === 'string' ? imgData : imgData.url;
 
             if (!isSameImage) {
@@ -1000,9 +1034,9 @@
                 }
             } else {
                 lightningThoughtsBtn.classList.add('hidden');
-                metaModel.textContent = "";
-                metaSize.textContent = "";
-                metaRatio.textContent = "";
+                metaModel.textContent = '';
+                metaSize.textContent = '';
+                metaRatio.textContent = '';
                 metaPrompt.classList.add('hidden');
             }
 
@@ -1036,10 +1070,14 @@
                 const isSelected = idx === currentImageIndex;
                 btn.className = `flex-shrink-0 w-16 h-16 rounded-lg overflow-hidden border-2 transition ${isSelected ? 'border-blue-500' : 'border-transparent hover:border-gray-500'}`;
                 btn.onclick = () => showImage(idx);
-                const i = document.createElement('img');
-                i.src = typeof img === 'string' ? img : img.url;
-                i.className = "w-full h-full object-cover";
-                btn.appendChild(i);
+                if (img && img.pending) {
+                    btn.innerHTML = '<div class="w-full h-full bg-gray-700 flex items-center justify-center loading-pulse"><svg class="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
+                } else {
+                    const i = document.createElement('img');
+                    i.src = typeof img === 'string' ? img : img.url;
+                    i.className = "w-full h-full object-cover";
+                    btn.appendChild(i);
+                }
                 list.appendChild(btn);
             });
             setTimeout(() => list.scrollLeft = list.scrollWidth, 100);
@@ -1087,13 +1125,12 @@
                 reader.onerror = reject;
             });
         }
-        function setLoading(state) {
+        function setLoading(state, count) {
             isLoading = state;
+            if (count !== undefined) pendingCount = state ? count : 0;
             const btn = document.getElementById('send-btn');
             btn.disabled = state;
             if (state) {
-                document.getElementById('results-gallery').classList.remove('hidden');
-                generationLoader.classList.remove('hidden');
                 document.getElementById('error-message').classList.add('hidden');
                 btn.innerHTML = '<svg class="animate-spin h-6 w-6" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>';
             } else {
