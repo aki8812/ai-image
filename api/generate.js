@@ -123,14 +123,19 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     };
 
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        if (i > 0) await delay(i * 500);
-        return vertexFetch(apiUrl, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(payload),
-        }).catch(e => ({ error: e.message }));
+        if (i > 0) await delay(i * 800);
+        let lastErr;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) await delay(2000 * attempt);
+            try {
+                return await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+            } catch (e) {
+                lastErr = e;
+                console.error("NanoBanana2 attempt " + (attempt + 1) + " failed: " + e.message);
+            }
+        }
+        return { error: lastErr.message };
     });
-
     const results = await Promise.all(requests);
 
     const validImages = [];
@@ -224,14 +229,19 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
     };
 
     const requests = Array(safeNumImages).fill().map(async (_, i) => {
-        if (i > 0) await delay(i * 500);
-        return vertexFetch(apiUrl, {
-            method: "POST",
-            headers: headers,
-            body: JSON.stringify(payload),
-        }).catch(e => ({ error: e.message }));
+        if (i > 0) await delay(i * 800);
+        let lastErr;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) await delay(2000 * attempt);
+            try {
+                return await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+            } catch (e) {
+                lastErr = e;
+                console.error("NanoBanana2 attempt " + (attempt + 1) + " failed: " + e.message);
+            }
+        }
+        return { error: lastErr.message };
     });
-
     const results = await Promise.all(requests);
 
     const validImages = [];
