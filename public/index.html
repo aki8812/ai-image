@@ -302,7 +302,8 @@
         </p>
 
         <div id="input-hub" class="w-full">
-            <div id="image-preview-container" class="flex gap-2 mb-2 ml-14 hidden overflow-x-auto scrollbar-hide pb-1">
+            <div id="image-preview-container"
+                class="flex gap-2 mb-2 ml-14 hidden scrollbar-hide pb-1 pt-3 overflow-x-auto overflow-y-visible">
             </div>
 
             <div id="input-bar"
@@ -828,7 +829,7 @@
                 wrapper.className = "relative w-16 h-16 flex-shrink-0 group overflow-visible";
                 wrapper.innerHTML = `
                     <img src="${img.previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                    <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10">&times;</button>
+                    <button class="absolute -bottom-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10">&times;</button>
                 `;
                 wrapper.querySelector('button').onclick = () => removeImage(idx);
                 imagePreviewContainer.appendChild(wrapper);
@@ -936,12 +937,7 @@
             document.getElementById('results-gallery').classList.remove('hidden');
             renderGallery();
             showImage(startIndex);
-            const isNanoBananaMode = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
-            if (isNanoBananaMode) {
-                simulateProgressNanoBanana(numImages);
-            } else {
-                simulateProgress(0, 85, numImages * 3000);
-            }
+            simulateProgressNanoBanana(numImages);
 
             const requestBody = {
                 mode: currentMode,
