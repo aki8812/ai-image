@@ -429,14 +429,14 @@
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
                 <fieldset class="grid grid-cols-1 gap-3" id="mode-selector">
                     <div>
-                        <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana"
+                        <input type="radio" name="generation-mode" value="generate-nanobanana2" id="mode-nanobanana2"
                             class="hidden" checked>
-                        <label for="mode-nanobanana" class="radio-label text-left pl-4">NanoBanana Pro (較慢)</label>
+                        <label for="mode-nanobanana2" class="radio-label text-left pl-4">NanoBanana 2 (快)</label>
                     </div>
                     <div>
-                        <input type="radio" name="generation-mode" value="generate-nanobanana2" id="mode-nanobanana2"
+                        <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana"
                             class="hidden">
-                        <label for="mode-nanobanana2" class="radio-label text-left pl-4">NanoBanana 2 (快)</label>
+                        <label for="mode-nanobanana" class="radio-label text-left pl-4">NanoBanana Pro (較慢)</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-default" id="mode-default"
@@ -896,8 +896,10 @@
             }
             document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
             document.getElementById('upscale-level-wrapper').classList.toggle('hidden', !isUpscale);
-            document.getElementById('ratio-section').classList.toggle('hidden', isUpscale);
-            document.getElementById('size-section').classList.toggle('hidden', isUpscale);
+            const ratioBtn = document.getElementById('ratio-btn');
+            ratioBtn.disabled = isUpscale;
+            ratioBtn.classList.toggle('opacity-40', isUpscale);
+            ratioBtn.classList.toggle('cursor-not-allowed', isUpscale);
             if (isUpscale) {
                 moreRatiosBtn.disabled = true;
                 moreRatiosBtn.classList.add('opacity-50');
