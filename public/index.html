@@ -474,8 +474,10 @@
             <div class="mb-4 hidden" id="upscale-level-wrapper">
                 <label class="block text-sm font-medium text-gray-300 mb-2">放大倍率</label>
                 <fieldset class="flex gap-3" id="upscale-level-selector">
-                    <div class="flex-1"><input type="radio" name="upscale-level" value="2048" id="upscale-x2" class="hidden" checked><label for="upscale-x2" class="radio-label">×2</label></div>
-                    <div class="flex-1"><input type="radio" name="upscale-level" value="4096" id="upscale-x4" class="hidden"><label for="upscale-x4" class="radio-label">×4</label></div>
+                    <div class="flex-1"><input type="radio" name="upscale-level" value="2048" id="upscale-x2"
+                            class="hidden" checked><label for="upscale-x2" class="radio-label">×2</label></div>
+                    <div class="flex-1"><input type="radio" name="upscale-level" value="4096" id="upscale-x4"
+                            class="hidden"><label for="upscale-x4" class="radio-label">×4</label></div>
                 </fieldset>
             </div>
 
@@ -493,7 +495,7 @@
                     </svg></button>
             </div>
 
-            <div class="mb-4 relative">
+            <div class="mb-4 relative" id="ratio-section">
                 <label class="block text-sm font-medium text-gray-300 mb-3">長寬比例</label>
                 <fieldset class="grid grid-cols-3 gap-3" id="ratio-selector">
                     <div><input type="radio" name="ratio-mode" value="1:1" id="ratio-1-1" class="hidden" checked><label
@@ -534,7 +536,7 @@
                 </fieldset>
             </div>
 
-            <div class="mt-6">
+            <div class="mt-6" id="size-section">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成尺寸</label>
                 <fieldset class="flex gap-3" id="sample-size-selector">
                     <div class="flex-1"><input type="radio" name="sample-size-mode" value="1024" id="size-1k"
@@ -894,6 +896,8 @@
             }
             document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
             document.getElementById('upscale-level-wrapper').classList.toggle('hidden', !isUpscale);
+            document.getElementById('ratio-section').classList.toggle('hidden', isUpscale);
+            document.getElementById('size-section').classList.toggle('hidden', isUpscale);
             if (isUpscale) {
                 moreRatiosBtn.disabled = true;
                 moreRatiosBtn.classList.add('opacity-50');
