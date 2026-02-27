@@ -430,11 +430,12 @@
                     <div>
                         <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana"
                             class="hidden" checked>
-                        <label for="mode-nanobanana"
-                            class="radio-label border-l-4 border-l-yellow-500 hover:bg-gray-700 flex flex-col items-center justify-center py-4">
-                            <span class="text-xl font-bold text-yellow-400">NanoBanana Pro</span>
-                            <span class="text-xs text-gray-400 mt-1">(gemini-3-pro-image-preview)</span>
-                        </label>
+                        <label for="mode-nanobanana" class="radio-label text-left pl-4">NanoBanana Pro</label>
+                    </div>
+                    <div>
+                        <input type="radio" name="generation-mode" value="generate-nanobanana2" id="mode-nanobanana2"
+                            class="hidden">
+                        <label for="mode-nanobanana2" class="radio-label text-left pl-4">NanoBanana 2</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-default" id="mode-default"
@@ -735,7 +736,7 @@
         countInc.onclick = () => {
             let val = parseInt(countInput.value) || 1;
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
-            const max = currentMode === 'generate-nanobanana' ? 2 : 4;
+            const max = (currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2') ? 2 : 4;
 
             if (val < max) countInput.value = val + 1;
         };
@@ -854,7 +855,7 @@
         function updateInputUI() {
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
             const isUpscale = currentMode === 'upscale';
-            const isNanoBanana = currentMode === 'generate-nanobanana';
+            const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
             const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
 
             const currentCount = parseInt(countInput.value) || 1;
@@ -1017,8 +1018,9 @@
         }
 
         function getModelDisplayName(mode) {
-            if (mode && mode.includes('gemini-3')) return 'NanoBanana Pro';
             if (mode === 'generate-nanobanana') return 'NanoBanana Pro';
+            if (mode === 'generate-nanobanana2') return 'NanoBanana 2';
+            if (mode && mode.includes('gemini-3')) return 'NanoBanana Pro';
             if (mode === 'generate-default') return 'Imagen 4.0';
             if (mode === 'generate-fast') return 'Imagen 4.0 Fast';
             if (mode === 'generate-ultra') return 'Imagen 4.0 Ultra';
