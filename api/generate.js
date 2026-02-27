@@ -37,6 +37,10 @@ const auth = new GoogleAuth({
 
 const delay = (ms) => new Promise(resolve => setTimeout(resolve, ms));
 
+export const config = {
+    api: { bodyParser: { sizeLimit: '10mb' } }
+};
+
 export default async function handler(req, res) {
     res.setHeader('Access-Control-Allow-Origin', '*');
     res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
@@ -46,8 +50,8 @@ export default async function handler(req, res) {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
     const contentLength = req.headers['content-length'];
-    if (contentLength && parseInt(contentLength) > 4.5 * 1024 * 1024) {
-        return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
+    if (contentLength && parseInt(contentLength) > 9.5 * 1024 * 1024) {
+        return res.status(413).json({ error: { message: "請求內容過大 (超過 9.5MB)。請減少圖片數量或壓縮圖片。" } });
     }
 
     try {
@@ -348,10 +352,8 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
 
 async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
-    const modelId = "imagen-4.0-generate-001";
     const factor = targetSize > 2048 ? "x4" : "x2";
-
-    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
+    const apiUrl = `${V1_API_REGIONAL}/imagen-4.0-generate-001:predict`;
 
     if (!images || images.length === 0) throw new Error("缺少用於放大的圖片");
 
@@ -367,11 +369,16 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
         },
     };
 
-    const result = await vertexFetch(apiUrl, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(payload),
-    });
+    let result;
+    for (let attempt = 0; attempt < 2; attempt++) {
+        if (attempt > 0) await delay(3000);
+        try {
+            result = await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+            break;
+        } catch (e) {
+            if (attempt === 1) throw e;
+        }
+    }
 
     const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
     if (!base64Data) throw new Error("放大失敗");
@@ -379,7 +386,7 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
     return await saveImagesToStorage([base64Data], {
         prompt: "Upscaled Image",
         aspectRatio: "Original",
-        size: `${targetSize}px (Upscaled)`,
+        size: `${factor} (Upscaled)`,
         mode: "upscale"
     });
 }
