@@ -1238,7 +1238,22 @@
 
                 const a = document.createElement('a');
                 a.href = blobUrl;
-                a.download = `nanobanana-${Date.now()}.png`;
+
+                const imgData = sessionHistory[currentImageIndex];
+                const modeMap = {
+                    'generate-nanobanana2': 'NB2',
+                    'generate-nanobanana': 'NBPro',
+                    'generate-default': 'Imagen4',
+                    'generate-fast': 'Imagen4Fast',
+                    'generate-ultra': 'Imagen4Ultra',
+                    'upscale': 'Upscaled'
+                };
+                const modeTag = modeMap[imgData?.mode] || 'AI';
+                const now = new Date();
+                const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+                const promptTag = (imgData?.prompt || '').trim().slice(0, 20).replace(/[\\/:*?"<>|]/g, '').trim() || 'image';
+                const refTag = uploadedImages.length > 0 ? '_ref' : '';
+                a.download = `${modeTag}_${ts}_${promptTag}${refTag}.png`;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
