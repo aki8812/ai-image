@@ -957,15 +957,19 @@
                 }
             }
 
+            const BATCH_SIZE = 2;
             let completedCount = 0;
-            for (let i = 0; i < numImages; i++) {
-                const slotIndex = startIndex + i;
-                fetchOneImage(slotIndex).finally(() => {
-                    completedCount++;
-                    if (completedCount === numImages) {
-                        simulateProgress(85, 100, 400).then(() => setLoading(false, 0));
-                    }
-                });
+            for (let b = 0; b < numImages; b += BATCH_SIZE) {
+                const batch = [];
+                for (let i = b; i < Math.min(b + BATCH_SIZE, numImages); i++) {
+                    batch.push(fetchOneImage(startIndex + i).finally(() => {
+                        completedCount++;
+                        if (completedCount === numImages) {
+                            simulateProgress(85, 100, 400).then(() => setLoading(false, 0));
+                        }
+                    }));
+                }
+                await Promise.all(batch);
             }
         }
 
