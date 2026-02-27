@@ -8,6 +8,7 @@
 
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon/icon-512x512.png">
@@ -469,6 +470,15 @@
                         class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition w-12 flex justify-center items-center">+</button>
                 </div>
             </div>
+
+            <div class="mb-4 hidden" id="upscale-level-wrapper">
+                <label class="block text-sm font-medium text-gray-300 mb-2">放大倍率</label>
+                <fieldset class="flex gap-3" id="upscale-level-selector">
+                    <div class="flex-1"><input type="radio" name="upscale-level" value="2048" id="upscale-x2" class="hidden" checked><label for="upscale-x2" class="radio-label">×2</label></div>
+                    <div class="flex-1"><input type="radio" name="upscale-level" value="4096" id="upscale-x4" class="hidden"><label for="upscale-x4" class="radio-label">×4</label></div>
+                </fieldset>
+            </div>
+
         </div>
     </div>
 
@@ -813,10 +823,10 @@
             imagePreviewContainer.innerHTML = '';
             uploadedImages.forEach((img, idx) => {
                 const wrapper = document.createElement('div');
-                wrapper.className = "relative w-16 h-16 flex-shrink-0 group";
+                wrapper.className = "relative w-16 h-16 flex-shrink-0 group overflow-visible";
                 wrapper.innerHTML = `
                     <img src="${img.previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                    <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600 transition">&times;</button>
+                    <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10">&times;</button>
                 `;
                 wrapper.querySelector('button').onclick = () => removeImage(idx);
                 imagePreviewContainer.appendChild(wrapper);
@@ -829,7 +839,7 @@
 
             const isNanoBanana = currentMode === 'generate-nanobanana';
             const maxFiles = isNanoBanana ? 14 : 1;
-            const maxTotalSize = isNanoBanana ? 3.5 * 1024 * 1024 : 3.5 * 1024 * 1024;
+            const maxTotalSize = 9 * 1024 * 1024;
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
             const count = uploadedImages.length;
             uploadCountBadge.textContent = count;
@@ -844,7 +854,7 @@
                     return;
                 }
                 if (totalSize > maxTotalSize) {
-                    showError(`圖片總大小超過限制！總大小上限為 3.5MB (伺服器限制)。`);
+                    showError(`圖片總大小超過限制！總大小上限為 9MB。`);
                     sendBtn.disabled = true;
                     return;
                 }
@@ -883,6 +893,7 @@
                 }
             }
             document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
+            document.getElementById('upscale-level-wrapper').classList.toggle('hidden', !isUpscale);
             if (isUpscale) {
                 moreRatiosBtn.disabled = true;
                 moreRatiosBtn.classList.add('opacity-50');
@@ -919,7 +930,12 @@
             document.getElementById('results-gallery').classList.remove('hidden');
             renderGallery();
             showImage(startIndex);
-            simulateProgress(0, 85, numImages * 3000);
+            const isNanoBananaMode = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
+            if (isNanoBananaMode) {
+                simulateProgressNanoBanana(numImages);
+            } else {
+                simulateProgress(0, 85, numImages * 3000);
+            }
 
             const requestBody = {
                 mode: currentMode,
@@ -1156,6 +1172,39 @@
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
+        function simulateProgressNanoBanana(numImages) {
+            clearInterval(progressInterval);
+            let current = 0;
+            const baseDuration = numImages * 18000;
+            const phase1End = 67;
+            const phase1Duration = baseDuration * 0.65;
+            const phase2End = 87;
+            const phase2Duration = baseDuration * 0.25;
+
+            function runPhase(from, to, duration, onDone) {
+                const step = (to - from) / (duration / 50);
+                let val = from;
+                progressInterval = setInterval(() => {
+                    val += step;
+                    if (val >= to) {
+                        val = to;
+                        clearInterval(progressInterval);
+                        const offset = CIRCUMFERENCE - (val / 100) * CIRCUMFERENCE;
+                        progressRing.style.strokeDashoffset = offset;
+                        progressPercent.textContent = `${Math.floor(val)}%`;
+                        if (onDone) onDone();
+                        return;
+                    }
+                    const offset = CIRCUMFERENCE - (val / 100) * CIRCUMFERENCE;
+                    progressRing.style.strokeDashoffset = offset;
+                    progressPercent.textContent = `${Math.floor(val)}%`;
+                }, 50);
+            }
+
+            runPhase(0, phase1End, phase1Duration, () => {
+                setTimeout(() => runPhase(phase1End, phase2End, phase2Duration, null), 1500);
+            });
+        }
         function simulateProgress(start, end, duration) {
             return new Promise(resolve => {
                 clearInterval(progressInterval);
@@ -1206,6 +1255,14 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => { }));
         }
+        document.addEventListener('keydown', e => {
+            if (document.activeElement === promptTextarea) return;
+            if (e.key === 'ArrowLeft') showImage(currentImageIndex - 1);
+            if (e.key === 'ArrowRight') showImage(currentImageIndex + 1);
+        });
+        document.querySelectorAll('input[name="upscale-level"]').forEach(input => {
+            input.addEventListener('change', e => selectedUpscaleLevel = e.target.value);
+        });
     </script>
     <div id="aki-footer">Made by Aki</div>
     <script>
