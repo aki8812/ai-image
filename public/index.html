@@ -685,7 +685,14 @@
             for (const file of files) {
                 try {
                     const { base64Data, mimeType, previewUrl } = await imageToBase64(file);
-                    uploadedImages.push({ base64Data, mimeType, previewUrl, size: file.size });
+                    await new Promise(resolve => {
+                        const tmpImg = new Image();
+                        tmpImg.onload = () => {
+                            uploadedImages.push({ base64Data, mimeType, previewUrl, size: file.size, width: tmpImg.naturalWidth, height: tmpImg.naturalHeight });
+                            resolve();
+                        };
+                        tmpImg.src = previewUrl;
+                    });
 
                     const wrapper = document.createElement('div');
                     wrapper.className = "relative w-16 h-16 flex-shrink-0 group animate-fade-in";
@@ -839,20 +846,17 @@
         });
         function checkUpscalePixels() {
             if (uploadedImages.length === 0) return;
-            const img = new Image();
-            img.onload = () => {
-                const factor = selectedUpscaleLevel > 2048 ? 4 : 2;
-                const resultPixels = img.naturalWidth * factor * img.naturalHeight * factor;
-                if (resultPixels > 17000000) {
-                    showError(`放大後像素 (${img.naturalWidth * factor}×${img.naturalHeight * factor} = ${(resultPixels / 1e6).toFixed(1)}M) 超過 17MP 限制，請改用 ×2 或上傳較小圖片。`);
-                    document.getElementById('send-btn').disabled = true;
-                } else {
-                    document.getElementById('error-message').classList.add('hidden');
-                    document.getElementById('send-btn').disabled = false;
-                }
-                URL.revokeObjectURL(img.src);
-            };
-            img.src = uploadedImages[0].previewUrl;
+            const { width, height } = uploadedImages[0];
+            if (!width || !height) return;
+            const factor = selectedUpscaleLevel > 2048 ? 4 : 2;
+            const resultPixels = width * factor * height * factor;
+            if (resultPixels > 17000000) {
+                showError(`放大後像素 (${width * factor}×${height * factor} = ${(resultPixels / 1e6).toFixed(1)}M) 超過 17MP 限制，請改用 ×2 或上傳較小圖片。`);
+                document.getElementById('send-btn').disabled = true;
+            } else {
+                document.getElementById('error-message').classList.add('hidden');
+                document.getElementById('send-btn').disabled = false;
+            }
         }
 
         window.removeImage = function (index) {
