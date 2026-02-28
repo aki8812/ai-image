@@ -1090,9 +1090,18 @@
             if (!imgData || imgData.pending) {
                 resultImage.style.opacity = '0';
                 imageLoader.classList.add('hidden');
-                generationLoader.classList.remove('hidden');
+                updateGallerySelection(index);
+                updateNavButtons(index);
+                return;
+            }
+
+            if (imgData.error) {
+                resultImage.style.opacity = '0';
+                resultImage.src = '';
+                imageLoader.classList.add('hidden');
+                generationLoader.classList.add('hidden');
                 lightningThoughtsBtn.classList.add('hidden');
-                metaModel.textContent = '生成中...';
+                metaModel.textContent = '生成失敗';
                 metaSize.textContent = '';
                 metaRatio.textContent = '';
                 metaPrompt.classList.add('hidden');
