@@ -1090,6 +1090,13 @@
             if (!imgData || imgData.pending) {
                 resultImage.style.opacity = '0';
                 imageLoader.classList.add('hidden');
+                generationLoader.classList.remove('hidden');
+                lightningThoughtsBtn.classList.add('hidden');
+                metaModel.textContent = '生成中...';
+                metaSize.textContent = '';
+                metaRatio.textContent = '';
+                metaPrompt.classList.add('hidden');
+                imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
                 updateGallerySelection(index);
                 updateNavButtons(index);
                 return;
