@@ -12,10 +12,10 @@
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <link rel="apple-touch-icon" href="icon/icon-512x512.png">
-    <link href="https
+    <link href="https://fonts.googleapis.com/css2?family=Roboto+Mono:wght@300;400;500&display=swap" rel="stylesheet">
 
     <link rel="icon" href="favicon.ico" />
-    <script src="https
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
         body {
             font-family: 'Microsoft JhengHei', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -210,7 +210,7 @@
 
                 <div id="image-loader"
                     class="absolute inset-0 flex flex-col items-center justify-center z-10 loading-pulse hidden">
-                    <svg class="animate-spin h-10 w-10 text-blue-500 mb-2" xmlns="http
+                    <svg class="animate-spin h-10 w-10 text-blue-500 mb-2" xmlns="http://www.w3.org/2000/svg"
                         fill="none" viewBox="0 0 24 24">
                         <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4">
                         </circle>
@@ -241,14 +241,14 @@
                         <button id="lightning-thoughts-btn"
                             class="bg-yellow-500/90 text-white rounded-full p-2 hover:bg-yellow-400 transition backdrop-blur-sm hidden shadow-lg shadow-yellow-500/20"
                             title="查看完整 AI 思路">
-                            <svg xmlns="http
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="currentColor" stroke="none">
                                 <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                         </button>
                         <button id="download-btn"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg
-                                xmlns="http
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
                                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
@@ -257,7 +257,7 @@
                             </svg></button>
                         <button id="fullscreen-btn"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg
-                                xmlns="http
+                                xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
                                 <path
@@ -272,7 +272,7 @@
                 class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
                 <button id="clear-history-btn"
                     class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg
-                        xmlns="http
+                        xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M3 6h18"></path>
                         <path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"></path>
@@ -285,13 +285,13 @@
 
             <div id="gallery-nav" class="flex justify-between items-center px-2">
                 <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg
-                        xmlns="http
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg></button>
                 <span id="image-counter" class="text-sm text-gray-400 font-mono">0 / 0</span>
                 <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg
-                        xmlns="http
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9 18 15 12 9 6"></polyline>
                     </svg></button>
@@ -310,7 +310,7 @@
                 class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex items-start p-2 gap-2 relative transition-all duration-200">
                 <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative"
                     title="上傳參考圖">
-                    <svg xmlns="http
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
@@ -322,14 +322,14 @@
                     multiple>
 
                 <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition"><svg
-                        xmlns="http
+                        xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                     </svg></button>
 
                 <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition"
                     title="設定生成模式">
-                    <svg xmlns="http
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <circle cx="12" cy="12" r="3"></circle>
                         <path
@@ -344,7 +344,7 @@
 
                 <button id="send-btn"
                     class="flex-shrink-0 bg-blue-600 text-white rounded-full p-3 hover:bg-blue-700 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                    <svg xmlns="http
+                    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                         <polyline points="12 5 19 12 12 19"></polyline>
@@ -360,7 +360,7 @@
             class="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-gray-700 max-h-[80vh] flex flex-col">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
                 <div class="flex items-center gap-2">
-                    <svg class="text-yellow-400 w-5 h-5" xmlns="http
+                    <svg class="text-yellow-400 w-5 h-5" xmlns="http://www.w3.org/2000/svg" fill="currentColor"
                         viewBox="0 0 24 24">
                         <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
@@ -389,7 +389,7 @@
                 </svg></button>
             <button id="modal-download-btn"
                 class="absolute -top-2 right-10 md:top-2 md:right-14 z-10 bg-white text-black rounded-full p-1.5 hover:bg-gray-200 transition"><svg
-                    xmlns="http
+                    xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                     <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                     <polyline points="7 10 12 15 17 10"></polyline>
@@ -453,7 +453,6 @@
                             class="hidden">
                         <label for="mode-ultra" class="radio-label text-left pl-4">Imagen 4.0 (Ultra)</label>
                     </div>
-
                     <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
                         <label for="mode-upscale" class="radio-label text-left pl-4">圖片放大</label>
@@ -525,7 +524,7 @@
                         <button id="more-ratios-btn"
                             class="w-full h-full bg-gray-700 text-gray-300 border border-gray-600 rounded-lg hover:bg-gray-600 transition flex items-center justify-center gap-1">
                             <span>更多...</span>
-                            <svg xmlns="http
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>
@@ -882,8 +881,9 @@
 
             const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
             const isUpscale = currentMode === 'upscale';
-            const isImagen4Gen = ['generate-default', 'generate-fast', 'generate-ultra'].includes(currentMode);
+            const isImagenGenerate = currentMode.startsWith('generate') && !isNanoBanana;
 
+            // Imagen 4 的生成模型不支援參考圖，放大模式支援 1 張，NanoBanana 支援 14 張
             let maxFiles = isNanoBanana ? 14 : (isUpscale ? 1 : 0);
 
             const maxTotalSize = 4.5 * 1024 * 1024;
@@ -896,11 +896,6 @@
             const errorMsg = document.getElementById('error-message');
 
             if (count > 0) {
-                if (isImagen4Gen) {
-                    showError(`Imagen 4 生成模式為純文字生圖，不支援參考圖，請移除圖片或更換模式。`);
-                    sendBtn.disabled = true;
-                    return;
-                }
                 if (count > maxFiles) {
                     showError(`圖片數量過多！目前模式最多支援 ${maxFiles} 張。`);
                     sendBtn.disabled = true;
@@ -922,26 +917,7 @@
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
             const isUpscale = currentMode === 'upscale';
             const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
-            const isImagen4Gen = ['generate-default', 'generate-fast', 'generate-ultra'].includes(currentMode);
             const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
-
-            const uploadBtn = document.getElementById('upload-btn-1');
-            if (isImagen4Gen) {
-                uploadBtn.disabled = true;
-                uploadBtn.classList.add('opacity-40', 'cursor-not-allowed');
-                uploadBtn.title = "此模式不支援參考圖";
-                if (uploadedImages.length > 0) {
-                    uploadedImages = [];
-                    imagePreviewContainer.innerHTML = '';
-                    uploadCountBadge.textContent = '0';
-                    uploadCountBadge.classList.add('hidden');
-                    imagePreviewContainer.classList.add('hidden');
-                }
-            } else {
-                uploadBtn.disabled = false;
-                uploadBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-                uploadBtn.title = "上傳參考圖";
-            }
 
             const currentCount = parseInt(countInput.value) || 1;
             if (currentMode === 'generate-nanobanana' && currentCount > 2) {
@@ -1234,7 +1210,7 @@
                 if (img && img.pending) {
                     btn.innerHTML = '<div class="w-full h-full bg-gray-700 flex items-center justify-center"><svg class="animate-spin h-5 w-5 text-gray-400" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>';
                 } else if (img && img.error) {
-                    btn.innerHTML = '<div class="w-full h-full bg-gray-800 flex items-center justify-center text-red-400"><svg xmlns="http
+                    btn.innerHTML = '<div class="w-full h-full bg-gray-800 flex items-center justify-center text-red-400"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div>';
                 } else {
                     const i = document.createElement('img');
                     i.src = typeof img === 'string' ? img : img.url;
@@ -1298,7 +1274,7 @@
             } else {
                 clearInterval(progressInterval);
                 generationLoader.classList.add('hidden');
-                btn.innerHTML = '<svg xmlns="http
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
         function simulateProgressNanoBanana(numImages) {
