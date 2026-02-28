@@ -71,6 +71,8 @@ export default async function handler(req, res) {
             generatedResults = await handleNanoBanana2(headers, body);
         } else if (body.mode === 'upscale') {
             generatedResults = await handleUpscaling(headers, body);
+        } else if (body.mode === 'generate-capability') {
+            generatedResults = await handleCapability(headers, body);
         } else {
             generatedResults = await handleImagen(headers, body);
         }
@@ -387,6 +389,70 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
         aspectRatio: "Original",
         size: `${factor} (Upscaled)`,
         mode: "upscale"
+    });
+}
+
+async function handleCapability(headers, { prompt, images, aspectRatio, addWatermark }) {
+    const modelId = "imagen-3.0-capability-001";
+    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
+
+    let parameters = {
+        sampleCount: 1,
+        addWatermark: typeof addWatermark === 'boolean' ? addWatermark : false
+    };
+
+    if (aspectRatio) {
+        parameters.aspectRatio = aspectRatio;
+    }
+
+    let instances = [];
+
+    if (images && images.length > 0) {
+        // Image editing mode
+        instances = [{
+            prompt: prompt || " ",
+            referenceImages: [{
+                referenceType: "REFERENCE_TYPE_RAW",
+                referenceId: 1,
+                referenceImage: {
+                    bytesBase64Encoded: images[0].base64Data,
+                    mimeType: images[0].mimeType || "image/png"
+                }
+            }]
+        }];
+        parameters.editMode = "EDIT_MODE_INPAINT_INSERTION";
+    } else {
+        // Text-to-image mode
+        if (!prompt || prompt.trim() === '') {
+            throw new Error("請輸入 Prompt 提示詞");
+        }
+        instances = [{ prompt: prompt }];
+    }
+
+    const payload = { instances, parameters };
+
+    const result = await vertexFetch(apiUrl, {
+        method: "POST",
+        headers: headers,
+        body: JSON.stringify(payload)
+    });
+
+    if (!result.predictions) throw new Error("Imagen 3 Capability API 發生錯誤");
+
+    // 檢查負責的 AI 審查
+    const validBase64 = result.predictions
+        .map(p => p.bytesBase64Encoded)
+        .filter(b => b);
+
+    if (validBase64.length === 0) {
+        throw new Error("生成失敗：可能被負責任的 AI 審查機制攔截 (例如包含不當內容)");
+    }
+
+    return await saveImagesToStorage(validBase64, {
+        prompt: prompt,
+        aspectRatio: aspectRatio,
+        size: "1024x1024",
+        mode: "generate-capability"
     });
 }
 
