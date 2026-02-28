@@ -894,7 +894,7 @@
             const isImagenGenerate = currentMode.startsWith('generate') && !isNanoBanana;
             let maxFiles = isNanoBanana ? 14 : (isUpscale ? 1 : 0);
 
-            const maxTotalSize = 4.5 * 1024 * 1024;
+            const maxTotalSize = 100 * 1024 * 1024;
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
             const count = uploadedImages.length;
             uploadCountBadge.textContent = count;
@@ -910,7 +910,7 @@
                     return;
                 }
                 if (totalSize > maxTotalSize) {
-                    showError(`圖片總大小超過限制！總大小上限為 4.5MB。`);
+                    showError(`圖片總大小超過限制！總大小上限為 100MB。`);
                     sendBtn.disabled = true;
                     return;
                 }
@@ -1033,71 +1033,107 @@
             const currentMode = document.querySelector('input[name="generation-mode"]:checked').value;
 
             if (currentMode !== 'upscale' && !prompt && uploadedImages.length === 0) {
-                return showError("\u8acb\u8f38\u5165\u63d0\u793a\u8a5e\u6216\u4e0a\u50b3\u5716\u7247");
+                return showError("請輸入提示詞或上傳圖片");
             }
 
             setLoading(true, numImages);
+            const gcsPathsToCleanup = [];
 
-            if (appContainer.classList.contains('justify-center')) {
-                appContainer.classList.remove('justify-center');
-                appContainer.classList.add('justify-start', 'pt-10');
-            }
+            try {
+                if (appContainer.classList.contains('justify-center')) {
+                    appContainer.classList.remove('justify-center');
+                    appContainer.classList.add('justify-start', 'pt-10');
+                }
 
-            const imagesPayload = uploadedImages.map(img => ({
-                base64Data: img.base64Data,
-                mimeType: img.mimeType
-            }));
-
-            const startIndex = sessionHistory.length;
-            for (let i = 0; i < numImages; i++) sessionHistory.push({ pending: true });
-            document.getElementById('results-gallery').classList.remove('hidden');
-            renderGallery();
-            showImage(startIndex);
-            simulateProgressNanoBanana(numImages);
-
-            const requestBody = {
-                mode: currentMode,
-                prompt: prompt,
-                numImages: 1,
-                images: imagesPayload,
-                aspectRatio: selectedAspectRatio,
-                sampleImageSize: selectedSampleSize,
-                upscaleLevel: selectedUpscaleLevel,
-                addWatermark: addWatermark
-            };
-
-            async function fetchOneImage(slotIndex) {
-                try {
+                const processedImages = [];
+                for (const img of uploadedImages) {
                     const response = await fetch(API_URL, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify(requestBody)
+                        body: JSON.stringify({
+                            mode: 'get-upload-url',
+                            fileName: `upload-${Date.now()}.png`,
+                            contentType: img.mimeType
+                        })
                     });
-                    let data;
-                    try { data = await response.json(); }
-                    catch (e) {
-                        if (response.status === 413) throw new Error("\u5716\u7247\u7e3d\u5927\u5c0f\u904e\u5927\uff0c\u8acb\u7e2e\u5c0f\u5716\u7247\u6216\u6e1b\u5c11\u6578\u91cf (\u4e0a\u9650\u7d04 3.5MB)\u3002");
-                        throw new Error(`\u4f3a\u670d\u5668\u56de\u61c9\u932f\u8aa4 (${response.status})\u3002`);
-                    }
-                    if (data.error) throw new Error(data.error.message);
-                    if (!data.images || data.images.length === 0) throw new Error("\u672a\u751f\u6210\u5716\u7247");
-                    onSingleImageReady(slotIndex, data.images[0]);
-                    return true;
-                } catch (err) {
-                    sessionHistory[slotIndex] = { pending: false, error: true };
-                    renderGallery();
-                    if (currentImageIndex === slotIndex) showImage(slotIndex);
-                    showError(err.message);
-                    return false;
-                }
-            }
+                    const { uploadUrl, gcsPath, gcsUri } = await response.json();
 
-            let completedCount = 0;
-            for (let i = 0; i < numImages; i++) {
-                await fetchOneImage(startIndex + i);
-                completedCount++;
-                if (completedCount === numImages) {
-                    simulateProgress(85, 100, 400).then(() => setLoading(false, 0));
+                    const blobResponse = await fetch(img.previewUrl);
+                    const blob = await blobResponse.blob();
+
+                    await fetch(uploadUrl, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': img.mimeType },
+                        body: blob
+                    });
+
+                    processedImages.push({ gcsUri, gcsPath, mimeType: img.mimeType });
+                    gcsPathsToCleanup.push(gcsPath);
+                }
+
+                const startIndex = sessionHistory.length;
+                for (let i = 0; i < numImages; i++) sessionHistory.push({ pending: true });
+                document.getElementById('results-gallery').classList.remove('hidden');
+                renderGallery();
+                showImage(startIndex);
+                simulateProgressNanoBanana(numImages);
+
+                const requestBody = {
+                    mode: currentMode,
+                    prompt: prompt,
+                    numImages: 1,
+                    images: processedImages,
+                    aspectRatio: selectedAspectRatio,
+                    sampleImageSize: selectedSampleSize,
+                    upscaleLevel: selectedUpscaleLevel,
+                    addWatermark: addWatermark
+                };
+
+                async function fetchOneImage(slotIndex) {
+                    try {
+                        const response = await fetch(API_URL, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(requestBody)
+                        });
+                        let data;
+                        try { data = await response.json(); }
+                        catch (e) {
+                            throw new Error(`伺服器回應錯誤 (${response.status})。`);
+                        }
+                        if (data.error) throw new Error(data.error.message);
+                        if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
+                        onSingleImageReady(slotIndex, data.images[0]);
+                        return true;
+                    } catch (err) {
+                        sessionHistory[slotIndex] = { pending: false, error: true };
+                        renderGallery();
+                        if (currentImageIndex === slotIndex) showImage(slotIndex);
+                        showError(err.message);
+                        return false;
+                    }
+                }
+
+                let completedCount = 0;
+                for (let i = 0; i < numImages; i++) {
+                    await fetchOneImage(startIndex + i);
+                    completedCount++;
+                }
+
+                if (completedCount > 0) {
+                    simulateProgress(85, 100, 400);
+                }
+
+            } catch (err) {
+                showError("上傳或生成過程出錯: " + err.message);
+            } finally {
+                setLoading(false, 0);
+                if (gcsPathsToCleanup.length > 0) {
+                    fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ mode: 'cleanup', gcsPaths: gcsPathsToCleanup })
+                    }).catch(e => console.error("Cleanup failed:", e));
                 }
             }
         }
