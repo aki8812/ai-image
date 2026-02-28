@@ -735,8 +735,8 @@
         document.addEventListener('keydown', (e) => {
             const isFullscreen = !document.getElementById('fullscreen-modal').classList.contains('hidden');
             if (isFullscreen) {
-                if (e.key === 'ArrowLeft') navigateFullscreen(-1);
-                if (e.key === 'ArrowRight') navigateFullscreen(1);
+                if (e.key === 'ArrowLeft' && currentImageIndex > 0) navigateFullscreen(-1);
+                if (e.key === 'ArrowRight' && currentImageIndex < sessionHistory.length - 1) navigateFullscreen(1);
                 if (e.key === 'Escape') document.getElementById('fullscreen-modal').classList.add('hidden');
             } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 if (document.activeElement === promptTextarea) return;
@@ -749,8 +749,7 @@
         function navigateFullscreen(dir) {
             if (sessionHistory.length === 0) return;
             let newIndex = currentImageIndex + dir;
-            if (newIndex < 0) newIndex = sessionHistory.length - 1;
-            if (newIndex >= sessionHistory.length) newIndex = 0;
+            if (newIndex < 0 || newIndex >= sessionHistory.length) return;
             showImage(newIndex);
             updateFullscreenImage();
         }
@@ -761,6 +760,8 @@
             const url = typeof img === 'string' ? img : img.url;
             document.getElementById('modal-image').src = url;
             modalCounter.textContent = `${currentImageIndex + 1} / ${sessionHistory.length}`;
+            modalPrevBtn.style.display = currentImageIndex === 0 ? 'none' : '';
+            modalNextBtn.style.display = currentImageIndex === sessionHistory.length - 1 ? 'none' : '';
         }
 
         document.getElementById('settings-btn').onclick = () => document.getElementById('settings-modal').classList.remove('hidden');
