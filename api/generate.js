@@ -83,7 +83,6 @@ export default async function handler(req, res) {
     }
 }
 
-
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
     const modelId = "gemini-3-pro-image-preview";
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
@@ -95,8 +94,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     const targetAspectRatio = aspectRatio || "1:1";
 
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2));
-
-
 
     const enhancedPrompt = `Directly generate the content as described by the user without adding any unrequested context, settings, or presentation styles. The image should be a pure, literal representation of the prompt: ${prompt}`;
 
@@ -191,7 +188,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         thoughtsArray: validThoughts
     });
 }
-
 
 async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
     const modelId = "gemini-3.1-flash-image-preview";
@@ -354,7 +350,6 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     });
 }
 
-
 async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWatermark }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
     const factor = targetSize > 2048 ? "x4" : "x2";
@@ -395,7 +390,6 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
         mode: "upscale"
     });
 }
-
 
 async function saveImagesToStorage(base64DataArray, metadata) {
     const uploadPromises = base64DataArray.map(async (base64Data, index) => {
