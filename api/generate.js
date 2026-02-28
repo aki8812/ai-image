@@ -390,7 +390,6 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
     });
 }
 
-
 async function saveImagesToStorage(base64DataArray, metadata) {
     const uploadPromises = base64DataArray.map(async (base64Data, index) => {
         const buffer = Buffer.from(base64Data, 'base64');
