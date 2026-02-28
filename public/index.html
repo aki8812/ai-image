@@ -759,9 +759,6 @@
             const img = sessionHistory[currentImageIndex];
             const url = typeof img === 'string' ? img : img.url;
             document.getElementById('modal-image').src = url;
-            modalCounter.textContent = `${currentImageIndex + 1} / ${sessionHistory.length}`;
-            modalPrevBtn.style.display = currentImageIndex === 0 ? 'none' : '';
-            modalNextBtn.style.display = currentImageIndex === sessionHistory.length - 1 ? 'none' : '';
         }
 
         document.getElementById('settings-btn').onclick = () => document.getElementById('settings-modal').classList.remove('hidden');
@@ -792,17 +789,13 @@
         thoughtsModal.onclick = (e) => { if (e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
         navLeft.onclick = () => {
-            if (sessionHistory.length === 0) return;
-            let newIndex = currentImageIndex - 1;
-            if (newIndex < 0) newIndex = sessionHistory.length - 1;
-            showImage(newIndex);
+            if (sessionHistory.length === 0 || currentImageIndex <= 0) return;
+            showImage(currentImageIndex - 1);
         };
 
         navRight.onclick = () => {
-            if (sessionHistory.length === 0) return;
-            let newIndex = currentImageIndex + 1;
-            if (newIndex >= sessionHistory.length) newIndex = 0;
-            showImage(newIndex);
+            if (sessionHistory.length === 0 || currentImageIndex >= sessionHistory.length - 1) return;
+            showImage(currentImageIndex + 1);
         };
 
         moreRatiosBtn.onclick = (e) => { e.stopPropagation(); toggleRatioDropdown(); };
@@ -1098,21 +1091,7 @@
                 metaPrompt.classList.add('hidden');
                 imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
                 updateGallerySelection(index);
-                return;
-            }
-
-            if (imgData.error) {
-                resultImage.style.opacity = '0';
-                resultImage.src = '';
-                imageLoader.classList.add('hidden');
-                generationLoader.classList.add('hidden');
-                lightningThoughtsBtn.classList.add('hidden');
-                metaModel.textContent = '生成失敗';
-                metaSize.textContent = '';
-                metaRatio.textContent = '';
-                metaPrompt.classList.add('hidden');
-                imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
-                updateGallerySelection(index);
+                updateNavButtons(index);
                 return;
             }
 
@@ -1162,6 +1141,20 @@
 
             imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
             updateGallerySelection(index);
+            updateNavButtons(index);
+        }
+
+        function updateNavButtons(index) {
+            const isFirst = index === 0;
+            const isLast = index === sessionHistory.length - 1;
+            const noHistory = sessionHistory.length === 0;
+
+            navLeft.style.visibility = (isFirst || noHistory) ? 'hidden' : 'visible';
+            navRight.style.visibility = (isLast || noHistory) ? 'hidden' : 'visible';
+
+            modalPrevBtn.style.display = (isFirst || noHistory) ? 'none' : '';
+            modalNextBtn.style.display = (isLast || noHistory) ? 'none' : '';
+            modalCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
         }
 
         function formatThoughts(text) {
@@ -1358,11 +1351,6 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => { }));
         }
-        document.addEventListener('keydown', e => {
-            if (document.activeElement === promptTextarea) return;
-            if (e.key === 'ArrowLeft') showImage(currentImageIndex - 1);
-            if (e.key === 'ArrowRight') showImage(currentImageIndex + 1);
-        });
         document.querySelectorAll('input[name="upscale-level"]').forEach(input => {
             input.addEventListener('change', e => selectedUpscaleLevel = e.target.value);
         });
