@@ -882,8 +882,6 @@
             const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
             const isUpscale = currentMode === 'upscale';
             const isImagenGenerate = currentMode.startsWith('generate') && !isNanoBanana;
-
-            // Imagen 4 的生成模型不支援參考圖，放大模式支援 1 張，NanoBanana 支援 14 張
             let maxFiles = isNanoBanana ? 14 : (isUpscale ? 1 : 0);
 
             const maxTotalSize = 4.5 * 1024 * 1024;
