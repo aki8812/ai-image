@@ -698,7 +698,7 @@
                     wrapper.className = "relative w-16 h-16 flex-shrink-0 group animate-fade-in";
                     wrapper.innerHTML = `
                         <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                        <button class="absolute -top-1 -right-1 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center text-[10px] hover:bg-red-600 transition" data-action="remove">&times;</button>
+                        <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10" data-action="remove">&times;</button>
                     `;
 
                     wrapper.querySelector('button').onclick = function () {
@@ -733,10 +733,17 @@
         modalNextBtn.onclick = (e) => { e.stopPropagation(); navigateFullscreen(1); };
 
         document.addEventListener('keydown', (e) => {
-            if (document.getElementById('fullscreen-modal').classList.contains('hidden')) return;
-            if (e.key === 'ArrowLeft') navigateFullscreen(-1);
-            if (e.key === 'ArrowRight') navigateFullscreen(1);
-            if (e.key === 'Escape') document.getElementById('fullscreen-modal').classList.add('hidden');
+            const isFullscreen = !document.getElementById('fullscreen-modal').classList.contains('hidden');
+            if (isFullscreen) {
+                if (e.key === 'ArrowLeft') navigateFullscreen(-1);
+                if (e.key === 'ArrowRight') navigateFullscreen(1);
+                if (e.key === 'Escape') document.getElementById('fullscreen-modal').classList.add('hidden');
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
+                if (document.activeElement === promptTextarea) return;
+                if (sessionHistory.length === 0) return;
+                if (e.key === 'ArrowLeft') navLeft.click();
+                else navRight.click();
+            }
         });
 
         function navigateFullscreen(dir) {
@@ -867,7 +874,7 @@
                 wrapper.className = "relative w-16 h-16 flex-shrink-0 group overflow-visible";
                 wrapper.innerHTML = `
                     <img src="${img.previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                    <button class="absolute -bottom-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10">&times;</button>
+                    <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10">&times;</button>
                 `;
                 wrapper.querySelector('button').onclick = () => removeImage(idx);
                 imagePreviewContainer.appendChild(wrapper);
