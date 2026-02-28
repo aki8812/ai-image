@@ -54,7 +54,31 @@ export default async function handler(req, res) {
         return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
     }
 
+    const body = req.body;
+
     try {
+        if (body.mode === 'get-upload-url') {
+            const { fileName, contentType } = body;
+            const tempFileName = `temp-ref/${Date.now()}-${uuidv4()}-${fileName}`;
+            const file = bucket.file(tempFileName);
+            const [url] = await file.getSignedUrl({
+                version: 'v4',
+                action: 'write',
+                expires: Date.now() + 15 * 60 * 1000,
+                contentType: contentType
+            });
+            return res.status(200).json({ uploadUrl: url, gcsPath: tempFileName, gcsUri: `gs://${BUCKET_NAME}/${tempFileName}` });
+        }
+
+        if (body.mode === 'cleanup') {
+            const { gcsPaths } = body;
+            if (gcsPaths && Array.isArray(gcsPaths)) {
+                const deletePromises = gcsPaths.map(path => bucket.file(path).delete().catch(e => console.error("Cleanup error:", e)));
+                await Promise.all(deletePromises);
+            }
+            return res.status(200).json({ success: true });
+        }
+
         const client = await auth.getClient();
         const authToken = await client.getAccessToken();
         const headers = {
@@ -62,7 +86,6 @@ export default async function handler(req, res) {
             "Content-Type": "application/json",
         };
 
-        const body = req.body;
         let generatedResults = [];
 
         if (body.mode === 'generate-nanobanana') {
@@ -80,6 +103,15 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("API Error:", error);
         res.status(500).json({ error: { message: error.message } });
+    }
+}
+
+async function getBase64FromGCS(gcsPath) {
+    try {
+        const [content] = await bucket.file(gcsPath).download();
+        return content.toString('base64');
+    } catch (e) {
+        throw new Error(`無法從 Storage 讀取圖片: ${e.message}`);
     }
 }
 
@@ -101,13 +133,10 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     if (images && Array.isArray(images)) {
         images.forEach(img => {
-            if (img.base64Data) {
-                parts.push({
-                    inlineData: {
-                        mimeType: img.mimeType || "image/png",
-                        data: img.base64Data
-                    }
-                });
+            if (img.gcsUri) {
+                parts.push({ fileData: { mimeType: img.mimeType || "image/png", fileUri: img.gcsUri } });
+            } else if (img.base64Data) {
+                parts.push({ inlineData: { mimeType: img.mimeType || "image/png", data: img.base64Data } });
             }
         });
     }
@@ -206,13 +235,10 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
 
     if (images && Array.isArray(images)) {
         images.forEach(img => {
-            if (img.base64Data) {
-                parts.push({
-                    inlineData: {
-                        mimeType: img.mimeType || "image/png",
-                        data: img.base64Data
-                    }
-                });
+            if (img.gcsUri) {
+                parts.push({ fileData: { mimeType: img.mimeType || "image/png", fileUri: img.gcsUri } });
+            } else if (img.base64Data) {
+                parts.push({ inlineData: { mimeType: img.mimeType || "image/png", data: img.base64Data } });
             }
         });
     }
@@ -304,7 +330,11 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     const instances = [{ prompt: prompt }];
 
     if (images && images.length > 0) {
-        instances[0].image = { bytesBase64Encoded: images[0].base64Data };
+        let b64 = images[0].base64Data;
+        if (!b64 && images[0].gcsPath) {
+            b64 = await getBase64FromGCS(images[0].gcsPath);
+        }
+        if (b64) instances[0].image = { bytesBase64Encoded: b64 };
     }
 
     let safeNumImages = parseInt(numImages) || 1;
@@ -355,12 +385,17 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
     const factor = targetSize > 2048 ? "x4" : "x2";
     const apiUrl = `${V1_API_REGIONAL}/imagen-4.0-upscale-preview:predict`;
 
-    if (!images || images.length === 0) throw new Error("\u7f3a\u5c11\u7528\u65bc\u653e\u5927\u7684\u5716\u7247");
+    if (!images || images.length === 0) throw new Error("缺少用於放大的圖片");
+
+    let b64 = images[0].base64Data;
+    if (!b64 && images[0].gcsPath) {
+        b64 = await getBase64FromGCS(images[0].gcsPath);
+    }
 
     const payload = {
         instances: [{
             prompt: prompt || " ",
-            image: { bytesBase64Encoded: images[0].base64Data },
+            image: { bytesBase64Encoded: b64 },
         }],
         parameters: {
             mode: "upscale",
@@ -374,13 +409,13 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
         result = await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
     } catch (e) {
         if (e.message.includes('499') || e.message.includes('cancelled')) {
-            throw new Error("\u653e\u5927\u8d85\u6642\uff1aVercel \u514d\u8cbb\u65b9\u6848\u5f37\u5236\u9650\u5236 60 \u79d2\uff0c\u5716\u7247\u653e\u5927\u53ef\u80fd\u8d85\u6642\u3002\u8acb\u8a66\u8457\u4e0a\u50b3\u8f03\u5c0f\u7684\u5716\u7247\u3002");
+            throw new Error("放大超時：Vercel 免費方案強制限制 60 秒，圖片放大可能超時。請試著上傳較小的圖片。");
         }
         throw e;
     }
 
     const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
-    if (!base64Data) throw new Error("\u653e\u5927\u5931\u6557");
+    if (!base64Data) throw new Error("放大失敗");
 
     return await saveImagesToStorage([base64Data], {
         prompt: "Upscaled Image",
