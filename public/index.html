@@ -1045,9 +1045,29 @@
                 appContainer.classList.add('justify-start', 'pt-10');
             }
 
-            const imagesPayload = uploadedImages.map(img => ({
-                base64Data: img.base64Data,
-                mimeType: img.mimeType
+            const imagesPayload = await Promise.all(uploadedImages.map(async img => {
+                let maskBase64 = null;
+                if (currentMode === 'generate-capability') {
+                    maskBase64 = await new Promise((resolve) => {
+                        const image = new Image();
+                        image.onload = () => {
+                            const canvas = document.createElement('canvas');
+                            canvas.width = image.width;
+                            canvas.height = image.height;
+                            const ctx = canvas.getContext('2d');
+                            ctx.fillStyle = 'white';
+                            ctx.fillRect(0, 0, canvas.width, canvas.height);
+                            const dataUrl = canvas.toDataURL('image/png');
+                            resolve(dataUrl.split(',')[1]);
+                        };
+                        image.src = img.previewUrl;
+                    });
+                }
+                return {
+                    base64Data: img.base64Data,
+                    mimeType: img.mimeType,
+                    maskBase64: maskBase64
+                };
             }));
 
             const startIndex = sessionHistory.length;
