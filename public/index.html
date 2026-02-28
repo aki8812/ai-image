@@ -484,11 +484,11 @@
 
             <div class="mt-4 flex items-center justify-between" id="watermark-wrapper">
                 <label class="text-xs text-gray-400" for="watermark-toggle">SynthID 隱形浮水印</label>
-                <button id="watermark-toggle" role="switch" aria-checked="true"
-                    class="relative inline-flex h-5 w-9 items-center rounded-full bg-blue-600 transition-colors focus:outline-none"
+                <button id="watermark-toggle" role="switch" aria-checked="false"
+                    class="relative inline-flex h-5 w-8 items-center rounded-full bg-gray-600 transition-colors focus:outline-none"
                     onclick="toggleWatermark(this)">
                     <span id="watermark-thumb"
-                        class="inline-block h-3.5 w-3.5 transform translate-x-4 rounded-full bg-white shadow transition-transform"></span>
+                        class="inline-block h-3 w-3 transform translate-x-1 rounded-full bg-white shadow transition-transform"></span>
                 </button>
             </div>
 
@@ -898,7 +898,7 @@
             }
             errorMsg.classList.add('hidden');
             sendBtn.disabled = false;
-            // Check upscale pixel limit when in upscale mode
+
             if (currentMode === 'upscale') checkUpscalePixels();
         }
 
@@ -934,7 +934,7 @@
             document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
             document.getElementById('upscale-level-wrapper').classList.toggle('hidden', !isUpscale);
             if (isUpscale) checkUpscalePixels();
-            // Lock prompt textarea in upscale mode
+
             promptTextarea.disabled = isUpscale;
             promptTextarea.classList.toggle('opacity-40', isUpscale);
             promptTextarea.classList.toggle('cursor-not-allowed', isUpscale);
@@ -950,7 +950,7 @@
                 moreRatiosBtn.disabled = false;
                 moreRatiosBtn.classList.remove('opacity-50');
             }
-            // Watermark toggle: lock for NanoBanana series
+
             const wmBtn = document.getElementById('watermark-toggle');
             const wmThumb = document.getElementById('watermark-thumb');
             if (isNanoBanana) {
@@ -964,12 +964,13 @@
             } else {
                 wmBtn.disabled = false;
                 wmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                // Sync toggle visual to current addWatermark state
-                wmBtn.setAttribute('aria-checked', String(addWatermark));
-                wmBtn.classList.toggle('bg-blue-600', addWatermark);
-                wmBtn.classList.toggle('bg-gray-600', !addWatermark);
-                wmThumb.classList.toggle('translate-x-4', addWatermark);
-                wmThumb.classList.toggle('translate-x-1', !addWatermark);
+
+                addWatermark = false;
+                wmBtn.setAttribute('aria-checked', 'false');
+                wmBtn.classList.remove('bg-blue-600');
+                wmBtn.classList.add('bg-gray-600');
+                wmThumb.classList.remove('translate-x-4');
+                wmThumb.classList.add('translate-x-1');
             }
         }
 
@@ -1067,7 +1068,6 @@
                 showImage(slotIndex);
             }
         }
-
 
         function showImage(index) {
             if (index < 0 || index >= sessionHistory.length) return;
@@ -1214,7 +1214,6 @@
                 currentImageIndex = 0;
                 renderGallery();
                 document.getElementById('results-gallery').classList.add('hidden');
-
 
                 appContainer.classList.add('justify-center');
                 appContainer.classList.remove('justify-start', 'pt-10');
