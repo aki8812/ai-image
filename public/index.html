@@ -482,6 +482,16 @@
                 </fieldset>
             </div>
 
+            <div class="mt-4 flex items-center justify-between" id="watermark-wrapper">
+                <label class="text-xs text-gray-400" for="watermark-toggle">SynthID 隱形浮水印</label>
+                <button id="watermark-toggle" role="switch" aria-checked="true"
+                    class="relative inline-flex h-5 w-9 items-center rounded-full bg-blue-600 transition-colors focus:outline-none"
+                    onclick="toggleWatermark(this)">
+                    <span id="watermark-thumb"
+                        class="inline-block h-3.5 w-3.5 transform translate-x-4 rounded-full bg-white shadow transition-transform"></span>
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -567,6 +577,7 @@
         let selectedAspectRatio = "1:1";
         let selectedSampleSize = "1024";
         let selectedUpscaleLevel = "2048";
+        let addWatermark = false;
 
         const appContainer = document.getElementById('app-container');
         const metaModel = document.getElementById('meta-model');
@@ -820,6 +831,29 @@
         document.querySelectorAll('input[name="sample-size-mode"]').forEach(input => {
             input.addEventListener('change', (e) => selectedSampleSize = e.target.value);
         });
+        document.querySelectorAll('input[name="upscale-level"]').forEach(input => {
+            input.addEventListener('change', e => {
+                selectedUpscaleLevel = e.target.value;
+                checkUpscalePixels();
+            });
+        });
+        function checkUpscalePixels() {
+            if (uploadedImages.length === 0) return;
+            const img = new Image();
+            img.onload = () => {
+                const factor = selectedUpscaleLevel > 2048 ? 4 : 2;
+                const resultPixels = img.naturalWidth * factor * img.naturalHeight * factor;
+                if (resultPixels > 17000000) {
+                    showError(`放大後像素 (${img.naturalWidth * factor}×${img.naturalHeight * factor} = ${(resultPixels / 1e6).toFixed(1)}M) 超過 17MP 限制，請改用 ×2 或上傳較小圖片。`);
+                    document.getElementById('send-btn').disabled = true;
+                } else {
+                    document.getElementById('error-message').classList.add('hidden');
+                    document.getElementById('send-btn').disabled = false;
+                }
+                URL.revokeObjectURL(img.src);
+            };
+            img.src = uploadedImages[0].previewUrl;
+        }
 
         window.removeImage = function (index) {
             uploadedImages.splice(index, 1);
@@ -842,7 +876,7 @@
 
             const isNanoBanana = currentMode === 'generate-nanobanana';
             const maxFiles = isNanoBanana ? 14 : 1;
-            const maxTotalSize = 9 * 1024 * 1024;
+            const maxTotalSize = 4.5 * 1024 * 1024;
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
             const count = uploadedImages.length;
             uploadCountBadge.textContent = count;
@@ -857,13 +891,15 @@
                     return;
                 }
                 if (totalSize > maxTotalSize) {
-                    showError(`圖片總大小超過限制！總大小上限為 9MB。`);
+                    showError(`圖片總大小超過限制！總大小上限為 4.5MB。`);
                     sendBtn.disabled = true;
                     return;
                 }
             }
             errorMsg.classList.add('hidden');
             sendBtn.disabled = false;
+            // Check upscale pixel limit when in upscale mode
+            if (currentMode === 'upscale') checkUpscalePixels();
         }
 
         function updateInputUI() {
@@ -897,6 +933,12 @@
             }
             document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
             document.getElementById('upscale-level-wrapper').classList.toggle('hidden', !isUpscale);
+            if (isUpscale) checkUpscalePixels();
+            // Lock prompt textarea in upscale mode
+            promptTextarea.disabled = isUpscale;
+            promptTextarea.classList.toggle('opacity-40', isUpscale);
+            promptTextarea.classList.toggle('cursor-not-allowed', isUpscale);
+            promptTextarea.placeholder = isUpscale ? '（放大模式無需提示詞）' : '輸入提示詞...';
             const ratioBtn = document.getElementById('ratio-btn');
             ratioBtn.disabled = isUpscale;
             ratioBtn.classList.toggle('opacity-40', isUpscale);
@@ -908,7 +950,39 @@
                 moreRatiosBtn.disabled = false;
                 moreRatiosBtn.classList.remove('opacity-50');
             }
+            // Watermark toggle: lock for NanoBanana series
+            const wmBtn = document.getElementById('watermark-toggle');
+            const wmThumb = document.getElementById('watermark-thumb');
+            if (isNanoBanana) {
+                wmBtn.disabled = true;
+                wmBtn.setAttribute('aria-checked', 'true');
+                wmBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-blue-600');
+                wmBtn.classList.remove('bg-gray-600');
+                wmThumb.classList.add('translate-x-4');
+                wmThumb.classList.remove('translate-x-1');
+                addWatermark = true;
+            } else {
+                wmBtn.disabled = false;
+                wmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
+                // Sync toggle visual to current addWatermark state
+                wmBtn.setAttribute('aria-checked', String(addWatermark));
+                wmBtn.classList.toggle('bg-blue-600', addWatermark);
+                wmBtn.classList.toggle('bg-gray-600', !addWatermark);
+                wmThumb.classList.toggle('translate-x-4', addWatermark);
+                wmThumb.classList.toggle('translate-x-1', !addWatermark);
+            }
         }
+
+        window.toggleWatermark = function (btn) {
+            const isOn = btn.getAttribute('aria-checked') === 'true';
+            addWatermark = !isOn;
+            btn.setAttribute('aria-checked', String(addWatermark));
+            btn.classList.toggle('bg-blue-600', addWatermark);
+            btn.classList.toggle('bg-gray-600', !addWatermark);
+            const thumb = document.getElementById('watermark-thumb');
+            thumb.classList.toggle('translate-x-4', addWatermark);
+            thumb.classList.toggle('translate-x-1', !addWatermark);
+        };
 
         async function handleGeneration() {
             if (isLoading) return;
@@ -946,7 +1020,8 @@
                 images: imagesPayload,
                 aspectRatio: selectedAspectRatio,
                 sampleImageSize: selectedSampleSize,
-                upscaleLevel: selectedUpscaleLevel
+                upscaleLevel: selectedUpscaleLevel,
+                addWatermark: addWatermark
             };
 
             async function fetchOneImage(slotIndex) {
