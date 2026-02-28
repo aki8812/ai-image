@@ -879,8 +879,13 @@
         function validateUploads() {
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
 
-            const isNanoBanana = currentMode === 'generate-nanobanana';
-            const maxFiles = isNanoBanana ? 14 : 1;
+            const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
+            const isUpscale = currentMode === 'upscale';
+            const isImagenGenerate = currentMode.startsWith('generate') && !isNanoBanana;
+
+            // Imagen 4 的生成模型不支援參考圖，放大模式支援 1 張，NanoBanana 支援 14 張
+            let maxFiles = isNanoBanana ? 14 : (isUpscale ? 1 : 0);
+
             const maxTotalSize = 4.5 * 1024 * 1024;
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
             const count = uploadedImages.length;
@@ -889,6 +894,7 @@
             imagePreviewContainer.classList.toggle('hidden', count === 0);
             const sendBtn = document.getElementById('send-btn');
             const errorMsg = document.getElementById('error-message');
+
             if (count > 0) {
                 if (count > maxFiles) {
                     showError(`圖片數量過多！目前模式最多支援 ${maxFiles} 張。`);
@@ -972,10 +978,7 @@
             } else {
                 wmBtn.disabled = false;
                 wmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-
-                // Imagen 4 預設為關閉 (false)
                 addWatermark = false;
-
                 wmBtn.setAttribute('aria-checked', 'false');
                 wmBtn.classList.remove('bg-blue-600');
                 wmBtn.classList.add('bg-gray-600');
