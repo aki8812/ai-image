@@ -1403,18 +1403,18 @@
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 btn.innerHTML = `
                     <div class="relative flex items-center justify-center w-6 h-6">
-                        <svg class="animate-spin absolute h-9 w-9 text-white/30" viewBox="0 0 24 24" fill="none">
-                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle>
+                        <svg class="animate-spin absolute h-10 w-10 text-white/30" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="11" stroke="currentColor" stroke-width="1.5"></circle>
                             <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                         </svg>
-                        <div class="bg-white w-2.5 h-2.5 rounded-sm z-10 shadow-sm"></div>
+                        <div class="bg-white w-3 h-3 rounded-sm z-10 shadow-sm"></div>
                     </div>
                 `;
             } else {
                 clearInterval(progressInterval);
                 generationLoader.classList.add('hidden');
                 btn.disabled = false;
-                btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                btn.classList.remove('bg-red-500/80', 'hover:bg-red-600/90');
                 btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
