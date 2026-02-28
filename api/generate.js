@@ -363,7 +363,6 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
             image: { bytesBase64Encoded: images[0].base64Data },
         }],
         parameters: {
-            sampleCount: 1,
             mode: "upscale",
             upscaleConfig: { upscaleFactor: factor },
             addWatermark: typeof addWatermark === 'boolean' ? addWatermark : true,
