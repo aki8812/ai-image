@@ -365,7 +365,7 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
         parameters: {
             mode: "upscale",
             upscaleConfig: { upscaleFactor: factor },
-            addWatermark: false
+            addWatermark: true
         },
     };
 
