@@ -454,6 +454,11 @@
                         <label for="mode-ultra" class="radio-label text-left pl-4">Imagen 4.0 (Ultra)</label>
                     </div>
                     <div>
+                        <input type="radio" name="generation-mode" value="generate-capability" id="mode-capability"
+                            class="hidden">
+                        <label for="mode-capability" class="radio-label text-left pl-4">Imagen 3.0 (圖像編輯)</label>
+                    </div>
+                    <div>
                         <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
                         <label for="mode-upscale" class="radio-label text-left pl-4">圖片放大</label>
                     </div>
@@ -881,10 +886,10 @@
 
             const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
             const isUpscale = currentMode === 'upscale';
-            const isImagenGenerate = currentMode.startsWith('generate') && !isNanoBanana;
+            const isCapability = currentMode === 'generate-capability';
+            const isImagen4Gen = ['generate-default', 'generate-fast', 'generate-ultra'].includes(currentMode);
 
-            // Imagen 4 的生成模型不支援參考圖，放大模式支援 1 張，NanoBanana 支援 14 張
-            let maxFiles = isNanoBanana ? 14 : (isUpscale ? 1 : 0);
+            let maxFiles = isNanoBanana ? 14 : ((isUpscale || isCapability) ? 1 : 0);
 
             const maxTotalSize = 4.5 * 1024 * 1024;
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
@@ -896,6 +901,11 @@
             const errorMsg = document.getElementById('error-message');
 
             if (count > 0) {
+                if (isImagen4Gen) {
+                    showError(`Imagen 4 生成模式為純文字生圖，不支援參考圖，請移除圖片或更換模式。`);
+                    sendBtn.disabled = true;
+                    return;
+                }
                 if (count > maxFiles) {
                     showError(`圖片數量過多！目前模式最多支援 ${maxFiles} 張。`);
                     sendBtn.disabled = true;
@@ -917,7 +927,27 @@
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
             const isUpscale = currentMode === 'upscale';
             const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
-            const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
+            const isCapability = currentMode === 'generate-capability';
+            const isImagen4Gen = ['generate-default', 'generate-fast', 'generate-ultra'].includes(currentMode);
+            const isImagen = currentMode.startsWith('generate') && !isNanoBanana; // For ratio restriction
+
+            const uploadBtn = document.getElementById('upload-btn-1');
+            if (isImagen4Gen) {
+                uploadBtn.disabled = true;
+                uploadBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                uploadBtn.title = "此模式不支援參考圖";
+                if (uploadedImages.length > 0) {
+                    uploadedImages = [];
+                    imagePreviewContainer.innerHTML = '';
+                    uploadCountBadge.textContent = '0';
+                    uploadCountBadge.classList.add('hidden');
+                    imagePreviewContainer.classList.add('hidden');
+                }
+            } else {
+                uploadBtn.disabled = false;
+                uploadBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+                uploadBtn.title = isCapability ? "上傳參考圖 (選填)" : "上傳參考圖";
+            }
 
             const currentCount = parseInt(countInput.value) || 1;
             if (currentMode === 'generate-nanobanana' && currentCount > 2) {
@@ -1192,6 +1222,7 @@
             if (mode === 'generate-nanobanana') return 'NanoBanana Pro';
             if (mode === 'generate-nanobanana2') return 'NanoBanana 2';
             if (mode && mode.includes('gemini-3')) return 'NanoBanana Pro';
+            if (mode === 'generate-capability') return 'Imagen 3.0 (編輯)';
             if (mode === 'generate-default') return 'Imagen 4.0';
             if (mode === 'generate-fast') return 'Imagen 4.0 Fast';
             if (mode === 'generate-ultra') return 'Imagen 4.0 Ultra';
@@ -1346,6 +1377,7 @@
                 const modeMap = {
                     'generate-nanobanana2': 'NB2',
                     'generate-nanobanana': 'NBPro',
+                    'generate-capability': 'Imagen3Cap',
                     'generate-default': 'Imagen4',
                     'generate-fast': 'Imagen4Fast',
                     'generate-ultra': 'Imagen4Ultra',
