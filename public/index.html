@@ -625,7 +625,11 @@
 
         updateInputUI();
 
-        document.getElementById('upload-btn-1').onclick = () => imageUploadInput.click();
+        document.getElementById('upload-btn-1').onclick = () => {
+            const btn = document.getElementById('upload-btn-1');
+            if (btn.disabled || btn.classList.contains('cursor-not-allowed')) return;
+            imageUploadInput.click();
+        };
 
         imageUploadInput.onchange = (e) => {
             uploadedImages = [];
@@ -678,7 +682,13 @@
 
         async function handleFiles(fileList) {
             if (!fileList || fileList.length === 0) return;
-
+            const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
+            const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
+            const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
+            if (isImagen) {
+                showError("此模式不支援參考圖");
+                return;
+            }
             const files = Array.from(fileList).filter(file => file.type.startsWith('image/'));
             if (files.length === 0) return;
 
@@ -916,6 +926,26 @@
             const isUpscale = currentMode === 'upscale';
             const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
             const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
+
+            const uploadBtn = document.getElementById('upload-btn-1');
+            if (isImagen) {
+                uploadBtn.disabled = true;
+                uploadBtn.style.pointerEvents = 'none';
+                uploadBtn.classList.add('opacity-40', 'cursor-not-allowed');
+                uploadBtn.title = "此模式不支援參考圖";
+                if (uploadedImages.length > 0) {
+                    uploadedImages = [];
+                    imagePreviewContainer.innerHTML = '';
+                    uploadCountBadge.textContent = '0';
+                    uploadCountBadge.classList.add('hidden');
+                    imagePreviewContainer.classList.add('hidden');
+                }
+            } else {
+                uploadBtn.disabled = false;
+                uploadBtn.style.pointerEvents = 'auto';
+                uploadBtn.classList.remove('opacity-40', 'cursor-not-allowed');
+                uploadBtn.title = "上傳參考圖";
+            }
 
             const currentCount = parseInt(countInput.value) || 1;
             if (currentMode === 'generate-nanobanana' && currentCount > 2) {
