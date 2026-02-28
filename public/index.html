@@ -972,11 +972,15 @@
             } else {
                 wmBtn.disabled = false;
                 wmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                wmBtn.setAttribute('aria-checked', String(addWatermark));
-                wmBtn.classList.toggle('bg-blue-600', addWatermark);
-                wmBtn.classList.toggle('bg-gray-600', !addWatermark);
-                wmThumb.classList.toggle('translate-x-4', addWatermark);
-                wmThumb.classList.toggle('translate-x-1', !addWatermark);
+
+                // Imagen 4 預設為關閉 (false)
+                addWatermark = false;
+
+                wmBtn.setAttribute('aria-checked', 'false');
+                wmBtn.classList.remove('bg-blue-600');
+                wmBtn.classList.add('bg-gray-600');
+                wmThumb.classList.remove('translate-x-4');
+                wmThumb.classList.add('translate-x-1');
             }
         }
 
