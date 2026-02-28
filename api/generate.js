@@ -393,8 +393,7 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
 }
 
 async function handleCapability(headers, { prompt, images, aspectRatio, addWatermark }) {
-    const modelId = "imagen-3.0-capability-001";
-    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
+    let modelId = "imagen-3.0-generate-001"; // Default to text-to-image model
 
     let parameters = {
         sampleCount: 1,
@@ -408,17 +407,31 @@ async function handleCapability(headers, { prompt, images, aspectRatio, addWater
     let instances = [];
 
     if (images && images.length > 0) {
-        // Image editing mode
+        modelId = "imagen-3.0-capability-001"; // Switch to capability model for editing
+
+        // 1x1 pure white PNG for the mask (all areas are editable)
+        const whiteMaskBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
+
         instances = [{
             prompt: prompt || " ",
-            referenceImages: [{
-                referenceType: "REFERENCE_TYPE_RAW",
-                referenceId: 1,
-                referenceImage: {
-                    bytesBase64Encoded: images[0].base64Data,
-                    mimeType: images[0].mimeType || "image/png"
+            referenceImages: [
+                {
+                    referenceType: "REFERENCE_TYPE_RAW",
+                    referenceId: 1,
+                    referenceImage: {
+                        bytesBase64Encoded: images[0].base64Data,
+                        mimeType: images[0].mimeType || "image/png"
+                    }
+                },
+                {
+                    referenceType: "REFERENCE_TYPE_MASK",
+                    referenceId: 2,
+                    referenceImage: {
+                        bytesBase64Encoded: whiteMaskBase64,
+                        mimeType: "image/png"
+                    }
                 }
-            }]
+            ]
         }];
         parameters.editMode = "EDIT_MODE_INPAINT_INSERTION";
     } else {
@@ -429,6 +442,7 @@ async function handleCapability(headers, { prompt, images, aspectRatio, addWater
         instances = [{ prompt: prompt }];
     }
 
+    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
     const payload = { instances, parameters };
 
     const result = await vertexFetch(apiUrl, {
