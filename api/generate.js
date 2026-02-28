@@ -364,13 +364,8 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
         }],
         parameters: {
             mode: "upscale",
-            upscaleConfig: {
-                upscaleFactor: factor,
-                addWatermark: addWatermark !== undefined ? addWatermark : true
-            },
-            addWatermark: addWatermark !== undefined ? addWatermark : true,
-            disableWatermark: addWatermark === false ? true : false,
-            ADD_WATERMARK: addWatermark !== undefined ? addWatermark : true
+            upscaleConfig: { upscaleFactor: factor },
+            addWatermark: false
         },
     };
 
