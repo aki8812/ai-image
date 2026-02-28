@@ -1037,14 +1037,21 @@
             }
 
             setLoading(true, numImages);
+            if (appContainer.classList.contains('justify-center')) {
+                appContainer.classList.remove('justify-center');
+                appContainer.classList.add('justify-start', 'pt-10');
+            }
+
+            const startIndex = sessionHistory.length;
+            for (let i = 0; i < numImages; i++) sessionHistory.push({ pending: true });
+            document.getElementById('results-gallery').classList.remove('hidden');
+            renderGallery();
+            showImage(startIndex);
+            simulateProgressNanoBanana(numImages);
+
             const gcsPathsToCleanup = [];
 
             try {
-                if (appContainer.classList.contains('justify-center')) {
-                    appContainer.classList.remove('justify-center');
-                    appContainer.classList.add('justify-start', 'pt-10');
-                }
-
                 const processedImages = [];
                 for (const img of uploadedImages) {
                     const response = await fetch(API_URL, {
@@ -1056,27 +1063,32 @@
                             contentType: img.mimeType
                         })
                     });
+
+                    if (!response.ok) throw new Error(`無法取得上傳授權 (${response.status})`);
                     const { uploadUrl, gcsPath, gcsUri } = await response.json();
 
                     const blobResponse = await fetch(img.previewUrl);
                     const blob = await blobResponse.blob();
 
-                    await fetch(uploadUrl, {
-                        method: 'PUT',
-                        headers: { 'Content-Type': img.mimeType },
-                        body: blob
-                    });
+                    try {
+                        const uploadRes = await fetch(uploadUrl, {
+                            method: 'PUT',
+                            headers: { 'Content-Type': img.mimeType },
+                            body: blob
+                        });
+                        if (!uploadRes.ok) {
+                            if (uploadRes.status === 403) throw new Error("GCS CORS 權限不足，請檢查 `gsutil cors` 設定。");
+                            throw new Error(`圖片上傳失敗 (${uploadRes.status})`);
+                        }
+                    } catch (e) {
+                        if (e.message.includes('fetch')) throw new Error("上傳被攔截 (CORS 錯誤)，請確保已執行 CORS 設定。");
+                        throw e;
+                    }
 
                     processedImages.push({ gcsUri, gcsPath, mimeType: img.mimeType });
                     gcsPathsToCleanup.push(gcsPath);
                 }
 
-                const startIndex = sessionHistory.length;
-                for (let i = 0; i < numImages; i++) sessionHistory.push({ pending: true });
-                document.getElementById('results-gallery').classList.remove('hidden');
-                renderGallery();
-                showImage(startIndex);
-                simulateProgressNanoBanana(numImages);
 
                 const requestBody = {
                     mode: currentMode,
@@ -1116,8 +1128,8 @@
 
                 let completedCount = 0;
                 for (let i = 0; i < numImages; i++) {
-                    await fetchOneImage(startIndex + i);
-                    completedCount++;
+                    const success = await fetchOneImage(startIndex + i);
+                    if (success) completedCount++;
                 }
 
                 if (completedCount > 0) {
@@ -1125,7 +1137,15 @@
                 }
 
             } catch (err) {
-                showError("上傳或生成過程出錯: " + err.message);
+                for (let i = 0; i < numImages; i++) {
+                    const idx = startIndex + i;
+                    if (sessionHistory[idx] && sessionHistory[idx].pending) {
+                        sessionHistory[idx] = { pending: false, error: true };
+                    }
+                }
+                renderGallery();
+                showImage(startIndex);
+                showError(err.message);
             } finally {
                 setLoading(false, 0);
                 if (gcsPathsToCleanup.length > 0) {
