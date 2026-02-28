@@ -71,8 +71,6 @@ export default async function handler(req, res) {
             generatedResults = await handleNanoBanana2(headers, body);
         } else if (body.mode === 'upscale') {
             generatedResults = await handleUpscaling(headers, body);
-        } else if (body.mode === 'generate-capability') {
-            generatedResults = await handleCapability(headers, body);
         } else {
             generatedResults = await handleImagen(headers, body);
         }
@@ -392,92 +390,6 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
     });
 }
 
-async function handleCapability(headers, { prompt, images, aspectRatio, addWatermark, sampleImageSize }) {
-    let modelId = "imagen-3.0-generate-001"; // Default to text-to-image model
-
-    let parameters = {
-        sampleCount: 1,
-        addWatermark: typeof addWatermark === 'boolean' ? addWatermark : false
-    };
-
-    let sizeLabel = "1024x1024";
-    if (sampleImageSize === '2048' || sampleImageSize === '4096') {
-        parameters.sampleImageSize = "2K";
-        sizeLabel = "2048x2048";
-    } else {
-        parameters.sampleImageSize = "1K";
-        sizeLabel = "1024x1024";
-    }
-
-    if (aspectRatio) {
-        parameters.aspectRatio = aspectRatio;
-    }
-
-    let instances = [];
-
-    if (images && images.length > 0) {
-        modelId = "imagen-3.0-capability-001"; // Switch to capability model for editing
-
-        instances = [{
-            prompt: prompt || " ",
-            referenceImages: [
-                {
-                    referenceType: "REFERENCE_TYPE_RAW",
-                    referenceId: 1,
-                    referenceImage: {
-                        bytesBase64Encoded: images[0].base64Data,
-                        mimeType: images[0].mimeType || "image/png"
-                    }
-                },
-                {
-                    referenceType: "REFERENCE_TYPE_MASK",
-                    referenceId: 2,
-                    referenceImage: {
-                        bytesBase64Encoded: images[0].maskBase64,
-                        mimeType: "image/png"
-                    },
-                    maskImageConfig: {
-                        maskMode: "MASK_MODE_USER_PROVIDED"
-                    }
-                }
-            ]
-        }];
-        parameters.editMode = "EDIT_MODE_INPAINT_INSERTION";
-    } else {
-        // Text-to-image mode
-        if (!prompt || prompt.trim() === '') {
-            throw new Error("請輸入 Prompt 提示詞");
-        }
-        instances = [{ prompt: prompt }];
-    }
-
-    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
-    const payload = { instances, parameters };
-
-    const result = await vertexFetch(apiUrl, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify(payload)
-    });
-
-    if (!result.predictions) throw new Error("Imagen 3 Capability API 發生錯誤");
-
-
-    const validBase64 = result.predictions
-        .map(p => p.bytesBase64Encoded)
-        .filter(b => b);
-
-    if (validBase64.length === 0) {
-        throw new Error("生成失敗：可能被負責任的 AI 審查機制攔截 (例如包含不當內容)");
-    }
-
-    return await saveImagesToStorage(validBase64, {
-        prompt: prompt,
-        aspectRatio: aspectRatio,
-        size: sizeLabel,
-        mode: "generate-capability"
-    });
-}
 
 async function saveImagesToStorage(base64DataArray, metadata) {
     const uploadPromises = base64DataArray.map(async (base64Data, index) => {
