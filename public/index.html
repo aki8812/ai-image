@@ -958,6 +958,7 @@
 
             const wmBtn = document.getElementById('watermark-toggle');
             const wmThumb = document.getElementById('watermark-thumb');
+
             if (isNanoBanana) {
                 wmBtn.disabled = true;
                 wmBtn.setAttribute('aria-checked', 'true');
@@ -966,16 +967,22 @@
                 wmThumb.classList.add('translate-x-4');
                 wmThumb.classList.remove('translate-x-1');
                 addWatermark = true;
+            } else if (isUpscale) {
+                wmBtn.disabled = true;
+                wmBtn.setAttribute('aria-checked', 'false');
+                wmBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-gray-600');
+                wmBtn.classList.remove('bg-blue-600');
+                wmThumb.classList.remove('translate-x-4');
+                wmThumb.classList.add('translate-x-1');
+                addWatermark = false;
             } else {
                 wmBtn.disabled = false;
                 wmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-
-                addWatermark = false;
-                wmBtn.setAttribute('aria-checked', 'false');
-                wmBtn.classList.remove('bg-blue-600');
-                wmBtn.classList.add('bg-gray-600');
-                wmThumb.classList.remove('translate-x-4');
-                wmThumb.classList.add('translate-x-1');
+                wmBtn.setAttribute('aria-checked', String(addWatermark));
+                wmBtn.classList.toggle('bg-blue-600', addWatermark);
+                wmBtn.classList.toggle('bg-gray-600', !addWatermark);
+                wmThumb.classList.toggle('translate-x-4', addWatermark);
+                wmThumb.classList.toggle('translate-x-1', !addWatermark);
             }
         }
 
