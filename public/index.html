@@ -1399,23 +1399,25 @@
             if (state) {
                 document.getElementById('error-message').classList.add('hidden');
                 btn.disabled = false;
-                btn.classList.add('bg-red-500/80', 'hover:bg-red-600/90');
+                btn.classList.add('relative', 'bg-red-500/80', 'hover:bg-red-600/90');
                 btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
                 btn.innerHTML = `
-                    <div class="absolute inset-0 flex items-center justify-center p-0.5">
-                        <svg class="animate-spin h-full w-full text-white" viewBox="0 0 24 24" fill="none">
-                            <circle class="opacity-10" cx="12" cy="12" r="11.5" stroke="currentColor" stroke-width="1"></circle>
-                            <circle class="opacity-70" cx="12" cy="12" r="11.5" stroke="currentColor" stroke-width="1"
-                                stroke-dasharray="18 50" stroke-linecap="round"></circle>
-                        </svg>
+                    <div class="flex items-center justify-center w-6 h-6">
+                        <div class="absolute inset-0 flex items-center justify-center pointer-events-none">
+                            <svg class="animate-spin w-full h-full text-white" viewBox="0 0 24 24" fill="none">
+                                <circle class="opacity-10" cx="12" cy="12" r="11.5" stroke="currentColor" stroke-width="1"></circle>
+                                <circle class="opacity-60" cx="12" cy="12" r="11.5" stroke="currentColor" stroke-width="1"
+                                    stroke-dasharray="12 60" stroke-linecap="round"></circle>
+                            </svg>
+                        </div>
+                        <div class="bg-white w-3.5 h-3.5 rounded-sm z-10 shadow-sm"></div>
                     </div>
-                    <div class="relative z-10 bg-white w-3.5 h-3.5 rounded-sm shadow-sm"></div>
                 `;
             } else {
                 clearInterval(progressInterval);
                 generationLoader.classList.add('hidden');
                 btn.disabled = false;
-                btn.classList.remove('bg-red-500/80', 'hover:bg-red-600/90');
+                btn.classList.remove('relative', 'bg-red-500/80', 'hover:bg-red-600/90');
                 btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
