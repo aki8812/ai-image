@@ -50,8 +50,8 @@ export default async function handler(req, res) {
     if (req.method !== "POST") { res.status(405).send("Method Not Allowed"); return; }
 
     const contentLength = req.headers['content-length'];
-    if (contentLength && parseInt(contentLength) > 9.5 * 1024 * 1024) {
-        return res.status(413).json({ error: { message: "請求內容過大 (超過 9.5MB)。請減少圖片數量或壓縮圖片。" } });
+    if (contentLength && parseInt(contentLength) > 4.5 * 1024 * 1024) {
+        return res.status(413).json({ error: { message: "請求內容過大 (超過 4.5MB)。請減少圖片數量或壓縮圖片。" } });
     }
 
     try {
@@ -298,7 +298,7 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
     });
 }
 
-async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize }) {
+async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize, addWatermark }) {
     let modelId = "imagen-4.0-generate-001";
     if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
     if (mode === "generate-ultra") modelId = "imagen-4.0-ultra-generate-001";
@@ -330,6 +330,11 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
     if (aspectRatio) {
         parameters.aspectRatio = aspectRatio;
     }
+    if (typeof addWatermark === 'boolean') {
+        parameters.addWatermark = addWatermark;
+    } else {
+        parameters.addWatermark = true;
+    }
 
     const result = await vertexFetch(apiUrl, {
         method: "POST",
@@ -350,7 +355,7 @@ async function handleImagen(headers, { mode, prompt, images, numImages, aspectRa
 }
 
 
-async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
+async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWatermark }) {
     const targetSize = parseInt(upscaleLevel) || 2048;
     const factor = targetSize > 2048 ? "x4" : "x2";
     const apiUrl = `${V1_API_REGIONAL}/imagen-4.0-upscale-preview:predict`;
@@ -365,7 +370,8 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel }) {
         parameters: {
             sampleCount: 1,
             mode: "upscale",
-            upscaleConfig: { upscaleFactor: factor }
+            upscaleConfig: { upscaleFactor: factor },
+            addWatermark: typeof addWatermark === 'boolean' ? addWatermark : true,
         },
     };
 
