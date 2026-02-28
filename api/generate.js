@@ -392,13 +392,22 @@ async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWater
     });
 }
 
-async function handleCapability(headers, { prompt, images, aspectRatio, addWatermark }) {
+async function handleCapability(headers, { prompt, images, aspectRatio, addWatermark, sampleImageSize }) {
     let modelId = "imagen-3.0-generate-001"; // Default to text-to-image model
 
     let parameters = {
         sampleCount: 1,
         addWatermark: typeof addWatermark === 'boolean' ? addWatermark : false
     };
+
+    let sizeLabel = "1024x1024";
+    if (sampleImageSize === '2048' || sampleImageSize === '4096') {
+        parameters.sampleImageSize = "2K";
+        sizeLabel = "2048x2048";
+    } else {
+        parameters.sampleImageSize = "1K";
+        sizeLabel = "1024x1024";
+    }
 
     if (aspectRatio) {
         parameters.aspectRatio = aspectRatio;
@@ -408,9 +417,6 @@ async function handleCapability(headers, { prompt, images, aspectRatio, addWater
 
     if (images && images.length > 0) {
         modelId = "imagen-3.0-capability-001"; // Switch to capability model for editing
-
-        // 1x1 pure white PNG for the mask (all areas are editable)
-        const whiteMaskBase64 = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+ip1sAAAAASUVORK5CYII=";
 
         instances = [{
             prompt: prompt || " ",
@@ -427,8 +433,11 @@ async function handleCapability(headers, { prompt, images, aspectRatio, addWater
                     referenceType: "REFERENCE_TYPE_MASK",
                     referenceId: 2,
                     referenceImage: {
-                        bytesBase64Encoded: whiteMaskBase64,
+                        bytesBase64Encoded: images[0].maskBase64,
                         mimeType: "image/png"
+                    },
+                    maskImageConfig: {
+                        maskMode: "MASK_MODE_USER_PROVIDED"
                     }
                 }
             ]
@@ -453,7 +462,7 @@ async function handleCapability(headers, { prompt, images, aspectRatio, addWater
 
     if (!result.predictions) throw new Error("Imagen 3 Capability API 發生錯誤");
 
-    // 檢查負責的 AI 審查
+
     const validBase64 = result.predictions
         .map(p => p.bytesBase64Encoded)
         .filter(b => b);
@@ -465,7 +474,7 @@ async function handleCapability(headers, { prompt, images, aspectRatio, addWater
     return await saveImagesToStorage(validBase64, {
         prompt: prompt,
         aspectRatio: aspectRatio,
-        size: "1024x1024",
+        size: sizeLabel,
         mode: "generate-capability"
     });
 }
