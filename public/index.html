@@ -1038,7 +1038,6 @@
                 return showError("請輸入提示詞或上傳圖片");
             }
 
-            // 1. 初始化中斷控制器
             generationAbortController = new AbortController();
             const signal = generationAbortController.signal;
 
@@ -1060,7 +1059,6 @@
 
             try {
                 const processedImages = [];
-                // 2. 處理上傳流程
                 for (const img of uploadedImages) {
                     const response = await fetch(API_URL, {
                         method: 'POST',
@@ -1182,7 +1180,6 @@
                 generationAbortController = null;
             }
 
-            // 移除所有 pending 的項目
             sessionHistory = sessionHistory.filter(img => !img.pending);
 
             if (sessionHistory.length === 0) {
@@ -1401,17 +1398,25 @@
 
             if (state) {
                 document.getElementById('error-message').classList.add('hidden');
-                btn.disabled = false; // 必須維持啟用才能點擊停止
-                btn.classList.add('bg-red-500', 'hover:bg-red-600', 'border-red-400');
-                btn.classList.remove('bg-blue-600', 'hover:bg-blue-500', 'border-blue-500');
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="6" y="6" width="12" height="12"></rect></svg>';
+                btn.disabled = false;
+                btn.classList.add('bg-red-600', 'hover:bg-red-700');
+                btn.classList.remove('bg-blue-600', 'hover:bg-blue-700');
+                btn.innerHTML = `
+                    <div class="relative flex items-center justify-center w-6 h-6">
+                        <svg class="animate-spin absolute h-6 w-6 text-white" viewBox="0 0 24 24" fill="none">
+                            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        <div class="bg-white w-2.5 h-2.5 rounded-sm z-10"></div>
+                    </div>
+                `;
             } else {
                 clearInterval(progressInterval);
                 generationLoader.classList.add('hidden');
                 btn.disabled = false;
-                btn.classList.remove('bg-red-500', 'hover:bg-red-600', 'border-red-400');
-                // 恢復原始樣式 (假設原始為藍色系，如果不是請根據實際 CSS 類名調整)
-                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
+                btn.classList.remove('bg-red-600', 'hover:bg-red-700');
+                btn.classList.add('bg-blue-600', 'hover:bg-blue-700');
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
         function simulateProgressNanoBanana(numImages) {
