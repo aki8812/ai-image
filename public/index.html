@@ -364,7 +364,7 @@
                         viewBox="0 0 24 24">
                         <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    <h2 class="text-lg font-bold text-gray-100">Gemini 3 思考過程</h2>
+                    <h2 class="text-lg font-bold text-gray-100">Gemini 思考過程</h2>
                 </div>
                 <button id="thoughts-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="20" height="20"
                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -430,32 +430,19 @@
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
                 <fieldset class="grid grid-cols-1 gap-3" id="mode-selector">
                     <div>
+                        <input type="radio" name="generation-mode" value="generate-nanobanana1" id="mode-nanobanana1"
+                            class="hidden">
+                        <label for="mode-nanobanana1" class="radio-label text-left pl-4">NanoBanana 1</label>
+                    </div>
+                    <div>
                         <input type="radio" name="generation-mode" value="generate-nanobanana2" id="mode-nanobanana2"
                             class="hidden" checked>
-                        <label for="mode-nanobanana2" class="radio-label text-left pl-4">NanoBanana 2 (快)</label>
+                        <label for="mode-nanobanana2" class="radio-label text-left pl-4">NanoBanana 2</label>
                     </div>
                     <div>
                         <input type="radio" name="generation-mode" value="generate-nanobanana" id="mode-nanobanana"
                             class="hidden">
-                        <label for="mode-nanobanana" class="radio-label text-left pl-4">NanoBanana Pro (較慢)</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="generation-mode" value="generate-default" id="mode-default"
-                            class="hidden">
-                        <label for="mode-default" class="radio-label text-left pl-4">Imagen 4.0 (標準)</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="generation-mode" value="generate-fast" id="mode-fast" class="hidden">
-                        <label for="mode-fast" class="radio-label text-left pl-4">Imagen 4.0 (高速)</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="generation-mode" value="generate-ultra" id="mode-ultra"
-                            class="hidden">
-                        <label for="mode-ultra" class="radio-label text-left pl-4">Imagen 4.0 (Ultra)</label>
-                    </div>
-                    <div>
-                        <input type="radio" name="generation-mode" value="upscale" id="mode-upscale" class="hidden">
-                        <label for="mode-upscale" class="radio-label text-left pl-4">圖片放大</label>
+                        <label for="mode-nanobanana" class="radio-label text-left pl-4">NanoBanana Pro</label>
                     </div>
                 </fieldset>
             </div>
@@ -470,26 +457,6 @@
                     <button id="count-inc"
                         class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition w-12 flex justify-center items-center">+</button>
                 </div>
-            </div>
-
-            <div class="mb-4 hidden" id="upscale-level-wrapper">
-                <label class="block text-sm font-medium text-gray-300 mb-2">放大倍率</label>
-                <fieldset class="flex gap-3" id="upscale-level-selector">
-                    <div class="flex-1"><input type="radio" name="upscale-level" value="2048" id="upscale-x2"
-                            class="hidden" checked><label for="upscale-x2" class="radio-label">×2</label></div>
-                    <div class="flex-1"><input type="radio" name="upscale-level" value="4096" id="upscale-x4"
-                            class="hidden"><label for="upscale-x4" class="radio-label">×4</label></div>
-                </fieldset>
-            </div>
-
-            <div class="mt-4 flex items-center justify-between" id="watermark-wrapper">
-                <label class="text-xs text-gray-400" for="watermark-toggle">SynthID 隱形浮水印</label>
-                <button id="watermark-toggle" role="switch" aria-checked="false"
-                    class="relative inline-flex h-5 w-8 items-center rounded-full bg-gray-600 transition-colors focus:outline-none"
-                    onclick="toggleWatermark(this)">
-                    <span id="watermark-thumb"
-                        class="inline-block h-3 w-3 transform translate-x-1 rounded-full bg-white shadow transition-transform"></span>
-                </button>
             </div>
 
         </div>
@@ -574,11 +541,11 @@
         let loaderThoughtsInterval = null;
         let generationAbortController = null;
 
-        let selectedMode = "generate-nanobanana";
+        let selectedMode = "generate-nanobanana2";
         let selectedAspectRatio = "1:1";
         let selectedSampleSize = "1024";
         let selectedUpscaleLevel = "2048";
-        let addWatermark = false;
+        let addWatermark = true;
 
         const appContainer = document.getElementById('app-container');
         const metaModel = document.getElementById('meta-model');
@@ -681,13 +648,6 @@
 
         async function handleFiles(fileList) {
             if (!fileList || fileList.length === 0) return;
-            const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
-            const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
-            const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
-            if (isImagen) {
-                showError("此模式不支援參考圖");
-                return;
-            }
             const files = Array.from(fileList).filter(file => file.type.startsWith('image/'));
             if (files.length === 0) return;
 
@@ -783,7 +743,6 @@
             let val = parseInt(countInput.value) || 1;
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
             const max = currentMode === 'generate-nanobanana' ? 2 : 4;
-
             if (val < max) countInput.value = val + 1;
         };
 
@@ -886,13 +845,7 @@
         };
 
         function validateUploads() {
-            const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
-
-            const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
-            const isUpscale = currentMode === 'upscale';
-            const isImagenGenerate = currentMode.startsWith('generate') && !isNanoBanana;
-            let maxFiles = isNanoBanana ? 14 : (isUpscale ? 1 : 0);
-
+            const maxFiles = 14;
             const maxTotalSize = 100 * 1024 * 1024;
             const totalSize = uploadedImages.reduce((acc, img) => acc + img.size, 0);
             const count = uploadedImages.length;
@@ -904,7 +857,7 @@
 
             if (count > 0) {
                 if (count > maxFiles) {
-                    showError(`圖片數量過多！目前模式最多支援 ${maxFiles} 張。`);
+                    showError(`圖片數量過多！最多支援 ${maxFiles} 張。`);
                     sendBtn.disabled = true;
                     return;
                 }
@@ -916,114 +869,38 @@
             }
             errorMsg.classList.add('hidden');
             sendBtn.disabled = false;
-
-            if (currentMode === 'upscale') checkUpscalePixels();
         }
 
         function updateInputUI() {
             const currentMode = document.querySelector('input[name="generation-mode"]:checked')?.value || selectedMode;
-            const isUpscale = currentMode === 'upscale';
-            const isNanoBanana = currentMode === 'generate-nanobanana' || currentMode === 'generate-nanobanana2';
-            const isImagen = currentMode.startsWith('generate') && !isNanoBanana;
-
-            const uploadBtn = document.getElementById('upload-btn-1');
-            if (isImagen) {
-                uploadBtn.disabled = true;
-                uploadBtn.style.pointerEvents = 'none';
-                uploadBtn.classList.add('opacity-40', 'cursor-not-allowed');
-                uploadBtn.title = "此模式不支援參考圖";
-                if (uploadedImages.length > 0) {
-                    uploadedImages = [];
-                    imagePreviewContainer.innerHTML = '';
-                    uploadCountBadge.textContent = '0';
-                    uploadCountBadge.classList.add('hidden');
-                    imagePreviewContainer.classList.add('hidden');
-                }
-            } else {
-                uploadBtn.disabled = false;
-                uploadBtn.style.pointerEvents = 'auto';
-                uploadBtn.classList.remove('opacity-40', 'cursor-not-allowed');
-                uploadBtn.title = "上傳參考圖";
-            }
+            const isNanoBanana1 = currentMode === 'generate-nanobanana1';
+            const isNanoBananaPro = currentMode === 'generate-nanobanana';
 
             const currentCount = parseInt(countInput.value) || 1;
-            if (currentMode === 'generate-nanobanana' && currentCount > 2) {
+            if (isNanoBananaPro && currentCount > 2) {
                 countInput.value = 2;
             }
 
-            if (isNanoBanana) {
-                size4kWrapper.classList.remove('hidden');
-                moreRatiosWrapper.classList.remove('invisible');
-            } else {
+            if (isNanoBanana1) {
                 size4kWrapper.classList.add('hidden');
-                if (isImagen) {
-                    moreRatiosWrapper.classList.add('invisible');
-                    const currentRatio = document.querySelector('input[name="ratio-mode"]:checked').value;
-                    if (!['1:1', '16:9', '9:16', '4:3', '3:4'].includes(currentRatio)) {
-                        document.getElementById('ratio-1-1').click();
-                    }
-                } else {
-                    moreRatiosWrapper.classList.remove('invisible');
-                }
-                if (document.getElementById('size-4k').checked) {
+                document.getElementById('size-2k').parentElement.classList.add('hidden');
+                moreRatiosWrapper.classList.add('invisible');
+                
+                if (document.querySelector('input[name="sample-size-mode"]:checked')?.value !== '1024') {
                     document.getElementById('size-1k').click();
                 }
-            }
-            document.getElementById('image-count-wrapper').classList.toggle('hidden', isUpscale);
-            document.getElementById('upscale-level-wrapper').classList.toggle('hidden', !isUpscale);
-            if (isUpscale) checkUpscalePixels();
-
-            promptTextarea.disabled = isUpscale;
-            promptTextarea.classList.toggle('opacity-40', isUpscale);
-            promptTextarea.classList.toggle('cursor-not-allowed', isUpscale);
-            promptTextarea.placeholder = isUpscale ? '（放大模式無需提示詞）' : '輸入提示詞...';
-            const ratioBtn = document.getElementById('ratio-btn');
-            ratioBtn.disabled = isUpscale;
-            ratioBtn.classList.toggle('opacity-40', isUpscale);
-            ratioBtn.classList.toggle('cursor-not-allowed', isUpscale);
-            if (isUpscale) {
-                moreRatiosBtn.disabled = true;
-                moreRatiosBtn.classList.add('opacity-50');
+                const currentRatio = document.querySelector('input[name="ratio-mode"]:checked')?.value;
+                if (!['1:1', '16:9', '9:16', '4:3', '3:4'].includes(currentRatio)) {
+                    document.getElementById('ratio-1-1').click();
+                }
             } else {
-                moreRatiosBtn.disabled = false;
-                moreRatiosBtn.classList.remove('opacity-50');
-            }
-
-            const wmBtn = document.getElementById('watermark-toggle');
-            const wmThumb = document.getElementById('watermark-thumb');
-
-            const shouldForceWatermark = isNanoBanana || isUpscale;
-
-            if (shouldForceWatermark) {
-                wmBtn.disabled = true;
-                wmBtn.setAttribute('aria-checked', 'true');
-                wmBtn.classList.add('opacity-50', 'cursor-not-allowed', 'bg-blue-600');
-                wmBtn.classList.remove('bg-gray-600');
-                wmThumb.classList.add('translate-x-4');
-                wmThumb.classList.remove('translate-x-1');
-                addWatermark = true;
-            } else {
-                wmBtn.disabled = false;
-                wmBtn.classList.remove('opacity-50', 'cursor-not-allowed');
-                addWatermark = false;
-                wmBtn.setAttribute('aria-checked', 'false');
-                wmBtn.classList.remove('bg-blue-600');
-                wmBtn.classList.add('bg-gray-600');
-                wmThumb.classList.remove('translate-x-4');
-                wmThumb.classList.add('translate-x-1');
+                size4kWrapper.classList.remove('hidden');
+                document.getElementById('size-2k').parentElement.classList.remove('hidden');
+                moreRatiosWrapper.classList.remove('invisible');
             }
         }
 
-        window.toggleWatermark = function (btn) {
-            const isOn = btn.getAttribute('aria-checked') === 'true';
-            addWatermark = !isOn;
-            btn.setAttribute('aria-checked', String(addWatermark));
-            btn.classList.toggle('bg-blue-600', addWatermark);
-            btn.classList.toggle('bg-gray-600', !addWatermark);
-            const thumb = document.getElementById('watermark-thumb');
-            thumb.classList.toggle('translate-x-4', addWatermark);
-            thumb.classList.toggle('translate-x-1', !addWatermark);
-        };
+
 
         async function handleGeneration() {
             if (isLoading) {
@@ -1319,11 +1196,7 @@
         function getModelDisplayName(mode) {
             if (mode === 'generate-nanobanana') return 'NanoBanana Pro';
             if (mode === 'generate-nanobanana2') return 'NanoBanana 2';
-            if (mode && mode.includes('gemini-3')) return 'NanoBanana Pro';
-            if (mode === 'generate-default') return 'Imagen 4.0';
-            if (mode === 'generate-fast') return 'Imagen 4.0 Fast';
-            if (mode === 'generate-ultra') return 'Imagen 4.0 Ultra';
-            if (mode === 'upscale') return 'Upscale';
+            if (mode === 'generate-nanobanana1') return 'NanoBanana 1';
             return 'AI Model';
         }
 
@@ -1489,12 +1362,9 @@
 
                 const imgData = sessionHistory[currentImageIndex];
                 const modeMap = {
+                    'generate-nanobanana1': 'NB1',
                     'generate-nanobanana2': 'NB2',
-                    'generate-nanobanana': 'NBPro',
-                    'generate-default': 'Imagen4',
-                    'generate-fast': 'Imagen4Fast',
-                    'generate-ultra': 'Imagen4Ultra',
-                    'upscale': 'Upscaled'
+                    'generate-nanobanana': 'NBPro'
                 };
                 const modeTag = modeMap[imgData?.mode] || 'AI';
                 const now = new Date();
@@ -1520,9 +1390,7 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => { }));
         }
-        document.querySelectorAll('input[name="upscale-level"]').forEach(input => {
-            input.addEventListener('change', e => selectedUpscaleLevel = e.target.value);
-        });
+
     </script>
     <div id="aki-footer">Made by Aki</div>
     <script>
