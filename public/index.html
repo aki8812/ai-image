@@ -233,9 +233,19 @@
                             <span id="meta-size" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                             <span id="meta-ratio" class="bg-gray-700/80 px-2 py-0.5 rounded backdrop-blur-sm"></span>
                         </div>
-                        <p id="meta-prompt"
-                            class="text-xs text-gray-200 mt-2 line-clamp-2 opacity-90 font-medium font-sans leading-snug drop-shadow-sm hidden">
-                        </p>
+                        <div id="meta-prompt-container" class="mt-2 flex items-start gap-1 hidden">
+                            <p id="meta-prompt"
+                                class="text-xs text-gray-200 line-clamp-2 opacity-90 font-medium font-sans leading-snug drop-shadow-sm flex-grow">
+                            </p>
+                            <button id="copy-prompt-btn" onclick="copyCurrentPrompt(this)"
+                                class="flex-shrink-0 text-gray-400 hover:text-white p-1 rounded hover:bg-white/20 transition backdrop-blur-sm opacity-50 hover:opacity-100"
+                                title="複製提示詞">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                    <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
                         <button id="lightning-thoughts-btn"
@@ -244,6 +254,13 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="currentColor" stroke="none">
                                 <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </button>
+                        <button id="copy-image-btn" onclick="copyCurrentImage(this)"
+                            class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm" title="複製圖片至剪貼簿">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
                         </button>
                         <button id="download-btn"
@@ -1101,7 +1118,7 @@
                 metaModel.textContent = '生成中...';
                 metaSize.textContent = '';
                 metaRatio.textContent = '';
-                metaPrompt.classList.add('hidden');
+                document.getElementById('meta-prompt-container').classList.add('hidden');
                 imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
                 updateGallerySelection(index);
                 updateNavButtons(index);
@@ -1117,7 +1134,7 @@
                 metaModel.textContent = '生成失敗';
                 metaSize.textContent = '';
                 metaRatio.textContent = '';
-                metaPrompt.classList.add('hidden');
+                document.getElementById('meta-prompt-container').classList.add('hidden');
                 imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
                 updateGallerySelection(index);
                 updateNavButtons(index);
@@ -1150,9 +1167,9 @@
 
                 if (imgData.prompt) {
                     metaPrompt.textContent = imgData.prompt;
-                    metaPrompt.classList.remove('hidden');
+                    document.getElementById('meta-prompt-container').classList.remove('hidden');
                 } else {
-                    metaPrompt.classList.add('hidden');
+                    document.getElementById('meta-prompt-container').classList.add('hidden');
                 }
 
                 if (imgData.thoughts) {
@@ -1165,7 +1182,7 @@
                 metaModel.textContent = '';
                 metaSize.textContent = '';
                 metaRatio.textContent = '';
-                metaPrompt.classList.add('hidden');
+                document.getElementById('meta-prompt-container').classList.add('hidden');
             }
 
             imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
@@ -1383,6 +1400,65 @@
                 a.href = url;
                 a.target = "_blank";
                 a.click();
+            }
+        }
+
+        async function copyCurrentPrompt(btn) {
+            const imgData = sessionHistory[currentImageIndex];
+            if (!imgData || !imgData.prompt) return;
+
+            try {
+                await navigator.clipboard.writeText(imgData.prompt);
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+            } catch (err) {
+                console.error('Failed to copy prompt:', err);
+            }
+        }
+
+        async function copyCurrentImage(btn) {
+            const img = sessionHistory[currentImageIndex];
+            const url = typeof img === 'string' ? img : img.url;
+            if (!url) return;
+
+            try {
+                const response = await fetch(url);
+                const blob = await response.blob();
+                let imageElement = new Image();
+                imageElement.src = URL.createObjectURL(blob);
+                await new Promise((resolve) => {
+                    imageElement.onload = resolve;
+                });
+                
+                const canvas = document.createElement('canvas');
+                canvas.width = imageElement.width;
+                canvas.height = imageElement.height;
+                const ctx = canvas.getContext('2d');
+                ctx.drawImage(imageElement, 0, 0);
+
+                canvas.toBlob(async (pngBlob) => {
+                    if (!pngBlob) {
+                        console.error('Failed to create png blob from image');
+                        return;
+                    }
+                    try {
+                        const item = new ClipboardItem({ "image/png": pngBlob });
+                        await navigator.clipboard.write([item]);
+                        const originalHtml = btn.innerHTML;
+                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
+                        setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+                    } catch (err) {
+                        showError("複製失敗，可能是瀏覽器安全性限制");
+                        console.error('Clipboard write failed:', err);
+                    }
+                }, "image/png");
+                
+                URL.revokeObjectURL(imageElement.src);
+            } catch (err) {
+                const errMessage = 'Failed to copy image: ' + err.message;
+                console.error(errMessage);
+                showError("無法取得圖片來複製");
             }
         }
     </script>
