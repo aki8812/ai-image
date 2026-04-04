@@ -22,10 +22,6 @@ if (getApps().length === 0) {
 
 const bucket = getStorage().bucket();
 const PROJECT_ID = serviceAccount.project_id;
-const LOCATION = "us-central1";
-
-const REGIONAL_BASE = `https://${LOCATION}-aiplatform.googleapis.com`;
-const V1_API_REGIONAL = `${REGIONAL_BASE}/v1/projects/${PROJECT_ID}/locations/${LOCATION}/publishers/google/models`;
 
 const GLOBAL_BASE = `https://aiplatform.googleapis.com`;
 const V1BETA_API_GLOBAL = `${GLOBAL_BASE}/v1beta1/projects/${PROJECT_ID}/locations/global/publishers/google/models`;
@@ -92,10 +88,8 @@ export default async function handler(req, res) {
             generatedResults = await handleNanoBanana(headers, body);
         } else if (body.mode === 'generate-nanobanana2') {
             generatedResults = await handleNanoBanana2(headers, body);
-        } else if (body.mode === 'upscale') {
-            generatedResults = await handleUpscaling(headers, body);
         } else {
-            generatedResults = await handleImagen(headers, body);
+            generatedResults = await handleNanoBanana1(headers, body);
         }
 
         res.status(200).json({ images: generatedResults });
@@ -103,15 +97,6 @@ export default async function handler(req, res) {
     } catch (error) {
         console.error("API Error:", error);
         res.status(500).json({ error: { message: error.message } });
-    }
-}
-
-async function getBase64FromGCS(gcsPath) {
-    try {
-        const [content] = await bucket.file(gcsPath).download();
-        return content.toString('base64');
-    } catch (e) {
-        throw new Error(`無法從 Storage 讀取圖片: ${e.message}`);
     }
 }
 
@@ -143,7 +128,6 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     const payload = {
         contents: [{ role: "user", parts: parts }],
-        tools: [{ google_search: {} }],
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
@@ -161,7 +145,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
                 return await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
             } catch (e) {
                 lastErr = e;
-                console.error("NanoBanana2 attempt " + (attempt + 1) + " failed: " + e.message);
+                console.error("NanoBanana attempt " + (attempt + 1) + " failed: " + e.message);
             }
         }
         return { error: lastErr.message };
@@ -213,7 +197,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
         prompt: prompt,
         aspectRatio: targetAspectRatio,
         size: displaySize,
-        mode: "gemini-3-pro (Vertex Global)",
+        mode: "generate-nanobanana",
         thoughtsArray: validThoughts
     });
 }
@@ -245,7 +229,6 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
 
     const payload = {
         contents: [{ role: "user", parts: parts }],
-        tools: [{ google_search: {} }],
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
@@ -320,108 +303,104 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
     });
 }
 
-async function handleImagen(headers, { mode, prompt, images, numImages, aspectRatio, sampleImageSize, addWatermark }) {
-    let modelId = "imagen-4.0-generate-001";
-    if (mode === "generate-fast") modelId = "imagen-4.0-fast-generate-001";
-    if (mode === "generate-ultra") modelId = "imagen-4.0-ultra-generate-001";
+async function handleNanoBanana1(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
+    const modelId = "gemini-2.5-flash-image";
+    const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
-    const apiUrl = `${V1_API_REGIONAL}/${modelId}:predict`;
+    let targetImageSize;
+    if (sampleImageSize === '4096') targetImageSize = "4K";
+    else if (sampleImageSize === '2048') targetImageSize = "2K";
 
-    const instances = [{ prompt: prompt }];
+    const targetAspectRatio = aspectRatio || "1:1";
+    const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    if (images && images.length > 0) {
-        let b64 = images[0].base64Data;
-        if (!b64 && images[0].gcsPath) {
-            b64 = await getBase64FromGCS(images[0].gcsPath);
-        }
-        if (b64) instances[0].image = { bytesBase64Encoded: b64 };
-    }
+    const enhancedPrompt = `Directly generate the content as described by the user without adding any unrequested context, settings, or presentation styles. The image should be a pure, literal representation of the prompt: ${prompt}`;
 
-    let safeNumImages = parseInt(numImages) || 1;
-    safeNumImages = Math.max(1, Math.min(safeNumImages, 4));
+    const parts = [{ text: enhancedPrompt }];
 
-    const parameters = {
-        sampleCount: safeNumImages,
-    };
-
-    let sizeLabel = "1024x1024";
-    if (sampleImageSize === '2048' || sampleImageSize === '4096') {
-        parameters.sampleImageSize = "2K";
-        sizeLabel = "2048x2048";
-    } else {
-        parameters.sampleImageSize = "1K";
-        sizeLabel = "1024x1024";
-    }
-
-    if (aspectRatio) {
-        parameters.aspectRatio = aspectRatio;
-    }
-    if (typeof addWatermark === 'boolean') {
-        parameters.addWatermark = addWatermark;
-    } else {
-        parameters.addWatermark = true;
-    }
-
-    const result = await vertexFetch(apiUrl, {
-        method: "POST",
-        headers: headers,
-        body: JSON.stringify({ instances, parameters }),
-    });
-
-    if (!result.predictions) throw new Error("Imagen API 未回傳預測結果");
-
-    const base64Images = result.predictions.map(p => p.bytesBase64Encoded);
-
-    return await saveImagesToStorage(base64Images, {
-        prompt,
-        aspectRatio,
-        size: sizeLabel,
-        mode: mode
-    });
-}
-
-async function handleUpscaling(headers, { prompt, images, upscaleLevel, addWatermark }) {
-    const targetSize = parseInt(upscaleLevel) || 2048;
-    const factor = targetSize > 2048 ? "x4" : "x2";
-    const apiUrl = `${V1_API_REGIONAL}/imagen-4.0-upscale-preview:predict`;
-
-    if (!images || images.length === 0) throw new Error("缺少用於放大的圖片");
-
-    let b64 = images[0].base64Data;
-    if (!b64 && images[0].gcsPath) {
-        b64 = await getBase64FromGCS(images[0].gcsPath);
+    if (images && Array.isArray(images)) {
+        images.forEach(img => {
+            if (img.gcsUri) {
+                parts.push({ fileData: { mimeType: img.mimeType || "image/png", fileUri: img.gcsUri } });
+            } else if (img.base64Data) {
+                parts.push({ inlineData: { mimeType: img.mimeType || "image/png", data: img.base64Data } });
+            }
+        });
     }
 
     const payload = {
-        instances: [{
-            prompt: prompt || " ",
-            image: { bytesBase64Encoded: b64 },
-        }],
-        parameters: {
-            mode: "upscale",
-            upscaleConfig: { upscaleFactor: factor },
-            addWatermark: true
-        },
+        contents: [{ role: "user", parts: parts }],
+        generation_config: {
+            image_config: {
+                aspect_ratio: targetAspectRatio,
+                ...(targetImageSize && { image_size: targetImageSize })
+            }
+        }
     };
 
-    let result;
-    try {
-        result = await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
-    } catch (e) {
-        if (e.message.includes('499') || e.message.includes('cancelled')) {
-            throw new Error("放大超時：Vercel 免費方案強制限制 60 秒，圖片放大可能超時。請試著上傳較小的圖片。");
+    const requests = Array(safeNumImages).fill().map(async (_, i) => {
+        if (i > 0) await delay(i * 800);
+        let lastErr;
+        for (let attempt = 0; attempt < 3; attempt++) {
+            if (attempt > 0) await delay(2000 * attempt);
+            try {
+                return await vertexFetch(apiUrl, { method: "POST", headers, body: JSON.stringify(payload) });
+            } catch (e) {
+                lastErr = e;
+                console.error("NanoBanana1 attempt " + (attempt + 1) + " failed: " + e.message);
+            }
         }
-        throw e;
+        return { error: lastErr.message };
+    });
+    const results = await Promise.all(requests);
+
+    const validImages = [];
+    const validThoughts = [];
+    let refusalReason = "";
+
+    for (const result of results) {
+        if (result.error) {
+            console.error("NanoBanana1 partial failure:", result.error);
+            continue;
+        }
+
+        const candidates = result.candidates;
+        if (!candidates || candidates.length === 0) continue;
+
+        const parts = candidates[0].content?.parts || [];
+        let thoughts = "";
+        let base64Image = null;
+
+        for (const part of parts) {
+            if (part.text) thoughts += part.text + "\n";
+            if (part.inlineData) base64Image = part.inlineData.data;
+        }
+
+        if (base64Image) {
+            validImages.push(base64Image);
+            validThoughts.push(thoughts.trim());
+        } else if (thoughts) {
+            refusalReason = thoughts.trim();
+        }
     }
 
-    const base64Data = result.predictions?.[0]?.bytesBase64Encoded;
-    if (!base64Data) throw new Error("放大失敗");
+    if (validImages.length === 0) {
+        if (refusalReason) {
+            throw new Error(`Gemini 拒絕生成圖片: ${refusalReason.substring(0, 150)}...`);
+        }
+        throw new Error("Gemini 未生成任何圖片 (API 忙碌或 Prompt 被拒絕)");
+    }
 
-    return await saveImagesToStorage([base64Data], {
-        prompt: "Upscaled Image",
-        aspectRatio: "Original",
-        size: `${factor} (Upscaled)`,
-        mode: "upscale"
+    let displaySize = "1K (Default)";
+    if (targetImageSize === "2K") displaySize = "2K";
+    if (targetImageSize === "4K") displaySize = "4K";
+
+    return await saveImagesToStorage(validImages, {
+        prompt: prompt,
+        aspectRatio: targetAspectRatio,
+        size: displaySize,
+        mode: "generate-nanobanana1",
+        thoughtsArray: validThoughts
     });
 }
 
