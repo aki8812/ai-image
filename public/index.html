@@ -944,6 +944,7 @@
             const signal = generationAbortController.signal;
 
             setLoading(true, numImages);
+            requestWakeLock();
 
             if (appContainer.classList.contains('justify-center')) {
                 appContainer.classList.remove('justify-center');
@@ -955,7 +956,7 @@
             document.getElementById('results-gallery').classList.remove('hidden');
             renderGallery();
             showImage(startIndex);
-            simulateProgressNanoBanana(numImages);
+            simulateProgressNanoBanana(numImages, currentMode, selectedSampleSize, uploadedImages.length > 0);
 
             const gcsPathsToCleanup = [];
 
@@ -1027,6 +1028,11 @@
                         }
                         if (data.error) throw new Error(data.error.message);
                         if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
+
+                        if (currentImageIndex === slotIndex) {
+                            await forceFinishProgressTo100();
+                        }
+
                         onSingleImageReady(slotIndex, data.images[0]);
                         return true;
                     } catch (err) {
@@ -1045,10 +1051,6 @@
                     if (success) completedCount++;
                 }
 
-                if (completedCount > 0) {
-                    simulateProgress(85, 100, 400);
-                }
-
             } catch (err) {
                 if (err.name === 'AbortError') {
                     console.log("Generation aborted by user.");
@@ -1065,6 +1067,7 @@
                 showError(err.message);
             } finally {
                 setLoading(false, 0);
+                releaseWakeLock();
                 generationAbortController = null;
                 if (gcsPathsToCleanup.length > 0) {
                     fetch(API_URL, {
@@ -1320,10 +1323,86 @@
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
-        function simulateProgressNanoBanana(numImages) {
+        
+        let wakeLock = null;
+        async function requestWakeLock() {
+            try {
+                if ('wakeLock' in navigator) {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    wakeLock.addEventListener('release', () => {
+                        console.log('Screen Wake Lock released');
+                    });
+                    console.log('Screen Wake Lock acquired');
+                }
+            } catch (err) {
+                console.error(`Wake Lock error: ${err.name}, ${err.message}`);
+            }
+        }
+        function releaseWakeLock() {
+            if (wakeLock !== null) {
+                wakeLock.release()
+                    .then(() => { wakeLock = null; });
+            }
+        }
+        document.addEventListener('visibilitychange', async () => {
+            if (wakeLock !== null && document.visibilityState === 'visible' && isLoading) {
+                await requestWakeLock();
+            }
+        });
+        let currentProgressValue = 0;
+        let isProgressFinished = false;
+
+        function calculateBaseDuration(mode, size, hasImage, numImages) {
+            let d = 18;
+            if (mode === 'generate-nanobanana1') {
+                d = 13;
+            } else if (mode === 'generate-nanobanana2') {
+                if (size === '1024') d = 30;
+                else if (size === '2048') d = 45;
+                else if (size === '4096') d = 90;
+                else d = 30;
+            } else if (mode === 'generate-nanobanana') {
+                if (size === '4096') d = 90;
+                else d = 40;
+            }
+            if (hasImage) d += 30;
+            return d * 1000 * numImages;
+        }
+
+        function updateProgressRing(val) {
+            const offset = CIRCUMFERENCE - (val / 100) * CIRCUMFERENCE;
+            progressRing.style.strokeDashoffset = offset;
+            progressPercent.textContent = `${Math.floor(val)}%`;
+        }
+
+        function forceFinishProgressTo100() {
+            return new Promise((resolve) => {
+                isProgressFinished = true;
+                clearInterval(progressInterval);
+                const start = currentProgressValue;
+                const end = 100;
+                const duration = 500;
+                const step = (end - start) / (duration / 50);
+                let val = start;
+                progressInterval = setInterval(() => {
+                    val += step;
+                    if (val >= end) {
+                        val = end;
+                        clearInterval(progressInterval);
+                        updateProgressRing(val);
+                        setTimeout(resolve, 50);
+                        return;
+                    }
+                    updateProgressRing(val);
+                }, 50);
+            });
+        }
+
+        function simulateProgressNanoBanana(numImages, mode, size, hasImage) {
             clearInterval(progressInterval);
-            let current = 0;
-            const baseDuration = numImages * 18000;
+            currentProgressValue = 0;
+            isProgressFinished = false;
+            const baseDuration = calculateBaseDuration(mode, size, hasImage, numImages);
             const phase1End = 67;
             const phase1Duration = baseDuration * 0.65;
             const phase2End = 87;
@@ -1333,24 +1412,25 @@
                 const step = (to - from) / (duration / 50);
                 let val = from;
                 progressInterval = setInterval(() => {
+                    if (isProgressFinished) return clearInterval(progressInterval);
                     val += step;
                     if (val >= to) {
                         val = to;
                         clearInterval(progressInterval);
-                        const offset = CIRCUMFERENCE - (val / 100) * CIRCUMFERENCE;
-                        progressRing.style.strokeDashoffset = offset;
-                        progressPercent.textContent = `${Math.floor(val)}%`;
-                        if (onDone) onDone();
+                        currentProgressValue = val;
+                        updateProgressRing(val);
+                        if (onDone && !isProgressFinished) onDone();
                         return;
                     }
-                    const offset = CIRCUMFERENCE - (val / 100) * CIRCUMFERENCE;
-                    progressRing.style.strokeDashoffset = offset;
-                    progressPercent.textContent = `${Math.floor(val)}%`;
+                    currentProgressValue = val;
+                    updateProgressRing(val);
                 }, 50);
             }
 
             runPhase(0, phase1End, phase1Duration, () => {
-                setTimeout(() => runPhase(phase1End, phase2End, phase2Duration, null), 1500);
+                setTimeout(() => {
+                    if (!isProgressFinished) runPhase(phase1End, phase2End, phase2Duration, null);
+                }, 1500);
             });
         }
         function simulateProgress(start, end, duration) {
