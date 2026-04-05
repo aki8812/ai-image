@@ -1115,10 +1115,13 @@
             }
         }
 
+        let currentImageBlob = null;
+
         function showImage(index) {
             if (index < 0 || index >= sessionHistory.length) return;
             const isSameImage = index === currentImageIndex;
             currentImageIndex = index;
+            currentImageBlob = null;
             const imgData = sessionHistory[index];
 
             if (!imgData || imgData.pending) {
@@ -1161,6 +1164,29 @@
                 imageLoader.classList.remove('hidden');
                 lightningThoughtsBtn.classList.add('hidden');
             }
+
+            const cacheIndex = index;
+            fetch(url).then(r => r.blob()).then(blob => {
+                return new Promise((resolve, reject) => {
+                    const img = document.createElement('img');
+                    const objUrl = URL.createObjectURL(blob);
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = img.naturalWidth;
+                        canvas.height = img.naturalHeight;
+                        canvas.getContext('2d').drawImage(img, 0, 0);
+                        URL.revokeObjectURL(objUrl);
+                        canvas.toBlob(pngBlob => {
+                            if (pngBlob) resolve(pngBlob);
+                            else reject(new Error('toBlob failed'));
+                        }, 'image/png');
+                    };
+                    img.onerror = reject;
+                    img.src = objUrl;
+                });
+            }).then(pngBlob => {
+                if (currentImageIndex === cacheIndex) currentImageBlob = pngBlob;
+            }).catch(() => {});
 
             const tempImg = new Image();
             tempImg.src = url;
@@ -1513,54 +1539,25 @@
         }
 
         async function copyCurrentImage(btn) {
-            const img = sessionHistory[currentImageIndex];
-            const url = typeof img === 'string' ? img : img.url;
-            if (!url) return;
-
             if (!navigator.clipboard || !window.ClipboardItem) {
                 showError("此瀏覽器不支援複製圖片功能");
                 return;
             }
 
-            let resolvePngBlob, rejectPngBlob;
-            const pngBlobPromise = new Promise((res, rej) => {
-                resolvePngBlob = res;
-                rejectPngBlob = rej;
-            });
+            if (!currentImageBlob) {
+                showError("圖片尚未備妥，請稍候再試");
+                return;
+            }
 
             try {
-                const item = new ClipboardItem({ 'image/png': pngBlobPromise });
-                navigator.clipboard.write([item]).then(() => {
-                    const originalHtml = btn.innerHTML;
-                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
-                    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
-                }).catch(err => {
-                    showError("複製失敗，可能是瀏覽器安全性限制");
-                    console.error('Clipboard write failed:', err);
-                });
-
-                const response = await fetch(url);
-                const blob = await response.blob();
-                const imageElement = new Image();
-                const objectUrl = URL.createObjectURL(blob);
-                imageElement.src = objectUrl;
-                await new Promise((resolve) => { imageElement.onload = resolve; });
-
-                const canvas = document.createElement('canvas');
-                canvas.width = imageElement.width;
-                canvas.height = imageElement.height;
-                const ctx = canvas.getContext('2d');
-                ctx.drawImage(imageElement, 0, 0);
-                URL.revokeObjectURL(objectUrl);
-
-                canvas.toBlob((pngBlob) => {
-                    if (pngBlob) resolvePngBlob(pngBlob);
-                    else rejectPngBlob(new Error('toBlob failed'));
-                }, 'image/png');
+                const item = new ClipboardItem({ 'image/png': currentImageBlob });
+                await navigator.clipboard.write([item]);
+                const originalHtml = btn.innerHTML;
+                btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
+                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
             } catch (err) {
-                rejectPngBlob(err);
-                console.error('Failed to copy image:', err);
-                showError("無法取得圖片來複製");
+                console.error('Clipboard write failed:', err);
+                showError("複製失敗，可能是瀏覽器安全性限制");
             }
         }
     </script>
