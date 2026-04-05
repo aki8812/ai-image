@@ -1456,37 +1456,44 @@
         async function downloadCurrentImage() {
             const img = sessionHistory[currentImageIndex];
             const url = typeof img === 'string' ? img : img.url;
+            const imgData = sessionHistory[currentImageIndex];
+
+            const modeMap = {
+                'generate-nanobanana1': 'NB1',
+                'generate-nanobanana2': 'NB2',
+                'generate-nanobanana': 'NBPro'
+            };
+            const modeTag = modeMap[imgData?.mode] || 'AI';
+            const now = new Date();
+            const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
+            const promptTag = (imgData?.prompt || '').trim().slice(0, 20).replace(/[\\/:*?"<>|]/g, '').trim() || 'image';
+            const refTag = uploadedImages.length > 0 ? '_ref' : '';
+            const fileName = `${modeTag}_${ts}_${promptTag}${refTag}.png`;
 
             try {
                 const response = await fetch(url);
                 const blob = await response.blob();
-                const blobUrl = URL.createObjectURL(blob);
 
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
+                    const file = new File([blob], fileName, { type: 'image/png' });
+                    await navigator.share({ files: [file], title: fileName });
+                    return;
+                }
+
+                const blobUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = blobUrl;
-
-                const imgData = sessionHistory[currentImageIndex];
-                const modeMap = {
-                    'generate-nanobanana1': 'NB1',
-                    'generate-nanobanana2': 'NB2',
-                    'generate-nanobanana': 'NBPro'
-                };
-                const modeTag = modeMap[imgData?.mode] || 'AI';
-                const now = new Date();
-                const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-                const promptTag = (imgData?.prompt || '').trim().slice(0, 20).replace(/[\\/:*?"<>|]/g, '').trim() || 'image';
-                const refTag = uploadedImages.length > 0 ? '_ref' : '';
-                a.download = `${modeTag}_${ts}_${promptTag}${refTag}.png`;
+                a.download = fileName;
                 document.body.appendChild(a);
                 a.click();
                 document.body.removeChild(a);
-
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
             } catch (e) {
-                console.error("Download failed:", e);
+                if (e.name === 'AbortError') return;
+                console.error('Download failed:', e);
                 const a = document.createElement('a');
                 a.href = url;
-                a.target = "_blank";
+                a.target = '_blank';
                 a.click();
             }
         }
@@ -1510,42 +1517,49 @@
             const url = typeof img === 'string' ? img : img.url;
             if (!url) return;
 
+            if (!navigator.clipboard || !window.ClipboardItem) {
+                showError("此瀏覽器不支援複製圖片功能");
+                return;
+            }
+
+            let resolvePngBlob, rejectPngBlob;
+            const pngBlobPromise = new Promise((res, rej) => {
+                resolvePngBlob = res;
+                rejectPngBlob = rej;
+            });
+
             try {
+                const item = new ClipboardItem({ 'image/png': pngBlobPromise });
+                navigator.clipboard.write([item]).then(() => {
+                    const originalHtml = btn.innerHTML;
+                    btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
+                    setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+                }).catch(err => {
+                    showError("複製失敗，可能是瀏覽器安全性限制");
+                    console.error('Clipboard write failed:', err);
+                });
+
                 const response = await fetch(url);
                 const blob = await response.blob();
-                let imageElement = new Image();
-                imageElement.src = URL.createObjectURL(blob);
-                await new Promise((resolve) => {
-                    imageElement.onload = resolve;
-                });
-                
+                const imageElement = new Image();
+                const objectUrl = URL.createObjectURL(blob);
+                imageElement.src = objectUrl;
+                await new Promise((resolve) => { imageElement.onload = resolve; });
+
                 const canvas = document.createElement('canvas');
                 canvas.width = imageElement.width;
                 canvas.height = imageElement.height;
                 const ctx = canvas.getContext('2d');
                 ctx.drawImage(imageElement, 0, 0);
+                URL.revokeObjectURL(objectUrl);
 
-                canvas.toBlob(async (pngBlob) => {
-                    if (!pngBlob) {
-                        console.error('Failed to create png blob from image');
-                        return;
-                    }
-                    try {
-                        const item = new ClipboardItem({ "image/png": pngBlob });
-                        await navigator.clipboard.write([item]);
-                        const originalHtml = btn.innerHTML;
-                        btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
-                        setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
-                    } catch (err) {
-                        showError("複製失敗，可能是瀏覽器安全性限制");
-                        console.error('Clipboard write failed:', err);
-                    }
-                }, "image/png");
-                
-                URL.revokeObjectURL(imageElement.src);
+                canvas.toBlob((pngBlob) => {
+                    if (pngBlob) resolvePngBlob(pngBlob);
+                    else rejectPngBlob(new Error('toBlob failed'));
+                }, 'image/png');
             } catch (err) {
-                const errMessage = 'Failed to copy image: ' + err.message;
-                console.error(errMessage);
+                rejectPngBlob(err);
+                console.error('Failed to copy image:', err);
                 showError("無法取得圖片來複製");
             }
         }
