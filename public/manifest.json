@@ -4,6 +4,7 @@
   "description": "AI生成圖片",
   "start_url": "/",
   "display": "standalone",
+  "orientation": "portrait",
   "background_color": "#111827",
   "theme_color": "#111827",
   "icons": [
