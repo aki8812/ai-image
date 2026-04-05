@@ -1549,14 +1549,19 @@
                 return;
             }
 
+            const originalHtml = btn.innerHTML;
+            btn.disabled = true;
+            btn.innerHTML = '<svg class="animate-spin" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="3"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path></svg>';
+
             try {
                 const item = new ClipboardItem({ 'image/png': currentImageBlob });
                 await navigator.clipboard.write([item]);
-                const originalHtml = btn.innerHTML;
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#22c55e" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"></path></svg>';
-                setTimeout(() => { btn.innerHTML = originalHtml; }, 2000);
+                setTimeout(() => { btn.innerHTML = originalHtml; btn.disabled = false; }, 2000);
             } catch (err) {
                 console.error('Clipboard write failed:', err);
+                btn.innerHTML = originalHtml;
+                btn.disabled = false;
                 showError("複製失敗，可能是瀏覽器安全性限制");
             }
         }
