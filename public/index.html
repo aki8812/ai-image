@@ -1293,20 +1293,50 @@
 
         document.getElementById('clear-history-btn').onclick = () => {
             if (sessionHistory.length === 0) return;
+
+            const removedItem = sessionHistory[currentImageIndex];
+            const wasRemovedPending = removedItem && removedItem.pending;
+
             sessionHistory.splice(currentImageIndex, 1);
+
+            const stillHasPending = sessionHistory.some(img => img && img.pending);
+
             if (sessionHistory.length === 0) {
                 currentImageIndex = 0;
                 renderGallery();
                 document.getElementById('results-gallery').classList.add('hidden');
-
                 appContainer.classList.add('justify-center');
                 appContainer.classList.remove('justify-start', 'pt-10');
+
+                if (wasRemovedPending) {
+                    if (generationAbortController) {
+                        generationAbortController.abort();
+                        generationAbortController = null;
+                    }
+                    setLoading(false, 0);
+                    showError("生成已停止");
+                    setTimeout(() => {
+                        document.getElementById('error-message').classList.add('hidden');
+                    }, 2000);
+                }
             } else {
                 if (currentImageIndex >= sessionHistory.length) {
                     currentImageIndex = sessionHistory.length - 1;
                 }
                 renderGallery();
                 showImage(currentImageIndex);
+
+                if (wasRemovedPending && !stillHasPending) {
+                    if (generationAbortController) {
+                        generationAbortController.abort();
+                        generationAbortController = null;
+                    }
+                    setLoading(false, 0);
+                    showError("生成已停止");
+                    setTimeout(() => {
+                        document.getElementById('error-message').classList.add('hidden');
+                    }, 2000);
+                }
             }
         };
 
