@@ -100,7 +100,7 @@ export default async function handler(req, res) {
     }
 }
 
-async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
+async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images, useGoogleSearch }) {
     const modelId = "gemini-3-pro-image-preview";
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
@@ -112,7 +112,9 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 2));
 
-    const enhancedPrompt = `You MUST generate an image as your final output. Use Google Search to look up the latest and most accurate visual references if needed, then produce an image that is a pure, literal representation of the following prompt without adding any unrequested context, settings, or presentation styles: ${prompt}`;
+    const enhancedPrompt = useGoogleSearch
+        ? `You MUST generate an image as your final output. Use Google Search to look up the latest and most accurate visual references if needed, then produce an image that is a pure, literal representation of the following prompt without adding any unrequested context, settings, or presentation styles: ${prompt}`
+        : `Directly generate the content as described by the user without adding any unrequested context, settings, or presentation styles. The image should be a pure, literal representation of the prompt: ${prompt}`;
 
     const parts = [{ text: enhancedPrompt }];
 
@@ -128,7 +130,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 
     const payload = {
         contents: [{ role: "user", parts: parts }],
-        tools: [{ googleSearch: {} }],
+        ...(useGoogleSearch && { tools: [{ googleSearch: {} }] }),
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
@@ -203,7 +205,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
     });
 }
 
-async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
+async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize, numImages, images, useGoogleSearch }) {
     const modelId = "gemini-3.1-flash-image-preview";
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
@@ -214,7 +216,9 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
     const targetAspectRatio = aspectRatio || "1:1";
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    const enhancedPrompt = `You MUST generate an image as your final output. Use Google Search to look up the latest and most accurate visual references if needed, then produce an image that is a pure, literal representation of the following prompt without adding any unrequested context, settings, or presentation styles: ${prompt}`;
+    const enhancedPrompt = useGoogleSearch
+        ? `You MUST generate an image as your final output. Use Google Search to look up the latest and most accurate visual references if needed, then produce an image that is a pure, literal representation of the following prompt without adding any unrequested context, settings, or presentation styles: ${prompt}`
+        : `Directly generate the content as described by the user without adding any unrequested context, settings, or presentation styles. The image should be a pure, literal representation of the prompt: ${prompt}`;
 
     const parts = [{ text: enhancedPrompt }];
 
@@ -230,7 +234,7 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
 
     const payload = {
         contents: [{ role: "user", parts: parts }],
-        tools: [{ googleSearch: {} }],
+        ...(useGoogleSearch && { tools: [{ googleSearch: {} }] }),
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
@@ -305,7 +309,7 @@ async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize
     });
 }
 
-async function handleNanoBanana1(headers, { prompt, aspectRatio, sampleImageSize, numImages, images }) {
+async function handleNanoBanana1(headers, { prompt, aspectRatio, sampleImageSize, numImages, images, useGoogleSearch }) {
     const modelId = "gemini-2.5-flash-image";
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
@@ -316,7 +320,9 @@ async function handleNanoBanana1(headers, { prompt, aspectRatio, sampleImageSize
     const targetAspectRatio = aspectRatio || "1:1";
     const safeNumImages = Math.max(1, Math.min(parseInt(numImages) || 1, 4));
 
-    const enhancedPrompt = `You MUST generate an image as your final output. Use Google Search to look up the latest and most accurate visual references if needed, then produce an image that is a pure, literal representation of the following prompt without adding any unrequested context, settings, or presentation styles: ${prompt}`;
+    const enhancedPrompt = useGoogleSearch
+        ? `You MUST generate an image as your final output. Use Google Search to look up the latest and most accurate visual references if needed, then produce an image that is a pure, literal representation of the following prompt without adding any unrequested context, settings, or presentation styles: ${prompt}`
+        : `Directly generate the content as described by the user without adding any unrequested context, settings, or presentation styles. The image should be a pure, literal representation of the prompt: ${prompt}`;
 
     const parts = [{ text: enhancedPrompt }];
 
@@ -332,7 +338,7 @@ async function handleNanoBanana1(headers, { prompt, aspectRatio, sampleImageSize
 
     const payload = {
         contents: [{ role: "user", parts: parts }],
-        tools: [{ googleSearch: {} }],
+        ...(useGoogleSearch && { tools: [{ googleSearch: {} }] }),
         generation_config: {
             image_config: {
                 aspect_ratio: targetAspectRatio,
