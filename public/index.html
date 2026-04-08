@@ -487,11 +487,11 @@
 
             <div class="mt-4 flex items-center justify-between" id="google-search-wrapper">
                 <label class="text-xs text-gray-400" for="google-search-toggle">Google 即時網路搜尋</label>
-                <button id="google-search-toggle" role="switch" aria-checked="false"
-                    class="relative inline-flex h-5 w-8 items-center rounded-full bg-gray-600 transition-colors focus:outline-none"
+                <button id="google-search-toggle" role="switch" aria-checked="true"
+                    class="relative inline-flex h-5 w-8 items-center rounded-full bg-blue-500 transition-colors focus:outline-none"
                     onclick="toggleGoogleSearch()">
                     <span id="google-search-thumb"
-                        class="inline-block h-3 w-3 transform translate-x-1 rounded-full bg-white shadow transition-transform"></span>
+                        class="inline-block h-3 w-3 transform translate-x-4 rounded-full bg-white shadow transition-transform"></span>
                 </button>
             </div>
 
@@ -582,7 +582,7 @@
         let selectedSampleSize = "1024";
         let selectedUpscaleLevel = "2048";
         let addWatermark = true;
-        let useGoogleSearch = false;
+        let useGoogleSearch = true;
 
         const appContainer = document.getElementById('app-container');
         const metaModel = document.getElementById('meta-model');
