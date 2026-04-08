@@ -173,7 +173,6 @@
             z-index: 2147483647;
             pointer-events: auto;
         }
-        }
 
         .char-span {
             display: inline-block;
@@ -239,7 +238,9 @@
                             </p>
                             <button id="copy-prompt-btn" onclick="copyCurrentPrompt(this)"
                                 class="flex-shrink-0 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded transition backdrop-blur-sm shadow-sm pointer-events-auto">
-                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
+                                    fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
+                                    stroke-linejoin="round">
                                     <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                     <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                                 </svg>
@@ -256,7 +257,9 @@
                         </button>
                         <button id="copy-image-btn" onclick="copyCurrentImage(this)"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
                                 <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
@@ -323,34 +326,39 @@
 
             <div id="input-bar"
                 class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pt-2 pb-2 px-2 gap-1 relative transition-all duration-200">
-                
+
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..."
                     class="w-full bg-transparent text-lg text-gray-100 placeholder-gray-500 px-3 py-2 resize-none outline-none overflow-y-auto custom-scrollbar"
                     style="max-height: 200px; min-height: 60px;"></textarea>
 
                 <div class="flex justify-between items-center w-full">
                     <div class="flex gap-2 items-center">
-                        <button id="upload-btn-1" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <button id="upload-btn-1"
+                            class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
                                 <line x1="12" y1="5" x2="12" y2="19"></line>
                                 <line x1="5" y1="12" x2="19" y2="12"></line>
                             </svg>
                             <span id="upload-count-badge"
                                 class="absolute -top-1 -right-1 bg-blue-600 text-white text-[10px] w-4 h-4 rounded-full flex items-center justify-center hidden">0</span>
                         </button>
-                        <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden" multiple>
+                        <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden"
+                            multiple>
 
                         <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
                                 <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
                             </svg>
                         </button>
 
                         <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
-                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
-                                stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
                                 <circle cx="12" cy="12" r="3"></circle>
                                 <path
                                     d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
@@ -477,6 +485,16 @@
                 </div>
             </div>
 
+            <div class="mt-4 flex items-center justify-between" id="google-search-wrapper">
+                <label class="text-xs text-gray-400" for="google-search-toggle">Google 即時網路搜尋</label>
+                <button id="google-search-toggle" role="switch" aria-checked="false"
+                    class="relative inline-flex h-5 w-8 items-center rounded-full bg-gray-600 transition-colors focus:outline-none"
+                    onclick="toggleGoogleSearch()">
+                    <span id="google-search-thumb"
+                        class="inline-block h-3 w-3 transform translate-x-1 rounded-full bg-white shadow transition-transform"></span>
+                </button>
+            </div>
+
         </div>
     </div>
 
@@ -564,6 +582,7 @@
         let selectedSampleSize = "1024";
         let selectedUpscaleLevel = "2048";
         let addWatermark = true;
+        let useGoogleSearch = false;
 
         const appContainer = document.getElementById('app-container');
         const metaModel = document.getElementById('meta-model');
@@ -910,7 +929,7 @@
                 size4kWrapper.classList.add('hidden');
                 document.getElementById('size-2k').parentElement.classList.add('hidden');
                 moreRatiosWrapper.classList.add('invisible');
-                
+
                 if (document.querySelector('input[name="sample-size-mode"]:checked')?.value !== '1024') {
                     document.getElementById('size-1k').click();
                 }
@@ -1008,7 +1027,8 @@
                     aspectRatio: selectedAspectRatio,
                     sampleImageSize: selectedSampleSize,
                     upscaleLevel: selectedUpscaleLevel,
-                    addWatermark: addWatermark
+                    addWatermark: addWatermark,
+                    useGoogleSearch: useGoogleSearch
                 };
 
                 async function fetchOneImage(slotIndex) {
@@ -1046,7 +1066,7 @@
 
                 let completedCount = 0;
                 for (let i = 0; i < numImages; i++) {
-                    simulateProgressNanoBanana(1, currentMode, selectedSampleSize, i === 0 && uploadedImages.length > 0);
+                    simulateProgressNanoBanana(1, currentMode, selectedSampleSize, i === 0 && uploadedImages.length > 0, useGoogleSearch);
                     const success = await fetchOneImage(startIndex + i);
                     if (success) completedCount++;
                 }
@@ -1186,7 +1206,7 @@
                 });
             }).then(pngBlob => {
                 if (currentImageIndex === cacheIndex) currentImageBlob = pngBlob;
-            }).catch(() => {});
+            }).catch(() => { });
 
             const tempImg = new Image();
             tempImg.src = url;
@@ -1379,7 +1399,7 @@
                 btn.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>';
             }
         }
-        
+
         let wakeLock = null;
         async function requestWakeLock() {
             try {
@@ -1408,7 +1428,7 @@
         let currentProgressValue = 0;
         let isProgressFinished = false;
 
-        function calculateBaseDuration(mode, size, hasImage, numImages) {
+        function calculateBaseDuration(mode, size, hasImage, numImages, withSearch) {
             let d = 18;
             if (mode === 'generate-nanobanana1') {
                 d = 13;
@@ -1422,6 +1442,7 @@
                 else d = 40;
             }
             if (hasImage) d += 30;
+            if (withSearch) d = d * 1.2;
             return d * 1000 * numImages;
         }
 
@@ -1454,11 +1475,11 @@
             });
         }
 
-        function simulateProgressNanoBanana(numImages, mode, size, hasImage) {
+        function simulateProgressNanoBanana(numImages, mode, size, hasImage, withSearch) {
             clearInterval(progressInterval);
             currentProgressValue = 0;
             isProgressFinished = false;
-            const baseDuration = calculateBaseDuration(mode, size, hasImage, numImages);
+            const baseDuration = calculateBaseDuration(mode, size, hasImage, numImages, withSearch);
             const phase1End = 67;
             const phase1Duration = baseDuration * 0.65;
             const phase2End = 87;
@@ -1488,6 +1509,24 @@
                     if (!isProgressFinished) runPhase(phase1End, phase2End, phase2Duration, null);
                 }, 1500);
             });
+        }
+
+        function toggleGoogleSearch() {
+            useGoogleSearch = !useGoogleSearch;
+            const btn = document.getElementById('google-search-toggle');
+            const thumb = document.getElementById('google-search-thumb');
+            btn.setAttribute('aria-checked', useGoogleSearch ? 'true' : 'false');
+            if (useGoogleSearch) {
+                btn.classList.remove('bg-gray-600');
+                btn.classList.add('bg-blue-500');
+                thumb.classList.remove('translate-x-1');
+                thumb.classList.add('translate-x-4');
+            } else {
+                btn.classList.remove('bg-blue-500');
+                btn.classList.add('bg-gray-600');
+                thumb.classList.remove('translate-x-4');
+                thumb.classList.add('translate-x-1');
+            }
         }
         function simulateProgress(start, end, duration) {
             return new Promise(resolve => {
@@ -1601,7 +1640,7 @@
             window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => { }));
         }
         if (screen.orientation && screen.orientation.lock) {
-            screen.orientation.lock('portrait').catch(() => {});
+            screen.orientation.lock('portrait').catch(() => { });
         }
     </script>
     <div id="aki-footer">Made by Aki</div>
