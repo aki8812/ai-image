@@ -217,7 +217,7 @@
                             d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z">
                         </path>
                     </svg>
-                    <span class="text-gray-400 text-sm">影像傳輸中...</span>
+                    <span class="text-gray-400 text-sm">影像載入中...</span>
                 </div>
 
                 <img id="result-image" src="" alt="生成的圖片"
@@ -1179,7 +1179,8 @@
 
             const url = typeof imgData === 'string' ? imgData : imgData.url;
 
-            if (!isSameImage) {
+            const absoluteUrl = new URL(url, window.location.href).href;
+            if (resultImage.src !== absoluteUrl || resultImage.style.opacity !== '1') {
                 resultImage.style.opacity = '0';
                 imageLoader.classList.remove('hidden');
                 lightningThoughtsBtn.classList.add('hidden');
@@ -1215,6 +1216,9 @@
                 document.getElementById('modal-image').src = url;
                 imageLoader.classList.add('hidden');
                 requestAnimationFrame(() => resultImage.style.opacity = '1');
+            };
+            tempImg.onerror = () => {
+                imageLoader.classList.add('hidden');
             };
 
             if (typeof imgData === 'object') {
