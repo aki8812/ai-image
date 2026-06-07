@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 }
 
 async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize, numImages, images, useGoogleSearch }) {
-    const modelId = "gemini-3-pro-image-preview";
+    const modelId = "gemini-3-pro-image";
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
     let targetImageSize;
@@ -206,7 +206,7 @@ async function handleNanoBanana(headers, { prompt, aspectRatio, sampleImageSize,
 }
 
 async function handleNanoBanana2(headers, { prompt, aspectRatio, sampleImageSize, numImages, images, useGoogleSearch }) {
-    const modelId = "gemini-3.1-flash-image-preview";
+    const modelId = "gemini-3.1-flash-image";
     const apiUrl = `${V1BETA_API_GLOBAL}/${modelId}:generateContent`;
 
     let targetImageSize;
