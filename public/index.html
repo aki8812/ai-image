@@ -1179,12 +1179,9 @@
 
             const url = typeof imgData === 'string' ? imgData : imgData.url;
 
-            const absoluteUrl = new URL(url, window.location.href).href;
-            if (resultImage.src !== absoluteUrl || resultImage.style.opacity !== '1') {
-                resultImage.style.opacity = '0';
-                imageLoader.classList.remove('hidden');
-                lightningThoughtsBtn.classList.add('hidden');
-            }
+            resultImage.style.opacity = '0';
+            imageLoader.classList.remove('hidden');
+            lightningThoughtsBtn.classList.add('hidden');
 
             const cacheIndex = index;
             fetch(url).then(r => r.blob()).then(blob => {
@@ -1483,6 +1480,7 @@
             clearInterval(progressInterval);
             currentProgressValue = 0;
             isProgressFinished = false;
+            updateProgressRing(0);
             const baseDuration = calculateBaseDuration(mode, size, hasImage, numImages, withSearch);
             const phase1End = 67;
             const phase1Duration = baseDuration * 0.65;
