@@ -1639,7 +1639,7 @@
     </script>
     <script>
         if ('serviceWorker' in navigator) {
-            window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(() => { }));
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => { }));
         }
         if (screen.orientation && screen.orientation.lock) {
             screen.orientation.lock('portrait').catch(() => { });
