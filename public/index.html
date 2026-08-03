@@ -95,10 +95,8 @@
         }
 
         #image-preview-container {
-            height: 88px;
-            padding: 12px 14px 10px;
-            gap: 10px;
-            align-items: center;
+            height: 94px;
+            padding: 12px 14px 8px;
             position: relative;
             flex-shrink: 0;
         }
@@ -110,6 +108,7 @@
             right: 18px;
             bottom: 0;
             height: 1px;
+            pointer-events: none;
             background: linear-gradient(
                 90deg,
                 transparent 0%,
@@ -118,6 +117,34 @@
                 rgba(255, 255, 255, 0.06) 92%,
                 transparent 100%
             );
+        }
+
+        #image-preview-strip {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            height: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: #4b5563 transparent;
+        }
+
+        #image-preview-strip::-webkit-scrollbar {
+            height: 6px;
+        }
+
+        #image-preview-strip::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        #image-preview-strip::-webkit-scrollbar-thumb {
+            background: #4b5563;
+            border-radius: 6px;
+        }
+
+        #image-preview-strip::-webkit-scrollbar-thumb:hover {
+            background: #6b7280;
         }
 
         .preview-thumb {
@@ -403,8 +430,8 @@
             <div id="input-bar"
                 class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pb-2 px-0 gap-0 relative transition-all duration-200 overflow-hidden">
 
-                <div id="image-preview-container"
-                    class="flex hidden scrollbar-hide overflow-x-auto overflow-y-hidden">
+                <div id="image-preview-container" class="hidden">
+                    <div id="image-preview-strip"></div>
                 </div>
 
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..."
@@ -673,6 +700,7 @@
         const promptTextarea = document.getElementById('prompt-textarea');
         const imageUploadInput = document.getElementById('image-upload-1');
         const imagePreviewContainer = document.getElementById('image-preview-container');
+        const imagePreviewStrip = document.getElementById('image-preview-strip');
         const uploadCountBadge = document.getElementById('upload-count-badge');
 
         const inputBar = document.getElementById('input-bar');
@@ -793,7 +821,7 @@
                         tmpImg.src = previewUrl;
                     });
 
-                    appendUploadThumb(previewUrl, imagePreviewContainer.children.length, true);
+                    appendUploadThumb(previewUrl, imagePreviewStrip.children.length, true);
                 } catch (err) { console.error(err); }
             }
             validateUploads();
@@ -814,7 +842,7 @@
                 removeImage(idx);
             };
             wrapper.onclick = () => openUploadPreview(previewUrl);
-            imagePreviewContainer.appendChild(wrapper);
+            imagePreviewStrip.appendChild(wrapper);
         }
 
         function openUploadPreview(url) {
@@ -994,7 +1022,7 @@
 
         window.removeImage = function (index) {
             uploadedImages.splice(index, 1);
-            imagePreviewContainer.innerHTML = '';
+            imagePreviewStrip.innerHTML = '';
             uploadedImages.forEach((img, idx) => {
                 appendUploadThumb(img.previewUrl, idx, false);
             });
