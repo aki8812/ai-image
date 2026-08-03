@@ -94,6 +94,75 @@
             scrollbar-width: none;
         }
 
+        #image-preview-container {
+            height: 88px;
+            padding: 12px 0 10px;
+            gap: 10px;
+            align-items: center;
+            position: relative;
+        }
+
+        #image-preview-container::after {
+            content: "";
+            position: absolute;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            height: 1px;
+            background: linear-gradient(
+                90deg,
+                transparent 0%,
+                rgba(255, 255, 255, 0.06) 8%,
+                rgba(255, 255, 255, 0.18) 50%,
+                rgba(255, 255, 255, 0.06) 92%,
+                transparent 100%
+            );
+        }
+
+        .preview-thumb {
+            position: relative;
+            width: 64px;
+            height: 64px;
+            border-radius: 10px;
+            border: 1px solid #374151;
+            background: #1f2937;
+            flex-shrink: 0;
+            overflow: visible;
+            cursor: pointer;
+        }
+
+        .preview-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+            display: block;
+        }
+
+        .preview-thumb .remove {
+            position: absolute;
+            top: 3px;
+            right: 3px;
+            z-index: 2;
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 50%;
+            background: rgba(239, 68, 68, 0.92);
+            color: #fff;
+            font-size: 11px;
+            line-height: 1;
+            cursor: pointer;
+            display: none;
+            padding: 0;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .preview-thumb:hover .remove {
+            display: flex;
+        }
+
         .image-transition {
             transition: opacity 0.4s ease-in-out;
         }
@@ -331,7 +400,7 @@
 
         <div id="input-hub" class="w-full">
             <div id="image-preview-container"
-                class="flex gap-2 mb-2 hidden scrollbar-hide pb-1 pt-3 overflow-x-auto overflow-y-visible">
+                class="flex mb-1 hidden scrollbar-hide overflow-x-auto overflow-y-hidden">
             </div>
 
             <div id="input-bar"
@@ -734,12 +803,12 @@
 
         function appendUploadThumb(previewUrl, idx, animate) {
             const wrapper = document.createElement('div');
-            wrapper.className = `relative w-16 h-16 flex-shrink-0 group overflow-visible cursor-pointer${animate ? ' animate-fade-in' : ''}`;
+            wrapper.className = `preview-thumb${animate ? ' animate-fade-in' : ''}`;
             wrapper.innerHTML = `
-                <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10" data-action="remove">&times;</button>
+                <img src="${previewUrl}" alt="">
+                <button type="button" class="remove" aria-label="移除">&times;</button>
             `;
-            wrapper.querySelector('button').onclick = (e) => {
+            wrapper.querySelector('.remove').onclick = (e) => {
                 e.stopPropagation();
                 removeImage(idx);
             };
