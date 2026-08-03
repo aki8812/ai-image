@@ -69,16 +69,16 @@
         #prompt-textarea {
             transition: height 0.2s ease-in-out;
             scrollbar-width: none;
-            min-height: 48px;
-            line-height: 48px;
+            min-height: 55px;
+            line-height: 55px;
             padding-top: 0;
             padding-bottom: 0;
         }
 
         #prompt-textarea.is-multiline {
             line-height: 1.5;
-            padding-top: 8px;
-            padding-bottom: 8px;
+            padding-top: 10px;
+            padding-bottom: 10px;
         }
 
         #prompt-textarea::-webkit-scrollbar {
@@ -335,7 +335,7 @@
             </div>
 
             <div id="input-bar"
-                class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pt-0 pb-2 px-2 gap-0 relative transition-all duration-200">
+                class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pt-1 pb-2 px-2 gap-1 relative transition-all duration-200">
 
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..."
                     class="w-full bg-transparent text-lg text-gray-100 placeholder-gray-500 px-3 resize-none outline-none overflow-y-auto custom-scrollbar"
@@ -653,8 +653,8 @@
 
         function autoResizePrompt() {
             promptTextarea.classList.remove('is-multiline');
-            promptTextarea.style.height = '48px';
-            const needsMulti = promptTextarea.scrollHeight > 48;
+            promptTextarea.style.height = '55px';
+            const needsMulti = promptTextarea.scrollHeight > 55;
             if (needsMulti) {
                 promptTextarea.classList.add('is-multiline');
                 promptTextarea.style.height = 'auto';
