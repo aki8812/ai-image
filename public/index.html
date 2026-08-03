@@ -1120,6 +1120,8 @@
             const gcsPathsToCleanup = [];
 
             try {
+                simulateProgressNanoBanana(1, currentMode, selectedSampleSize, uploadedImages.length, useGoogleSearch);
+
                 const processedImages = [];
                 for (const img of uploadedImages) {
                     const response = await fetch(API_URL, {
@@ -1207,7 +1209,7 @@
 
                 let completedCount = 0;
                 for (let i = 0; i < numImages; i++) {
-                    simulateProgressNanoBanana(1, currentMode, selectedSampleSize, i === 0 && uploadedImages.length > 0, useGoogleSearch);
+                    if (i > 0) simulateProgressNanoBanana(1, currentMode, selectedSampleSize, 0, useGoogleSearch);
                     const success = await fetchOneImage(startIndex + i);
                     if (success) completedCount++;
                 }
@@ -1574,7 +1576,7 @@
         let currentProgressValue = 0;
         let isProgressFinished = false;
 
-        function calculateBaseDuration(mode, size, hasImage, numImages, withSearch) {
+        function calculateBaseDuration(mode, size, imageCount, numImages, withSearch) {
             let d = 18;
             if (mode === 'generate-nanobanana1') {
                 d = 13;
@@ -1587,7 +1589,7 @@
                 if (size === '4096') d = 90;
                 else d = 40;
             }
-            if (hasImage) d += 30;
+            if (imageCount > 0) d += 3 + imageCount * 1.2;
             if (withSearch) d = d * 1.2;
             return d * 1000 * numImages;
         }
@@ -1621,12 +1623,12 @@
             });
         }
 
-        function simulateProgressNanoBanana(numImages, mode, size, hasImage, withSearch) {
+        function simulateProgressNanoBanana(numImages, mode, size, imageCount, withSearch) {
             clearInterval(progressInterval);
             currentProgressValue = 0;
             isProgressFinished = false;
             updateProgressRing(0);
-            const baseDuration = calculateBaseDuration(mode, size, hasImage, numImages, withSearch);
+            const baseDuration = calculateBaseDuration(mode, size, imageCount, numImages, withSearch);
             const phase1End = 67;
             const phase1Duration = baseDuration * 0.65;
             const phase2End = 87;
