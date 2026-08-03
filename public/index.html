@@ -192,7 +192,7 @@
                 class="relative w-full max-h-[50vh] aspect-square bg-gray-800 rounded-2xl shadow-xl overflow-hidden group mx-auto flex items-center justify-center">
 
                 <div id="generation-loader"
-                    class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm hidden flex flex-col items-center justify-start pt-24 transition-opacity duration-300">
+                    class="absolute inset-0 z-30 bg-black/80 backdrop-blur-sm hidden flex flex-col items-center justify-center transition-opacity duration-300">
                     <div class="relative w-24 h-24 mb-6">
                         <svg class="w-full h-full transform -rotate-90" viewBox="0 0 100 100">
                             <circle cx="50" cy="50" r="40" fill="transparent" stroke="#374151" stroke-width="8">
@@ -321,7 +321,7 @@
 
         <div id="input-hub" class="w-full">
             <div id="image-preview-container"
-                class="flex gap-2 mb-2 ml-14 hidden scrollbar-hide pb-1 pt-3 overflow-x-auto overflow-y-visible">
+                class="flex gap-2 mb-2 hidden scrollbar-hide pb-1 pt-3 overflow-x-auto overflow-y-visible">
             </div>
 
             <div id="input-bar"
@@ -707,22 +707,57 @@
                         tmpImg.src = previewUrl;
                     });
 
-                    const wrapper = document.createElement('div');
-                    wrapper.className = "relative w-16 h-16 flex-shrink-0 group animate-fade-in";
-                    wrapper.innerHTML = `
-                        <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                        <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10" data-action="remove">&times;</button>
-                    `;
-
-                    wrapper.querySelector('button').onclick = function () {
-                        const idx = Array.from(imagePreviewContainer.children).indexOf(wrapper);
-                        removeImage(idx);
-                    };
-
-                    imagePreviewContainer.appendChild(wrapper);
+                    appendUploadThumb(previewUrl, imagePreviewContainer.children.length, true);
                 } catch (err) { console.error(err); }
             }
             validateUploads();
+        }
+
+        let isUploadPreview = false;
+        const modalDownloadBtn = document.getElementById('modal-download-btn');
+
+        function appendUploadThumb(previewUrl, idx, animate) {
+            const wrapper = document.createElement('div');
+            wrapper.className = `relative w-16 h-16 flex-shrink-0 group overflow-visible cursor-pointer${animate ? ' animate-fade-in' : ''}`;
+            wrapper.innerHTML = `
+                <img src="${previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
+                <button type="button" class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10" data-action="remove">&times;</button>
+            `;
+            wrapper.querySelector('button').onclick = (e) => {
+                e.stopPropagation();
+                removeImage(idx);
+            };
+            wrapper.onclick = () => openUploadPreview(previewUrl);
+            imagePreviewContainer.appendChild(wrapper);
+        }
+
+        function openUploadPreview(url) {
+            isUploadPreview = true;
+            document.getElementById('modal-image').src = url;
+            modalPrevBtn.style.display = 'none';
+            modalNextBtn.style.display = 'none';
+            modalCounter.style.display = 'none';
+            modalDownloadBtn.style.display = 'none';
+            document.getElementById('fullscreen-modal').classList.remove('hidden');
+        }
+
+        function closeFullscreenModal() {
+            document.getElementById('fullscreen-modal').classList.add('hidden');
+            if (isUploadPreview) {
+                isUploadPreview = false;
+                modalCounter.style.display = '';
+                modalDownloadBtn.style.display = '';
+                updateNavButtons(currentImageIndex);
+            }
+        }
+
+        function openResultFullscreen() {
+            isUploadPreview = false;
+            modalCounter.style.display = '';
+            modalDownloadBtn.style.display = '';
+            updateFullscreenImage();
+            updateNavButtons(currentImageIndex);
+            document.getElementById('fullscreen-modal').classList.remove('hidden');
         }
 
         document.getElementById('send-btn').onclick = handleGeneration;
@@ -730,27 +765,26 @@
 
         document.getElementById('download-btn').onclick = downloadCurrentImage;
 
-        document.getElementById('fullscreen-btn').onclick = () => {
-            document.getElementById('fullscreen-modal').classList.remove('hidden');
-            updateFullscreenImage();
-        };
-        document.getElementById('modal-close-btn').onclick = () => document.getElementById('fullscreen-modal').classList.add('hidden');
-        document.getElementById('fullscreen-modal').onclick = (e) => { if (e.target === document.getElementById('fullscreen-modal')) document.getElementById('fullscreen-modal').classList.add('hidden'); };
+        document.getElementById('fullscreen-btn').onclick = openResultFullscreen;
+        document.getElementById('modal-close-btn').onclick = closeFullscreenModal;
+        document.getElementById('fullscreen-modal').onclick = (e) => { if (e.target === document.getElementById('fullscreen-modal')) closeFullscreenModal(); };
 
         document.getElementById('modal-download-btn').onclick = (e) => {
             e.stopPropagation();
-            downloadCurrentImage();
+            if (!isUploadPreview) downloadCurrentImage();
         };
 
-        modalPrevBtn.onclick = (e) => { e.stopPropagation(); navigateFullscreen(-1); };
-        modalNextBtn.onclick = (e) => { e.stopPropagation(); navigateFullscreen(1); };
+        modalPrevBtn.onclick = (e) => { e.stopPropagation(); if (!isUploadPreview) navigateFullscreen(-1); };
+        modalNextBtn.onclick = (e) => { e.stopPropagation(); if (!isUploadPreview) navigateFullscreen(1); };
 
         document.addEventListener('keydown', (e) => {
             const isFullscreen = !document.getElementById('fullscreen-modal').classList.contains('hidden');
             if (isFullscreen) {
-                if (e.key === 'ArrowLeft' && currentImageIndex > 0) navigateFullscreen(-1);
-                if (e.key === 'ArrowRight' && currentImageIndex < sessionHistory.length - 1) navigateFullscreen(1);
-                if (e.key === 'Escape') document.getElementById('fullscreen-modal').classList.add('hidden');
+                if (!isUploadPreview) {
+                    if (e.key === 'ArrowLeft' && currentImageIndex > 0) navigateFullscreen(-1);
+                    if (e.key === 'ArrowRight' && currentImageIndex < sessionHistory.length - 1) navigateFullscreen(1);
+                }
+                if (e.key === 'Escape') closeFullscreenModal();
             } else if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
                 if (document.activeElement === promptTextarea) return;
                 if (sessionHistory.length === 0) return;
@@ -876,14 +910,7 @@
             uploadedImages.splice(index, 1);
             imagePreviewContainer.innerHTML = '';
             uploadedImages.forEach((img, idx) => {
-                const wrapper = document.createElement('div');
-                wrapper.className = "relative w-16 h-16 flex-shrink-0 group overflow-visible";
-                wrapper.innerHTML = `
-                    <img src="${img.previewUrl}" class="w-full h-full object-cover rounded-lg border border-gray-600">
-                    <button class="absolute -top-2 -right-2 bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-[11px] hover:bg-red-600 transition z-10">&times;</button>
-                `;
-                wrapper.querySelector('button').onclick = () => removeImage(idx);
-                imagePreviewContainer.appendChild(wrapper);
+                appendUploadThumb(img.previewUrl, idx, false);
             });
             validateUploads();
         };
@@ -1375,6 +1402,10 @@
             const btn = document.getElementById('send-btn');
 
             if (state) {
+                clearInterval(progressInterval);
+                currentProgressValue = 0;
+                isProgressFinished = false;
+                updateProgressRing(0);
                 document.getElementById('error-message').classList.add('hidden');
                 btn.disabled = false;
                 btn.classList.add('relative', 'bg-red-500/80', 'hover:bg-red-600/90');
