@@ -96,17 +96,18 @@
 
         #image-preview-container {
             height: 88px;
-            padding: 12px 0 10px;
+            padding: 12px 14px 10px;
             gap: 10px;
             align-items: center;
             position: relative;
+            flex-shrink: 0;
         }
 
         #image-preview-container::after {
             content: "";
             position: absolute;
-            left: 0;
-            right: 0;
+            left: 18px;
+            right: 18px;
             bottom: 0;
             height: 1px;
             background: linear-gradient(
@@ -399,18 +400,18 @@
         </p>
 
         <div id="input-hub" class="w-full">
-            <div id="image-preview-container"
-                class="flex mb-1 hidden scrollbar-hide overflow-x-auto overflow-y-hidden">
-            </div>
-
             <div id="input-bar"
-                class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pt-1 pb-2 px-2 gap-1 relative transition-all duration-200">
+                class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pb-2 px-0 gap-0 relative transition-all duration-200 overflow-hidden">
+
+                <div id="image-preview-container"
+                    class="flex hidden scrollbar-hide overflow-x-auto overflow-y-hidden">
+                </div>
 
                 <textarea id="prompt-textarea" rows="1" placeholder="輸入提示詞..."
-                    class="w-full bg-transparent text-lg text-gray-100 placeholder-gray-500 px-3 resize-none outline-none overflow-y-auto custom-scrollbar"
+                    class="w-full bg-transparent text-lg text-gray-100 placeholder-gray-500 px-3 pt-1 resize-none outline-none overflow-y-auto custom-scrollbar"
                     style="max-height: 200px;"></textarea>
 
-                <div class="flex justify-between items-center w-full">
+                <div class="flex justify-between items-center w-full px-2">
                     <div class="flex gap-2 items-center">
                         <button id="upload-btn-1"
                             class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative">
