@@ -3,3 +3,8 @@ node_modules
 .DS_Store
 dist
 .vercel
+
+us-computer-*.json
+service-account*.json
+*-credentials.json
+*.key.json

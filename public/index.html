@@ -286,13 +286,149 @@
             transition: transform 0.1s ease-out;
             will-change: transform;
         }
+
+        .locked {
+            visibility: hidden !important;
+        }
+
+        #auth-gate {
+            font-family: "Microsoft JhengHei", "微軟正黑體", sans-serif;
+        }
+
+        .media-tab {
+            flex: 1;
+            padding: 0.45rem 0;
+            border-radius: 0.6rem;
+            font-size: 0.875rem;
+            font-weight: 700;
+            color: #9ca3af;
+            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .media-tab:hover {
+            color: #e5e7eb;
+        }
+
+        .media-tab.active {
+            background: #2563eb;
+            color: #ffffff;
+            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+
+        .field-label {
+            display: block;
+            font-size: 0.75rem;
+            color: #9ca3af;
+            margin-bottom: 0.35rem;
+        }
+
+        .field-input {
+            width: 100%;
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            color: #f3f4f6;
+            font-size: 0.875rem;
+            outline: none;
+            transition: border-color 0.2s ease;
+        }
+
+        .field-input:focus {
+            border-color: #3b82f6;
+        }
+
+        select.field-input {
+            -webkit-appearance: none;
+            appearance: none;
+            padding-right: 2rem;
+            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 0.6rem center;
+        }
+
+        .aki-range {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 6px;
+            border-radius: 999px;
+            background: linear-gradient(90deg, #3b82f6 var(--fill, 50%), #4b5563 var(--fill, 50%));
+            outline: none;
+            cursor: pointer;
+        }
+
+        .aki-range::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #3b82f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+            transition: transform 0.15s ease;
+        }
+
+        .aki-range::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
+        }
+
+        .aki-range::-moz-range-thumb {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            background: #ffffff;
+            border: 3px solid #3b82f6;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
+        }
+
+        .aki-range::-moz-range-track {
+            height: 6px;
+            border-radius: 999px;
+            background: #4b5563;
+        }
+
+        .settings-panel {
+            display: flex;
+            flex-direction: column;
+            gap: 0.9rem;
+        }
+
+        #settings-modal .settings-scroll {
+            max-height: 72vh;
+            overflow-y: auto;
+        }
     </style>
 </head>
 
 <body class="bg-gray-900 text-gray-200">
 
+    <div id="auth-gate" class="fixed inset-0 z-[100] bg-gray-900 flex items-center justify-center p-4">
+        <div class="w-full max-w-sm bg-gray-800 border border-gray-700 rounded-2xl shadow-2xl p-8">
+            <div class="flex justify-center mb-5">
+                <div class="w-14 h-14 rounded-full bg-blue-600/20 border border-blue-500/40 flex items-center justify-center">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="26" height="26" viewBox="0 0 24 24" fill="none"
+                        stroke="#60a5fa" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                    </svg>
+                </div>
+            </div>
+            <h1 class="text-xl font-bold text-center mb-1">請輸入密碼</h1>
+            <p class="text-xs text-gray-500 text-center mb-6">本站台僅供本人使用</p>
+
+            <input type="password" id="auth-input" autocomplete="off" placeholder="密碼"
+                class="field-input text-center tracking-widest">
+            <p id="auth-error" class="text-red-400 text-xs text-center mt-3 h-4"></p>
+
+            <button id="auth-submit"
+                class="w-full mt-3 bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 rounded-lg transition disabled:opacity-50 disabled:cursor-not-allowed">進入</button>
+        </div>
+    </div>
+
     <div id="app-container"
-        class="w-full max-w-2xl mx-auto min-h-screen flex flex-col justify-center items-center p-4 py-10">
+        class="w-full max-w-2xl mx-auto min-h-screen flex flex-col justify-center items-center p-4 py-10 locked">
 
         <div id="results-gallery" class="w-full mb-4 hidden flex flex-col gap-4 transition-all duration-500">
             <div id="image-display-wrapper"
@@ -330,6 +466,24 @@
                 <img id="result-image" src="" alt="生成的圖片"
                     class="w-full h-full object-contain image-transition opacity-0 z-0 relative z-0">
 
+                <video id="result-video" playsinline controls preload="metadata"
+                    class="w-full h-full object-contain image-transition opacity-0 relative z-0 hidden"></video>
+
+                <div id="result-audio-card"
+                    class="absolute inset-0 z-0 hidden flex flex-col items-center justify-center gap-5 px-8 bg-gradient-to-br from-indigo-900/50 to-gray-900">
+                    <div
+                        class="w-20 h-20 rounded-full bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
+                            stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M9 18V5l12-2v13"></path>
+                            <circle cx="6" cy="18" r="3"></circle>
+                            <circle cx="18" cy="16" r="3"></circle>
+                        </svg>
+                    </div>
+                    <p id="result-audio-title" class="text-sm text-gray-300 text-center line-clamp-2">AI 生成音樂</p>
+                    <audio id="result-audio" controls preload="metadata" class="w-full max-w-sm"></audio>
+                </div>
+
                 <div
                     class="absolute top-0 left-0 w-full p-3 flex justify-between items-start opacity-0 group-hover:opacity-100 transition-opacity bg-gradient-to-b from-black/70 to-transparent z-20 pointer-events-none">
                     <div class="flex flex-col gap-1 text-xs text-white max-w-[60%] drop-shadow-md pointer-events-auto">
@@ -360,6 +514,24 @@
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="currentColor" stroke="none">
                                 <path d="M13 10V3L4 14h7v7l9-11h-7z" />
+                            </svg>
+                        </button>
+                        <button id="video-extend-btn" title="延伸這段影片"
+                            class="bg-emerald-600/90 text-white rounded-full p-2 hover:bg-emerald-500 transition backdrop-blur-sm hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <polyline points="13 17 18 12 13 7"></polyline>
+                                <polyline points="6 17 11 12 6 7"></polyline>
+                            </svg>
+                        </button>
+                        <button id="video-edit-btn" title="用文字編輯這段影片"
+                            class="bg-purple-600/90 text-white rounded-full p-2 hover:bg-purple-500 transition backdrop-blur-sm hidden">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
+                                fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                                stroke-linejoin="round">
+                                <path d="M12 20h9"></path>
+                                <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                             </svg>
                         </button>
                         <button id="copy-image-btn" onclick="copyCurrentImage(this)"
@@ -427,6 +599,19 @@
         </p>
 
         <div id="input-hub" class="w-full">
+            <div id="media-tabs" class="flex gap-1 mb-3 bg-gray-800/70 border border-gray-700 rounded-xl p-1">
+                <button type="button" class="media-tab active" data-tab="image">影像</button>
+                <button type="button" class="media-tab" data-tab="video">影片</button>
+                <button type="button" class="media-tab" data-tab="music">音樂</button>
+            </div>
+
+            <div id="video-context-bar"
+                class="hidden mb-2 px-3 py-2 rounded-xl bg-emerald-900/30 border border-emerald-700/40 text-xs text-emerald-200 flex items-center justify-between gap-2">
+                <span id="video-context-label" class="truncate">接續上一段影片</span>
+                <button type="button" id="video-context-clear"
+                    class="flex-shrink-0 px-2 py-0.5 rounded bg-emerald-800/60 hover:bg-emerald-700 transition">取消</button>
+            </div>
+
             <div id="input-bar"
                 class="w-full bg-gray-800 border border-gray-700 rounded-2xl shadow-lg flex flex-col pb-2 px-0 gap-0 relative transition-all duration-200 overflow-hidden">
 
@@ -545,6 +730,8 @@
                 0 / 0</div>
 
             <img id="modal-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
+            <video id="modal-video" playsinline controls preload="metadata"
+                class="max-w-full max-h-full object-contain rounded-lg hidden"></video>
         </div>
     </div>
 
@@ -559,6 +746,8 @@
                     </svg></button>
             </div>
 
+            <div class="settings-scroll custom-scrollbar pr-1">
+            <div id="image-settings">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
                 <fieldset class="grid grid-cols-1 gap-3" id="mode-selector">
@@ -601,6 +790,179 @@
                         class="inline-block h-3 w-3 transform translate-x-4 rounded-full bg-white shadow transition-transform"></span>
                 </button>
             </div>
+            </div>
+
+            <div id="video-settings" class="settings-panel hidden">
+                <div>
+                    <label class="field-label" for="video-task">影片來源</label>
+                    <select id="video-task" class="field-input">
+                        <option value="text-to-video">純文字生成</option>
+                        <option value="image-to-video">圖片動起來（首幀）</option>
+                        <option value="first-last">首尾幀補間（需 2 張圖）</option>
+                        <option value="reference">參考圖角色／場景一致</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="video-camera">鏡頭運動</label>
+                    <select id="video-camera" class="field-input">
+                        <option value="">自動</option>
+                        <option value="static">固定鏡頭</option>
+                        <option value="push-in">推近</option>
+                        <option value="pull-out">拉遠</option>
+                        <option value="pan-left">左搖</option>
+                        <option value="pan-right">右搖</option>
+                        <option value="tilt-up">上仰</option>
+                        <option value="tilt-down">下俯</option>
+                        <option value="orbit">環繞</option>
+                        <option value="crane-up">升降機上升</option>
+                        <option value="dolly-zoom">滑動變焦</option>
+                        <option value="handheld">手持晃動</option>
+                        <option value="drone">空拍</option>
+                        <option value="follow">跟拍</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="video-shot">景別</label>
+                    <select id="video-shot" class="field-input">
+                        <option value="">自動</option>
+                        <option value="macro">微距</option>
+                        <option value="close-up">特寫</option>
+                        <option value="medium">中景</option>
+                        <option value="wide">遠景</option>
+                        <option value="extreme-wide">大遠景</option>
+                        <option value="over-shoulder">過肩</option>
+                        <option value="low-angle">低角度</option>
+                        <option value="high-angle">高角度</option>
+                        <option value="pov">第一人稱視角</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="video-style">視覺風格</label>
+                    <select id="video-style" class="field-input">
+                        <option value="">自動</option>
+                        <option value="cinematic">電影感</option>
+                        <option value="hyperreal">超寫實</option>
+                        <option value="documentary">紀錄片</option>
+                        <option value="anime">日系動畫</option>
+                        <option value="3d">3D 動畫</option>
+                        <option value="claymation">黏土定格</option>
+                        <option value="noir">黑白film noir</option>
+                        <option value="vintage">復古膠卷</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="video-lighting">光線</label>
+                    <select id="video-lighting" class="field-input">
+                        <option value="">自動</option>
+                        <option value="golden">黃金時刻</option>
+                        <option value="blue">藍調時刻</option>
+                        <option value="neon">霓虹夜景</option>
+                        <option value="soft">柔光棚拍</option>
+                        <option value="hard">硬光強反差</option>
+                        <option value="backlit">逆光輪廓</option>
+                        <option value="overcast">陰天散射</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="video-audio">聲音</label>
+                    <select id="video-audio" class="field-input">
+                        <option value="">自動</option>
+                        <option value="dialogue">含人物對白</option>
+                        <option value="score">含配樂與音效</option>
+                        <option value="silent">僅環境音</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="video-negative">不要出現的元素</label>
+                    <input type="text" id="video-negative" class="field-input" placeholder="例如：文字浮水印、變形的手">
+                </div>
+
+                <p class="text-[11px] text-gray-500 leading-relaxed">影片生成需要數分鐘，請勿關閉分頁。單次延伸 3–10 秒，整段最長 40 秒。</p>
+            </div>
+
+            <div id="music-settings" class="settings-panel hidden">
+                <div>
+                    <label class="field-label" for="music-model">音樂模型</label>
+                    <select id="music-model" class="field-input">
+                        <option value="full">Lyria 3.5：完整歌曲（含人聲歌詞）</option>
+                        <option value="clip">Lyria 3 Clip：30 秒片段</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-vocals">人聲</label>
+                    <select id="music-vocals" class="field-input">
+                        <option value="">自動</option>
+                        <option value="female lead vocal">女聲主唱</option>
+                        <option value="male lead vocal">男聲主唱</option>
+                        <option value="duet with male and female vocals">男女對唱</option>
+                        <option value="full choir">合唱團</option>
+                        <option value="instrumental">純演奏（無人聲）</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-language">演唱語言</label>
+                    <select id="music-language" class="field-input">
+                        <option value="">自動</option>
+                        <option value="Mandarin Chinese">華語</option>
+                        <option value="Taiwanese Hokkien">台語</option>
+                        <option value="English">英語</option>
+                        <option value="Japanese">日語</option>
+                        <option value="Korean">韓語</option>
+                    </select>
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-genre">曲風</label>
+                    <input type="text" id="music-genre" class="field-input" placeholder="例如：City Pop、抒情搖滾、Lo-fi">
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-mood">情緒</label>
+                    <input type="text" id="music-mood" class="field-input" placeholder="例如：溫暖懷舊、激昂熱血">
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-instruments">樂器</label>
+                    <input type="text" id="music-instruments" class="field-input" placeholder="例如：鋼琴、電吉他、弦樂">
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-bpm">速度 <span id="music-bpm-value"
+                            class="text-blue-400 font-mono">100</span> BPM</label>
+                    <input type="range" id="music-bpm" class="aki-range" min="60" max="200" step="1" value="100">
+                </div>
+
+                <div id="music-duration-wrapper">
+                    <label class="field-label" for="music-duration">長度 約 <span id="music-duration-value"
+                            class="text-blue-400 font-mono">120</span> 秒</label>
+                    <input type="range" id="music-duration" class="aki-range" min="30" max="300" step="10" value="120">
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-lyrics">自訂歌詞（留空由 AI 創作）</label>
+                    <textarea id="music-lyrics" rows="4" class="field-input custom-scrollbar resize-none"
+                        placeholder="[Verse]&#10;第一段歌詞...&#10;&#10;[Chorus]&#10;副歌..."></textarea>
+                </div>
+
+                <div>
+                    <label class="field-label" for="music-format">輸出格式</label>
+                    <select id="music-format" class="field-input">
+                        <option value="mp3">MP3</option>
+                        <option value="wav">WAV（無損）</option>
+                    </select>
+                </div>
+
+                <p class="text-[11px] text-gray-500 leading-relaxed">可上傳圖片作為靈感來源；生成的歌詞與段落結構會顯示在閃電按鈕內。</p>
+            </div>
+            </div>
 
         </div>
     </div>
@@ -614,6 +976,35 @@
                         <line x1="18" y1="6" x2="6" y2="18"></line>
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg></button>
+            </div>
+
+            <div id="video-format-section" class="hidden flex flex-col gap-5">
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-3">影片比例</label>
+                    <fieldset class="grid grid-cols-2 gap-3" id="video-ratio-selector">
+                        <div><input type="radio" name="video-ratio-mode" value="16:9" id="vratio-16-9" class="hidden"
+                                checked><label for="vratio-16-9" class="radio-label">16:9 橫向</label></div>
+                        <div><input type="radio" name="video-ratio-mode" value="9:16" id="vratio-9-16"
+                                class="hidden"><label for="vratio-9-16" class="radio-label">9:16 直向</label></div>
+                    </fieldset>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-300 mb-3">解析度</label>
+                    <fieldset class="grid grid-cols-4 gap-2" id="video-resolution-selector">
+                        <div><input type="radio" name="video-res-mode" value="360p" id="vres-360" class="hidden"><label
+                                for="vres-360" class="radio-label text-xs py-2">360p</label></div>
+                        <div><input type="radio" name="video-res-mode" value="720p" id="vres-720" class="hidden"
+                                checked><label for="vres-720" class="radio-label text-xs py-2">720p</label></div>
+                        <div><input type="radio" name="video-res-mode" value="1080p" id="vres-1080"
+                                class="hidden"><label for="vres-1080" class="radio-label text-xs py-2">1080p</label>
+                        </div>
+                        <div><input type="radio" name="video-res-mode" value="4k" id="vres-4k" class="hidden"><label
+                                for="vres-4k"
+                                class="radio-label text-xs py-2 font-bold text-yellow-400 border-yellow-500/50">4K</label>
+                        </div>
+                    </fieldset>
+                </div>
             </div>
 
             <div class="mb-4 relative" id="ratio-section">
@@ -674,6 +1065,15 @@
 
     <script>
         const API_URL = "/api/generate";
+        const MEDIA_URL = "/api/media";
+        const AUTH_STORAGE_KEY = "aki-media-token";
+
+        let authToken = "";
+        try { authToken = localStorage.getItem(AUTH_STORAGE_KEY) || ""; } catch (e) { authToken = ""; }
+
+        let activeTab = "image";
+        let videoContext = null;
+        let videoContextTask = "extend";
 
         let uploadedImages = [];
         let sessionHistory = [];
@@ -712,6 +1112,12 @@
         const moreRatiosDropdown = document.getElementById('more-ratios-dropdown');
 
         const resultImage = document.getElementById('result-image');
+        const resultVideo = document.getElementById('result-video');
+        const resultAudioCard = document.getElementById('result-audio-card');
+        const resultAudio = document.getElementById('result-audio');
+        const resultAudioTitle = document.getElementById('result-audio-title');
+        const modalImage = document.getElementById('modal-image');
+        const modalVideo = document.getElementById('modal-video');
         const imageLoader = document.getElementById('image-loader');
         const generationLoader = document.getElementById('generation-loader');
         const progressRing = document.getElementById('progress-ring');
@@ -847,7 +1253,9 @@
 
         function openUploadPreview(url) {
             isUploadPreview = true;
-            document.getElementById('modal-image').src = url;
+            modalVideo.classList.add('hidden');
+            modalImage.classList.remove('hidden');
+            modalImage.src = url;
             modalPrevBtn.style.display = 'none';
             modalNextBtn.style.display = 'none';
             modalCounter.style.display = 'none';
@@ -857,6 +1265,7 @@
 
         function closeFullscreenModal() {
             document.getElementById('fullscreen-modal').classList.add('hidden');
+            try { modalVideo.pause(); } catch (e) { }
             if (isUploadPreview) {
                 isUploadPreview = false;
                 modalCounter.style.display = '';
@@ -869,13 +1278,13 @@
             isUploadPreview = false;
             modalCounter.style.display = '';
             modalDownloadBtn.style.display = '';
-            updateFullscreenImage();
+            if (!updateFullscreenImage()) return;
             updateNavButtons(currentImageIndex);
             document.getElementById('fullscreen-modal').classList.remove('hidden');
         }
 
-        document.getElementById('send-btn').onclick = handleGeneration;
-        promptTextarea.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleGeneration(); } };
+        document.getElementById('send-btn').onclick = handleSend;
+        promptTextarea.onkeydown = (e) => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleSend(); } };
 
         document.getElementById('download-btn').onclick = downloadCurrentImage;
 
@@ -916,10 +1325,27 @@
         }
 
         function updateFullscreenImage() {
-            if (sessionHistory.length === 0) return;
-            const img = sessionHistory[currentImageIndex];
-            const url = typeof img === 'string' ? img : img.url;
-            document.getElementById('modal-image').src = url;
+            if (sessionHistory.length === 0) return false;
+            const item = sessionHistory[currentImageIndex];
+            const url = getMediaUrl(item);
+            const type = getMediaType(item);
+
+            if (type === 'audio' || !url) {
+                closeFullscreenModal();
+                return false;
+            }
+
+            const isVideo = type === 'video';
+            modalImage.classList.toggle('hidden', isVideo);
+            modalVideo.classList.toggle('hidden', !isVideo);
+
+            if (isVideo) {
+                modalVideo.src = url;
+            } else {
+                modalImage.src = url;
+                try { modalVideo.pause(); } catch (e) { }
+            }
+            return true;
         }
 
         document.getElementById('settings-btn').onclick = () => document.getElementById('settings-modal').classList.remove('hidden');
@@ -1124,17 +1550,13 @@
 
                 const processedImages = [];
                 for (const img of uploadedImages) {
-                    const response = await fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            mode: 'get-upload-url',
-                            fileName: `upload-${Date.now()}.png`,
-                            contentType: img.mimeType
-                        }),
-                        signal: signal
-                    });
+                    const response = await apiPost(API_URL, {
+                        mode: 'get-upload-url',
+                        fileName: `upload-${Date.now()}.png`,
+                        contentType: img.mimeType
+                    }, signal);
 
+                    if (response.status === 401) return handleUnauthorized();
                     if (!response.ok) throw new Error(`無法取得上傳授權 (${response.status})`);
                     const { uploadUrl, gcsPath, gcsUri } = await response.json();
 
@@ -1176,12 +1598,8 @@
 
                 async function fetchOneImage(slotIndex) {
                     try {
-                        const response = await fetch(API_URL, {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify(requestBody),
-                            signal: signal
-                        });
+                        const response = await apiPost(API_URL, requestBody, signal);
+                        if (response.status === 401) { handleUnauthorized(); throw new Error("驗證失效，請重新輸入密碼"); }
                         let data;
                         try { data = await response.json(); }
                         catch (e) {
@@ -1189,13 +1607,14 @@
                             throw new Error(`伺服器回應錯誤 (${response.status})。`);
                         }
                         if (data.error) throw new Error(data.error.message);
-                        if (!data.images || data.images.length === 0) throw new Error("未生成圖片");
+                        const mediaList = data.media || data.images;
+                        if (!Array.isArray(mediaList) || mediaList.length === 0) throw new Error("未生成內容");
 
                         if (currentImageIndex === slotIndex) {
                             await forceFinishProgressTo100();
                         }
 
-                        onSingleImageReady(slotIndex, data.images[0]);
+                        onSingleImageReady(slotIndex, mediaList[0]);
                         return true;
                     } catch (err) {
                         if (err.name === 'AbortError') throw err;
@@ -1233,11 +1652,8 @@
                 releaseWakeLock();
                 generationAbortController = null;
                 if (gcsPathsToCleanup.length > 0) {
-                    fetch(API_URL, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ mode: 'cleanup', gcsPaths: gcsPathsToCleanup })
-                    }).catch(e => console.error("Cleanup failed:", e));
+                    apiPost(API_URL, { mode: 'cleanup', gcsPaths: gcsPathsToCleanup })
+                        .catch(e => console.error("Cleanup failed:", e));
                 }
             }
         }
@@ -1280,53 +1696,92 @@
 
         let currentImageBlob = null;
 
-        function showImage(index) {
-            if (index < 0 || index >= sessionHistory.length) return;
-            const isSameImage = index === currentImageIndex;
-            currentImageIndex = index;
-            currentImageBlob = null;
-            const imgData = sessionHistory[index];
+        const MEDIA_PRESETS = {
+            image: { ext: 'png', mime: 'image/png', label: '影像' },
+            video: { ext: 'mp4', mime: 'video/mp4', label: '影片' },
+            audio: { ext: 'mp3', mime: 'audio/mpeg', label: '音樂' }
+        };
 
-            if (!imgData || imgData.pending) {
-                resultImage.style.opacity = '0';
-                imageLoader.classList.add('hidden');
-                generationLoader.classList.remove('hidden');
-                lightningThoughtsBtn.classList.add('hidden');
-                metaModel.textContent = '生成中...';
-                metaSize.textContent = '';
-                metaRatio.textContent = '';
-                document.getElementById('meta-prompt-container').classList.add('hidden');
-                imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
-                updateGallerySelection(index);
-                updateNavButtons(index);
-                return;
-            }
+        function getMediaType(item) {
+            if (!item || typeof item === 'string') return 'image';
+            return MEDIA_PRESETS[item.type] ? item.type : 'image';
+        }
 
-            if (imgData.error) {
-                resultImage.style.opacity = '0';
-                resultImage.src = '';
-                imageLoader.classList.add('hidden');
-                generationLoader.classList.add('hidden');
-                lightningThoughtsBtn.classList.add('hidden');
-                metaModel.textContent = '生成失敗';
-                metaSize.textContent = '';
-                metaRatio.textContent = '';
-                document.getElementById('meta-prompt-container').classList.add('hidden');
-                imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
-                updateGallerySelection(index);
-                updateNavButtons(index);
-                return;
-            }
+        function getMediaUrl(item) {
+            if (!item) return '';
+            return typeof item === 'string' ? item : (item.url || '');
+        }
 
-            generationLoader.classList.add('hidden');
-
-            const url = typeof imgData === 'string' ? imgData : imgData.url;
-
+        function resetStageMedia() {
             resultImage.style.opacity = '0';
-            imageLoader.classList.remove('hidden');
-            lightningThoughtsBtn.classList.add('hidden');
+            resultImage.classList.add('hidden');
+            resultVideo.style.opacity = '0';
+            resultVideo.classList.add('hidden');
+            resultAudioCard.classList.add('hidden');
+            try {
+                resultVideo.pause();
+                resultAudio.pause();
+            } catch (e) { }
+        }
 
-            const cacheIndex = index;
+        function setStageMedia(type) {
+            resetStageMedia();
+            if (type === 'video') resultVideo.classList.remove('hidden');
+            else if (type === 'audio') resultAudioCard.classList.remove('hidden');
+            else resultImage.classList.remove('hidden');
+
+            document.getElementById('copy-image-btn').classList.toggle('hidden', type !== 'image');
+            document.getElementById('fullscreen-btn').classList.toggle('hidden', type === 'audio');
+        }
+
+        function setLoaderText(type) {
+            const label = MEDIA_PRESETS[type]?.label || '影像';
+            imageLoader.querySelector('span').textContent = `${label}載入中...`;
+        }
+
+        function setMetaPlaceholder(label) {
+            metaModel.textContent = label;
+            metaSize.textContent = '';
+            metaRatio.textContent = '';
+            document.getElementById('meta-prompt-container').classList.add('hidden');
+            toggleVideoActions(null);
+        }
+
+        function toggleVideoActions(item) {
+            const usable = !!(item && getMediaType(item) === 'video' && item.interactionId);
+            document.getElementById('video-extend-btn').classList.toggle('hidden', !usable);
+            document.getElementById('video-edit-btn').classList.toggle('hidden', !usable);
+        }
+
+        function finishShowMedia(index) {
+            imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
+            updateGallerySelection(index);
+            updateNavButtons(index);
+        }
+
+        function updateMetaPanel(item) {
+            if (typeof item !== 'object') {
+                lightningThoughtsBtn.classList.add('hidden');
+                setMetaPlaceholder('');
+                return;
+            }
+
+            metaModel.textContent = getModelDisplayName(item.mode);
+            metaSize.textContent = item.size || (item.duration ? `${item.duration} 秒` : 'Unknown');
+            metaRatio.textContent = item.aspectRatio || 'Custom';
+
+            if (item.prompt) {
+                metaPrompt.textContent = item.prompt;
+                document.getElementById('meta-prompt-container').classList.remove('hidden');
+            } else {
+                document.getElementById('meta-prompt-container').classList.add('hidden');
+            }
+
+            lightningThoughtsBtn.classList.toggle('hidden', !item.thoughts);
+            toggleVideoActions(item);
+        }
+
+        function cacheImageBlob(url, cacheIndex) {
             fetch(url).then(r => r.blob()).then(blob => {
                 return new Promise((resolve, reject) => {
                     const img = document.createElement('img');
@@ -1348,47 +1803,81 @@
             }).then(pngBlob => {
                 if (currentImageIndex === cacheIndex) currentImageBlob = pngBlob;
             }).catch(() => { });
+        }
+
+        function loadStageImage(url, index) {
+            imageLoader.classList.remove('hidden');
+            setLoaderText('image');
+            cacheImageBlob(url, index);
 
             const tempImg = new Image();
             tempImg.src = url;
             tempImg.onload = () => {
                 resultImage.src = url;
-                document.getElementById('modal-image').src = url;
+                modalImage.src = url;
                 imageLoader.classList.add('hidden');
                 requestAnimationFrame(() => resultImage.style.opacity = '1');
             };
-            tempImg.onerror = () => {
+            tempImg.onerror = () => imageLoader.classList.add('hidden');
+        }
+
+        function loadStageVideo(url) {
+            imageLoader.classList.remove('hidden');
+            setLoaderText('video');
+            resultVideo.src = url;
+            resultVideo.onloadeddata = () => {
                 imageLoader.classList.add('hidden');
+                requestAnimationFrame(() => resultVideo.style.opacity = '1');
             };
+            resultVideo.onerror = () => imageLoader.classList.add('hidden');
+        }
 
-            if (typeof imgData === 'object') {
-                metaModel.textContent = getModelDisplayName(imgData.mode);
-                metaSize.textContent = imgData.size || "Unknown";
-                metaRatio.textContent = imgData.aspectRatio || "Custom";
+        function loadStageAudio(url, item) {
+            imageLoader.classList.add('hidden');
+            resultAudio.src = url;
+            resultAudioTitle.textContent = (item.prompt || '').trim().slice(0, 60) || 'AI 生成音樂';
+        }
 
-                if (imgData.prompt) {
-                    metaPrompt.textContent = imgData.prompt;
-                    document.getElementById('meta-prompt-container').classList.remove('hidden');
-                } else {
-                    document.getElementById('meta-prompt-container').classList.add('hidden');
-                }
+        function showImage(index) {
+            if (index < 0 || index >= sessionHistory.length) return;
+            currentImageIndex = index;
+            currentImageBlob = null;
+            const item = sessionHistory[index];
 
-                if (imgData.thoughts) {
-                    lightningThoughtsBtn.classList.remove('hidden');
-                } else {
-                    lightningThoughtsBtn.classList.add('hidden');
-                }
-            } else {
+            if (!item || item.pending) {
+                resetStageMedia();
+                imageLoader.classList.add('hidden');
+                generationLoader.classList.remove('hidden');
                 lightningThoughtsBtn.classList.add('hidden');
-                metaModel.textContent = '';
-                metaSize.textContent = '';
-                metaRatio.textContent = '';
-                document.getElementById('meta-prompt-container').classList.add('hidden');
+                setMetaPlaceholder('生成中...');
+                finishShowMedia(index);
+                return;
             }
 
-            imageCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
-            updateGallerySelection(index);
-            updateNavButtons(index);
+            if (item.error) {
+                resetStageMedia();
+                resultImage.src = '';
+                imageLoader.classList.add('hidden');
+                generationLoader.classList.add('hidden');
+                lightningThoughtsBtn.classList.add('hidden');
+                setMetaPlaceholder('生成失敗');
+                finishShowMedia(index);
+                return;
+            }
+
+            generationLoader.classList.add('hidden');
+            lightningThoughtsBtn.classList.add('hidden');
+
+            const type = getMediaType(item);
+            const url = getMediaUrl(item);
+            setStageMedia(type);
+
+            if (type === 'video') loadStageVideo(url);
+            else if (type === 'audio') loadStageAudio(url, item);
+            else loadStageImage(url, index);
+
+            updateMetaPanel(item);
+            finishShowMedia(index);
         }
 
         function updateNavButtons(index) {
@@ -1411,11 +1900,44 @@
             return `<div class="pl-2">${formatted}</div>`;
         }
 
+        const MODEL_NAMES = {
+            'generate-nanobanana': 'NanoBanana Pro',
+            'generate-nanobanana2': 'NanoBanana 2',
+            'generate-nanobanana1': 'NanoBanana 1',
+            'generate-omni': 'Omni 1.1 Flash',
+            'generate-lyria': 'Lyria 3.5',
+            'generate-lyria-clip': 'Lyria 3 Clip'
+        };
+
         function getModelDisplayName(mode) {
-            if (mode === 'generate-nanobanana') return 'NanoBanana Pro';
-            if (mode === 'generate-nanobanana2') return 'NanoBanana 2';
-            if (mode === 'generate-nanobanana1') return 'NanoBanana 1';
-            return 'AI Model';
+            return MODEL_NAMES[mode] || 'AI Model';
+        }
+
+        function createThumbnail(item) {
+            const type = getMediaType(item);
+            const url = getMediaUrl(item);
+
+            if (type === 'video') {
+                const video = document.createElement('video');
+                video.src = `${url}#t=0.1`;
+                video.muted = true;
+                video.playsInline = true;
+                video.preload = 'metadata';
+                video.className = 'w-full h-full object-cover pointer-events-none';
+                return video;
+            }
+
+            if (type === 'audio') {
+                const card = document.createElement('div');
+                card.className = 'w-full h-full bg-indigo-900/60 flex items-center justify-center text-indigo-300';
+                card.innerHTML = '<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18V5l12-2v13"></path><circle cx="6" cy="18" r="3"></circle><circle cx="18" cy="16" r="3"></circle></svg>';
+                return card;
+            }
+
+            const image = document.createElement('img');
+            image.src = url;
+            image.className = 'w-full h-full object-cover';
+            return image;
         }
 
         function renderGallery() {
@@ -1431,10 +1953,7 @@
                 } else if (img && img.error) {
                     btn.innerHTML = '<div class="w-full h-full bg-gray-800 flex items-center justify-center text-red-400"><svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></div>';
                 } else {
-                    const i = document.createElement('img');
-                    i.src = typeof img === 'string' ? img : img.url;
-                    i.className = "w-full h-full object-cover";
-                    btn.appendChild(i);
+                    btn.appendChild(createThumbnail(img));
                 }
                 list.appendChild(btn);
             });
@@ -1698,28 +2217,34 @@
             generationLoader.classList.add('hidden');
         }
         async function downloadCurrentImage() {
-            const img = sessionHistory[currentImageIndex];
-            const url = typeof img === 'string' ? img : img.url;
             const imgData = sessionHistory[currentImageIndex];
+            const url = getMediaUrl(imgData);
+            if (!url) return;
+
+            const type = getMediaType(imgData);
+            const preset = MEDIA_PRESETS[type];
 
             const modeMap = {
                 'generate-nanobanana1': 'NB1',
                 'generate-nanobanana2': 'NB2',
-                'generate-nanobanana': 'NBPro'
+                'generate-nanobanana': 'NBPro',
+                'generate-omni': 'Omni',
+                'generate-lyria': 'Lyria',
+                'generate-lyria-clip': 'Lyria'
             };
             const modeTag = modeMap[imgData?.mode] || 'AI';
             const now = new Date();
             const ts = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}-${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}`;
-            const promptTag = (imgData?.prompt || '').trim().slice(0, 20).replace(/[\\/:*?"<>|]/g, '').trim() || 'image';
+            const promptTag = (imgData?.prompt || '').trim().slice(0, 20).replace(/[\\/:*?"<>|]/g, '').trim() || type;
             const refTag = uploadedImages.length > 0 ? '_ref' : '';
-            const fileName = `${modeTag}_${ts}_${promptTag}${refTag}.png`;
+            const fileName = `${modeTag}_${ts}_${promptTag}${refTag}.${preset.ext}`;
 
             try {
                 const response = await fetch(url);
                 const blob = await response.blob();
 
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: 'image/png' })] })) {
-                    const file = new File([blob], fileName, { type: 'image/png' });
+                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: preset.mime })] })) {
+                    const file = new File([blob], fileName, { type: preset.mime });
                     await navigator.share({ files: [file], title: fileName });
                     return;
                 }
@@ -1757,6 +2282,8 @@
         }
 
         async function copyCurrentImage(btn) {
+            if (getMediaType(sessionHistory[currentImageIndex]) !== 'image') return;
+
             if (!navigator.clipboard || !window.ClipboardItem) {
                 showError("此瀏覽器不支援複製圖片功能");
                 return;
@@ -1783,6 +2310,348 @@
                 showError("複製失敗，可能是瀏覽器安全性限制");
             }
         }
+
+        function apiPost(url, payload, signal) {
+            const options = {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'X-Auth-Token': authToken },
+                body: JSON.stringify(payload)
+            };
+            if (signal) options.signal = signal;
+            return fetch(url, options);
+        }
+
+        const authGate = document.getElementById('auth-gate');
+        const authInput = document.getElementById('auth-input');
+        const authError = document.getElementById('auth-error');
+        const authSubmit = document.getElementById('auth-submit');
+
+        function toggleFooter(locked) {
+            const apply = () => {
+                const footerEl = document.getElementById('aki-footer');
+                if (footerEl) footerEl.classList.toggle('locked', locked);
+            };
+            apply();
+            document.addEventListener('DOMContentLoaded', apply, { once: true });
+        }
+
+        function unlockApp() {
+            authGate.classList.add('hidden');
+            appContainer.classList.remove('locked');
+            toggleFooter(false);
+        }
+
+        function lockApp() {
+            authGate.classList.remove('hidden');
+            appContainer.classList.add('locked');
+            toggleFooter(true);
+            authInput.value = '';
+            setTimeout(() => authInput.focus(), 50);
+        }
+
+        function handleUnauthorized() {
+            authToken = '';
+            try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) { }
+            setLoading(false, 0);
+            lockApp();
+            authError.textContent = '登入已過期，請重新輸入密碼';
+        }
+
+        async function submitPassword() {
+            const password = authInput.value;
+            if (!password) {
+                authError.textContent = '請輸入密碼';
+                return;
+            }
+
+            authSubmit.disabled = true;
+            authError.textContent = '';
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ mode: 'login', password })
+                });
+                const data = await response.json().catch(() => ({}));
+
+                if (!response.ok || !data.token) {
+                    authError.textContent = (data.error && data.error.message) || '密碼錯誤';
+                    authInput.value = '';
+                    authInput.focus();
+                    return;
+                }
+
+                authToken = data.token;
+                try { localStorage.setItem(AUTH_STORAGE_KEY, authToken); } catch (e) { }
+                unlockApp();
+            } catch (e) {
+                authError.textContent = '連線失敗，請檢查網路狀態';
+            } finally {
+                authSubmit.disabled = false;
+            }
+        }
+
+        authSubmit.onclick = submitPassword;
+        authInput.onkeydown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submitPassword(); } };
+
+        const mediaTabs = document.querySelectorAll('.media-tab');
+        const imageSettings = document.getElementById('image-settings');
+        const videoSettings = document.getElementById('video-settings');
+        const musicSettings = document.getElementById('music-settings');
+        const videoFormatSection = document.getElementById('video-format-section');
+        const ratioSection = document.getElementById('ratio-section');
+        const sizeSection = document.getElementById('size-section');
+        const ratioBtn = document.getElementById('ratio-btn');
+
+        const TAB_PLACEHOLDER = {
+            image: '輸入提示詞...',
+            video: '描述畫面、動作與運鏡...',
+            music: '描述曲風、情緒與使用場景...'
+        };
+
+        function setActiveTab(tab) {
+            activeTab = tab;
+            mediaTabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tab));
+            promptTextarea.placeholder = TAB_PLACEHOLDER[tab] || TAB_PLACEHOLDER.image;
+
+            imageSettings.classList.toggle('hidden', tab !== 'image');
+            videoSettings.classList.toggle('hidden', tab !== 'video');
+            musicSettings.classList.toggle('hidden', tab !== 'music');
+
+            videoFormatSection.classList.toggle('hidden', tab !== 'video');
+            ratioSection.classList.toggle('hidden', tab !== 'image');
+            sizeSection.classList.toggle('hidden', tab !== 'image');
+            ratioBtn.classList.toggle('hidden', tab === 'music');
+
+            if (tab !== 'video') clearVideoContext();
+        }
+
+        mediaTabs.forEach((btn) => { btn.onclick = () => setActiveTab(btn.dataset.tab); });
+
+        function syncRange(input, label) {
+            const min = parseFloat(input.min);
+            const max = parseFloat(input.max);
+            const percent = max > min ? ((parseFloat(input.value) - min) / (max - min)) * 100 : 0;
+            input.style.setProperty('--fill', `${percent}%`);
+            if (label) label.textContent = input.value;
+        }
+
+        const bpmInput = document.getElementById('music-bpm');
+        const durationInput = document.getElementById('music-duration');
+        const bpmLabel = document.getElementById('music-bpm-value');
+        const durationLabel = document.getElementById('music-duration-value');
+
+        bpmInput.oninput = () => syncRange(bpmInput, bpmLabel);
+        durationInput.oninput = () => syncRange(durationInput, durationLabel);
+        syncRange(bpmInput, bpmLabel);
+        syncRange(durationInput, durationLabel);
+
+        document.getElementById('music-model').onchange = (e) => {
+            document.getElementById('music-duration-wrapper').classList.toggle('hidden', e.target.value === 'clip');
+        };
+
+        function clearVideoContext() {
+            videoContext = null;
+            videoContextTask = 'extend';
+            document.getElementById('video-context-bar').classList.add('hidden');
+        }
+
+        function startVideoFollowUp(task) {
+            const item = sessionHistory[currentImageIndex];
+            if (!item || !item.interactionId) return showError('這段影片無法延伸或編輯');
+
+            setActiveTab('video');
+            videoContext = item;
+            videoContextTask = task;
+            document.getElementById('video-context-label').textContent =
+                task === 'extend' ? '延伸模式：接續目前這段影片' : '編輯模式：修改目前這段影片';
+            document.getElementById('video-context-bar').classList.remove('hidden');
+            promptTextarea.focus();
+        }
+
+        document.getElementById('video-extend-btn').onclick = () => startVideoFollowUp('extend');
+        document.getElementById('video-edit-btn').onclick = () => startVideoFollowUp('edit');
+        document.getElementById('video-context-clear').onclick = clearVideoContext;
+
+        function handleSend() {
+            if (isLoading) return stopGeneration();
+            if (activeTab === 'video') return handleVideoGeneration();
+            if (activeTab === 'music') return handleMusicGeneration();
+            return handleGeneration();
+        }
+
+        function collectInlineImages(limit) {
+            const list = uploadedImages.slice(0, limit);
+            const totalBytes = list.reduce((sum, img) => sum + (img.size || 0), 0);
+            if (totalBytes > 3.2 * 1024 * 1024) throw new Error('上傳圖片總量過大，請減少張數或縮小尺寸');
+            return list.map((img) => ({ base64Data: img.base64Data, mimeType: img.mimeType }));
+        }
+
+        function waitWithSignal(ms, signal) {
+            return new Promise((resolve, reject) => {
+                const timer = setTimeout(resolve, ms);
+                if (!signal) return;
+                signal.addEventListener('abort', () => {
+                    clearTimeout(timer);
+                    const error = new Error('aborted');
+                    error.name = 'AbortError';
+                    reject(error);
+                }, { once: true });
+            });
+        }
+
+        async function postMediaJob(payload, signal) {
+            const response = await apiPost(MEDIA_URL, payload, signal);
+            if (response.status === 401) {
+                handleUnauthorized();
+                throw new Error('驗證失效，請重新輸入密碼');
+            }
+
+            let data;
+            try { data = await response.json(); }
+            catch (e) {
+                if (e.name === 'AbortError') throw e;
+                throw new Error(`伺服器回應錯誤 (${response.status})`);
+            }
+
+            if (data.error) throw new Error(data.error.message);
+            return data;
+        }
+
+        function startMediaProgress(estimateSeconds) {
+            clearInterval(progressInterval);
+            const step = 95 / ((Math.max(estimateSeconds, 10) * 1000) / 100);
+            progressInterval = setInterval(() => {
+                if (isProgressFinished) return clearInterval(progressInterval);
+                currentProgressValue = Math.min(95, currentProgressValue + step);
+                updateProgressRing(currentProgressValue);
+                if (currentProgressValue >= 95) clearInterval(progressInterval);
+            }, 100);
+        }
+
+        async function runMediaJob(payload, estimateSeconds) {
+            generationAbortController = new AbortController();
+            const signal = generationAbortController.signal;
+
+            setLoading(true, 1);
+            requestWakeLock();
+
+            if (appContainer.classList.contains('justify-center')) {
+                appContainer.classList.remove('justify-center');
+                appContainer.classList.add('justify-start', 'pt-10');
+            }
+
+            const slotIndex = sessionHistory.length;
+            sessionHistory.push({ pending: true });
+            document.getElementById('results-gallery').classList.remove('hidden');
+            renderGallery();
+            showImage(slotIndex);
+            startMediaProgress(estimateSeconds);
+
+            try {
+                let data = await postMediaJob(payload, signal);
+
+                while (data.status === 'processing') {
+                    await waitWithSignal(6000, signal);
+                    data = await postMediaJob({ mode: 'poll', interactionId: data.interactionId, meta: data.meta }, signal);
+                }
+
+                const item = (data.media || [])[0];
+                if (!item) throw new Error('未生成內容');
+
+                await forceFinishProgressTo100();
+                onSingleImageReady(slotIndex, item);
+            } catch (err) {
+                if (err.name === 'AbortError') return;
+                sessionHistory[slotIndex] = { pending: false, error: true };
+                renderGallery();
+                if (currentImageIndex === slotIndex) showImage(slotIndex);
+                showError(err.message);
+            } finally {
+                setLoading(false, 0);
+                releaseWakeLock();
+                generationAbortController = null;
+            }
+        }
+
+        async function handleVideoGeneration() {
+            const prompt = promptTextarea.value.trim();
+            if (!prompt) return showError('請描述影片內容');
+
+            const task = videoContext ? videoContextTask : document.getElementById('video-task').value;
+
+            if (!videoContext) {
+                if (task === 'image-to-video' && uploadedImages.length < 1) return showError('首幀動畫需要上傳 1 張圖片');
+                if (task === 'first-last' && uploadedImages.length < 2) return showError('首尾幀補間需要上傳 2 張圖片');
+                if (task === 'reference' && uploadedImages.length < 1) return showError('參考圖模式需要至少 1 張圖片');
+            }
+
+            let images = [];
+            try { images = videoContext ? [] : collectInlineImages(3); }
+            catch (e) { return showError(e.message); }
+
+            const payload = {
+                mode: 'video',
+                task,
+                prompt,
+                camera: document.getElementById('video-camera').value,
+                shot: document.getElementById('video-shot').value,
+                style: document.getElementById('video-style').value,
+                lighting: document.getElementById('video-lighting').value,
+                audio: document.getElementById('video-audio').value,
+                negative: document.getElementById('video-negative').value.trim(),
+                aspectRatio: document.querySelector('input[name="video-ratio-mode"]:checked')?.value || '16:9',
+                resolution: document.querySelector('input[name="video-res-mode"]:checked')?.value || '720p',
+                images,
+                previousId: videoContext ? videoContext.interactionId : null
+            };
+
+            clearVideoContext();
+            await runMediaJob(payload, 180);
+        }
+
+        async function handleMusicGeneration() {
+            const prompt = promptTextarea.value.trim();
+            if (!prompt) return showError('請描述你想要的音樂');
+
+            let images = [];
+            try { images = collectInlineImages(10); }
+            catch (e) { return showError(e.message); }
+
+            const musicModel = document.getElementById('music-model').value;
+
+            const payload = {
+                mode: 'music',
+                prompt,
+                musicModel,
+                vocals: document.getElementById('music-vocals').value,
+                language: document.getElementById('music-language').value,
+                genre: document.getElementById('music-genre').value.trim(),
+                mood: document.getElementById('music-mood').value.trim(),
+                instruments: document.getElementById('music-instruments').value.trim(),
+                bpm: document.getElementById('music-bpm').value,
+                duration: musicModel === 'clip' ? 30 : parseInt(document.getElementById('music-duration').value, 10),
+                lyrics: document.getElementById('music-lyrics').value.trim(),
+                format: document.getElementById('music-format').value,
+                images
+            };
+
+            await runMediaJob(payload, musicModel === 'clip' ? 60 : 150);
+        }
+
+        setActiveTab('image');
+
+        (async () => {
+            if (!authToken) return lockApp();
+            try {
+                const response = await apiPost(API_URL, { mode: 'verify' });
+                if (response.ok) return unlockApp();
+            } catch (e) { }
+            authToken = '';
+            try { localStorage.removeItem(AUTH_STORAGE_KEY); } catch (e) { }
+            lockApp();
+        })();
     </script>
     <script>
         if ('serviceWorker' in navigator) {
