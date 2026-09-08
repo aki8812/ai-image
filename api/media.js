@@ -256,16 +256,48 @@ const assertNotFailed = (interaction) => {
 
 const extractContent = (interaction) => {
     const blocks = [];
-    let text = "";
+    const texts = [];
+    const seen = new Set();
 
-    for (const step of interaction.steps || []) {
-        if (step.type === "user_input") continue;
-        for (const content of step.content || []) {
-            if (content.type === "text" && content.text) text += `${content.text}\n`;
-            if (content.type === "video" || content.type === "audio") blocks.push(content);
+    const walk = (node) => {
+        if (!node || typeof node !== "object" || seen.has(node)) return;
+        seen.add(node);
+
+        if (Array.isArray(node)) return node.forEach(walk);
+        if (node.type === "user_input") return;
+
+        const mime = node.mime_type || node.mimeType || "";
+        const data = node.data || node.audioContent || node.bytesBase64Encoded;
+        const uri = typeof node.uri === "string" && node.uri.startsWith("gs://") ? node.uri : node.gcsUri;
+
+        if ((data || uri) && (node.type === "audio" || node.type === "video" || /^(audio|video)\//.test(mime))) {
+            blocks.push({
+                type: node.type === "video" || /^video\//.test(mime) ? "video" : "audio",
+                data,
+                uri,
+                mime_type: mime || undefined
+            });
+            return;
         }
-    }
-    return { blocks, text: text.trim() };
+
+        if (node.type === "text" && node.text) texts.push(node.text);
+
+        for (const [key, value] of Object.entries(node)) {
+            if (key === "usage" || key === "input") continue;
+            walk(value);
+        }
+    };
+
+    walk(interaction);
+    return { blocks, text: texts.join("\n").trim() };
+};
+
+const describeShape = (node, depth = 0) => {
+    if (node === null || node === undefined) return "null";
+    if (Array.isArray(node)) return depth > 3 ? "[...]" : `[${node.slice(0, 3).map((item) => describeShape(item, depth + 1)).join(",")}]`;
+    if (typeof node !== "object") return typeof node === "string" ? `"${node.substring(0, 40)}"` : String(node);
+    if (depth > 3) return "{...}";
+    return `{${Object.entries(node).map(([key, value]) => `${key}:${describeShape(value, depth + 1)}`).join(",")}}`;
 };
 
 const finalize = async (interaction, meta) => {
@@ -273,7 +305,8 @@ const finalize = async (interaction, meta) => {
     const label = meta.type === "audio" ? "音樂" : "影片";
 
     if (blocks.length === 0) {
-        throw new Error(text ? `模型未輸出${label}：${text.substring(0, 200)}` : `模型未輸出${label}，請調整描述後再試一次`);
+        if (text) throw new Error(`模型未輸出${label}：${text.substring(0, 300)}`);
+        throw new Error(`模型未輸出${label}。回應結構：${describeShape(interaction).substring(0, 600)}`);
     }
 
     const items = [];
