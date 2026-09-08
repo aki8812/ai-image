@@ -883,18 +883,16 @@
                     <input type="text" id="video-negative" class="field-input" placeholder="例如：文字浮水印、變形的手">
                 </div>
 
-                <p class="text-[11px] text-gray-500 leading-relaxed">影片生成需要數分鐘，請勿關閉分頁。單次延伸 3–10 秒，整段最長 40 秒。</p>
+                <div>
+                    <label class="field-label" for="video-duration">長度 <span id="video-duration-value"
+                            class="text-blue-400 font-mono">8</span> 秒</label>
+                    <input type="range" id="video-duration" class="aki-range" min="3" max="10" step="1" value="8">
+                </div>
+
+                <p class="text-[11px] text-gray-500 leading-relaxed">影片生成需要數分鐘，請勿關閉分頁。單次 3–10 秒，可反覆延伸至最長 40 秒。</p>
             </div>
 
             <div id="music-settings" class="settings-panel hidden">
-                <div>
-                    <label class="field-label" for="music-model">音樂模型</label>
-                    <select id="music-model" class="field-input">
-                        <option value="full">Lyria 3.5：完整歌曲（含人聲歌詞）</option>
-                        <option value="clip">Lyria 3 Clip：30 秒片段</option>
-                    </select>
-                </div>
-
                 <div>
                     <label class="field-label" for="music-vocals">人聲</label>
                     <select id="music-vocals" class="field-input">
@@ -940,7 +938,7 @@
                     <input type="range" id="music-bpm" class="aki-range" min="60" max="200" step="1" value="100">
                 </div>
 
-                <div id="music-duration-wrapper">
+                <div>
                     <label class="field-label" for="music-duration">長度 約 <span id="music-duration-value"
                             class="text-blue-400 font-mono">120</span> 秒</label>
                     <input type="range" id="music-duration" class="aki-range" min="30" max="300" step="10" value="120">
@@ -950,14 +948,6 @@
                     <label class="field-label" for="music-lyrics">自訂歌詞（留空由 AI 創作）</label>
                     <textarea id="music-lyrics" rows="4" class="field-input custom-scrollbar resize-none"
                         placeholder="[Verse]&#10;第一段歌詞...&#10;&#10;[Chorus]&#10;副歌..."></textarea>
-                </div>
-
-                <div>
-                    <label class="field-label" for="music-format">輸出格式</label>
-                    <select id="music-format" class="field-input">
-                        <option value="mp3">MP3</option>
-                        <option value="wav">WAV（無損）</option>
-                    </select>
                 </div>
 
                 <p class="text-[11px] text-gray-500 leading-relaxed">可上傳圖片作為靈感來源；生成的歌詞與段落結構會顯示在閃電按鈕內。</p>
@@ -991,9 +981,7 @@
 
                 <div>
                     <label class="block text-sm font-medium text-gray-300 mb-3">解析度</label>
-                    <fieldset class="grid grid-cols-4 gap-2" id="video-resolution-selector">
-                        <div><input type="radio" name="video-res-mode" value="360p" id="vres-360" class="hidden"><label
-                                for="vres-360" class="radio-label text-xs py-2">360p</label></div>
+                    <fieldset class="grid grid-cols-3 gap-2" id="video-resolution-selector">
                         <div><input type="radio" name="video-res-mode" value="720p" id="vres-720" class="hidden"
                                 checked><label for="vres-720" class="radio-label text-xs py-2">720p</label></div>
                         <div><input type="radio" name="video-res-mode" value="1080p" id="vres-1080"
@@ -1905,8 +1893,7 @@
             'generate-nanobanana2': 'NanoBanana 2',
             'generate-nanobanana1': 'NanoBanana 1',
             'generate-omni': 'Omni 1.1 Flash',
-            'generate-lyria': 'Lyria 3.5',
-            'generate-lyria-clip': 'Lyria 3 Clip'
+            'generate-lyria': 'Lyria 3 Pro'
         };
 
         function getModelDisplayName(mode) {
@@ -2229,8 +2216,7 @@
                 'generate-nanobanana2': 'NB2',
                 'generate-nanobanana': 'NBPro',
                 'generate-omni': 'Omni',
-                'generate-lyria': 'Lyria',
-                'generate-lyria-clip': 'Lyria'
+                'generate-lyria': 'Lyria'
             };
             const modeTag = modeMap[imgData?.mode] || 'AI';
             const now = new Date();
@@ -2447,9 +2433,10 @@
         syncRange(bpmInput, bpmLabel);
         syncRange(durationInput, durationLabel);
 
-        document.getElementById('music-model').onchange = (e) => {
-            document.getElementById('music-duration-wrapper').classList.toggle('hidden', e.target.value === 'clip');
-        };
+        const videoDurationInput = document.getElementById('video-duration');
+        const videoDurationLabel = document.getElementById('video-duration-value');
+        videoDurationInput.oninput = () => syncRange(videoDurationInput, videoDurationLabel);
+        syncRange(videoDurationInput, videoDurationLabel);
 
         function clearVideoContext() {
             videoContext = null;
@@ -2459,7 +2446,7 @@
 
         function startVideoFollowUp(task) {
             const item = sessionHistory[currentImageIndex];
-            if (!item || !item.interactionId) return showError('這段影片無法延伸或編輯');
+            if (!item || !item.gcsUri) return showError('這段影片無法延伸或編輯');
 
             setActiveTab('video');
             videoContext = item;
@@ -2603,8 +2590,9 @@
                 negative: document.getElementById('video-negative').value.trim(),
                 aspectRatio: document.querySelector('input[name="video-ratio-mode"]:checked')?.value || '16:9',
                 resolution: document.querySelector('input[name="video-res-mode"]:checked')?.value || '720p',
+                duration: parseInt(videoDurationInput.value, 10),
                 images,
-                previousId: videoContext ? videoContext.interactionId : null
+                previousUri: videoContext ? videoContext.gcsUri : null
             };
 
             clearVideoContext();
@@ -2619,25 +2607,21 @@
             try { images = collectInlineImages(10); }
             catch (e) { return showError(e.message); }
 
-            const musicModel = document.getElementById('music-model').value;
-
             const payload = {
                 mode: 'music',
                 prompt,
-                musicModel,
                 vocals: document.getElementById('music-vocals').value,
                 language: document.getElementById('music-language').value,
                 genre: document.getElementById('music-genre').value.trim(),
                 mood: document.getElementById('music-mood').value.trim(),
                 instruments: document.getElementById('music-instruments').value.trim(),
                 bpm: document.getElementById('music-bpm').value,
-                duration: musicModel === 'clip' ? 30 : parseInt(document.getElementById('music-duration').value, 10),
+                duration: parseInt(document.getElementById('music-duration').value, 10),
                 lyrics: document.getElementById('music-lyrics').value.trim(),
-                format: document.getElementById('music-format').value,
                 images
             };
 
-            await runMediaJob(payload, musicModel === 'clip' ? 60 : 150);
+            await runMediaJob(payload, 150);
         }
 
         setActiveTab('image');

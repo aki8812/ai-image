@@ -1,17 +1,24 @@
 const {
     delay,
     saveMediaToStorage,
+    publishGcsUri,
     applyCors,
     requireAuth,
-    geminiFetch,
-    geminiDownload
+    agentFetch,
+    gcsOutputPrefix
 } = require("./_vertex.js");
 
-const VIDEO_MODEL = "gemini-omni-1.1-flash";
+const VIDEO_MODEL = "gemini-omni-flash-preview";
 
-const MUSIC_MODELS = {
-    full: "lyria-3.5",
-    clip: "lyria-3-clip-preview"
+const MUSIC_MODEL = "lyria-3-pro-preview";
+
+const VIDEO_TASKS = {
+    "text-to-video": "text_to_video",
+    "image-to-video": "image_to_video",
+    "first-last": "image_to_video",
+    reference: "reference_to_video",
+    extend: "extend",
+    edit: "extend"
 };
 
 const CAMERA_PRESETS = {
@@ -124,31 +131,36 @@ const buildVideoPrompt = (body) => {
 const buildVideoRequest = (body) => {
     const images = Array.isArray(body.images) ? body.images : [];
     const task = body.task || "text-to-video";
+    const follow = task === "extend" || task === "edit";
 
-    if ((task === "extend" || task === "edit") && !body.previousId) {
-        throw new Error("延伸或編輯需要先有一段已生成的影片");
-    }
+    if (follow && !body.previousUri) throw new Error("延伸或編輯需要先有一段已生成的影片");
 
     const input = [{ type: "text", text: buildVideoPrompt(body) }];
-    if (task !== "extend" && task !== "edit") {
+
+    if (follow) {
+        input.push({ type: "video", uri: body.previousUri, mime_type: "video/mp4" });
+    } else {
         images.slice(0, 3).forEach((item) => {
             if (!item || !item.base64Data) return;
             input.push({ type: "image", data: item.base64Data, mime_type: item.mimeType || "image/png" });
         });
     }
 
+    const seconds = Math.min(10, Math.max(3, parseInt(body.duration, 10) || 8));
+
     return {
         model: VIDEO_MODEL,
         input,
-        response_format: {
+        response_format: [{
             type: "video",
+            delivery: "uri",
+            gcs_uri: gcsOutputPrefix("video"),
             aspect_ratio: body.aspectRatio === "9:16" ? "9:16" : "16:9",
-            resolution: ["360p", "720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p",
-            delivery: "uri"
-        },
-        background: true,
-        store: true,
-        ...(body.previousId && { previous_interaction_id: body.previousId })
+            resolution: ["720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p",
+            duration: `${seconds}s`
+        }],
+        generation_config: { video_config: { task: VIDEO_TASKS[task] || "text_to_video" } },
+        background: true
     };
 };
 
@@ -168,7 +180,7 @@ const buildMusicRequest = (body) => {
     else if (body.vocals) details.push(`Vocals: ${body.vocals}`);
 
     const seconds = parseInt(body.duration, 10);
-    if (body.musicModel !== "clip" && seconds > 0) details.push(`Target length: about ${seconds} seconds`);
+    if (seconds > 0) details.push(`Target length: about ${seconds} seconds`);
 
     const segments = [scene];
     if (details.length > 0) segments.push(details.join("\n"));
@@ -182,13 +194,7 @@ const buildMusicRequest = (body) => {
         input.push({ type: "image", data: item.base64Data, mime_type: item.mimeType || "image/png" });
     });
 
-    return {
-        model: MUSIC_MODELS[body.musicModel] || MUSIC_MODELS.full,
-        input,
-        background: true,
-        store: true,
-        ...(body.format === "wav" && { response_format: { type: "audio" } })
-    };
+    return { model: MUSIC_MODEL, input, background: true };
 };
 
 const videoMeta = (body) => ({
@@ -196,6 +202,7 @@ const videoMeta = (body) => ({
     prompt: body.prompt,
     aspectRatio: body.aspectRatio === "9:16" ? "9:16" : "16:9",
     size: body.resolution || "720p",
+    duration: `${Math.min(10, Math.max(3, parseInt(body.duration, 10) || 8))} 秒`,
     mode: "generate-omni"
 });
 
@@ -203,12 +210,12 @@ const musicMeta = (body) => ({
     type: "audio",
     prompt: body.prompt,
     aspectRatio: "-",
-    size: body.musicModel === "clip" ? "30 秒" : `約 ${parseInt(body.duration, 10) || 120} 秒`,
-    mode: body.musicModel === "clip" ? "generate-lyria-clip" : "generate-lyria"
+    size: `約 ${parseInt(body.duration, 10) || 120} 秒`,
+    mode: "generate-lyria"
 });
 
 const startJob = async (payload, meta) => {
-    const created = await geminiFetch("/interactions", { method: "POST", body: JSON.stringify(payload) });
+    const created = await agentFetch("/interactions", { method: "POST", body: JSON.stringify(payload) });
     const interaction = await waitForResult(created);
 
     if (interaction.status === "completed") return { status: "completed", meta, media: await finalize(interaction, meta) };
@@ -219,7 +226,7 @@ const startJob = async (payload, meta) => {
 const pollJob = async (body) => {
     if (!body.interactionId) throw new Error("缺少工作編號");
 
-    const current = await geminiFetch(`/interactions/${encodeURIComponent(body.interactionId)}`);
+    const current = await agentFetch(`/interactions/${encodeURIComponent(body.interactionId)}`);
     const interaction = await waitForResult(current);
     const meta = body.meta && typeof body.meta === "object" ? body.meta : { type: "video" };
 
@@ -234,7 +241,7 @@ const waitForResult = async (interaction) => {
 
     while (current.status !== "completed" && !isFailed(current) && Date.now() < deadline) {
         await delay(POLL_INTERVAL_MS);
-        current = await geminiFetch(`/interactions/${encodeURIComponent(current.id)}`);
+        current = await agentFetch(`/interactions/${encodeURIComponent(current.id)}`);
     }
     return current;
 };
@@ -270,13 +277,21 @@ const finalize = async (interaction, meta) => {
     }
 
     const items = [];
+    const inline = [];
+
     for (const block of blocks) {
-        const base64Data = block.data || await geminiDownload(block.uri);
-        items.push({ base64Data, mimeType: block.mime_type || undefined });
+        if (block.uri) {
+            const published = await publishGcsUri(block.uri, meta.type);
+            items.push({ ...published, prompt: meta.prompt, aspectRatio: meta.aspectRatio, size: meta.size, duration: meta.duration, mode: meta.mode, thoughts: text, gcsUri: block.uri });
+        } else if (block.data) {
+            inline.push({ base64Data: block.data, mimeType: block.mime_type || undefined });
+        }
     }
 
-    const saved = await saveMediaToStorage(items, { ...meta, thoughts: text });
-    return saved.map((item) => ({ ...item, interactionId: interaction.id, canExtend: meta.type === "video" }));
+    if (inline.length > 0) items.push(...await saveMediaToStorage(inline, { ...meta, thoughts: text }));
+    if (items.length === 0) throw new Error(`模型未輸出${label}，請調整描述後再試一次`);
+
+    return items.map((item) => ({ ...item, interactionId: interaction.id, canExtend: meta.type === "video" && Boolean(item.gcsUri) }));
 };
 
 module.exports = handler;

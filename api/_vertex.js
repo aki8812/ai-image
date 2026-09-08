@@ -194,19 +194,13 @@ const requireAuth = (req, res) => {
     return false;
 };
 
-const GEMINI_HOST = "https://generativelanguage.googleapis.com/v1beta";
+const AGENT_HOST = "https://aiplatform.googleapis.com/v1beta1";
 
-const geminiKey = () => {
-    const key = process.env.GEMINI_API_KEY;
-    if (!key) throw new Error("伺服器未設定 GEMINI_API_KEY");
-    return key;
-};
-
-const geminiFetch = async (path, options = {}) => {
-    const separator = path.includes("?") ? "&" : "?";
-    const response = await fetch(`${GEMINI_HOST}${path}${separator}key=${geminiKey()}`, {
+const agentFetch = async (path, options = {}) => {
+    const headers = await getAuthHeaders();
+    const response = await fetch(`${AGENT_HOST}/projects/${PROJECT_ID}/locations/global${path}`, {
         ...options,
-        headers: { "Content-Type": "application/json", ...(options.headers || {}) }
+        headers: { ...headers, ...(options.headers || {}) }
     });
 
     if (!response.ok) {
@@ -214,25 +208,18 @@ const geminiFetch = async (path, options = {}) => {
         let message = text;
         try { message = JSON.parse(text).error?.message || text; } catch (e) { }
 
-        if (response.status === 404) throw new Error(`模型或工作不存在，請確認 API 金鑰已開通該模型：${message}`);
-        if (response.status === 401 || response.status === 403) throw new Error(`Gemini API 金鑰無效或權限不足：${message}`);
-        if (response.status === 429) {
-            const billing = /billing|credit|balance|payment|resume service/i.test(message);
-            throw new Error(billing
-                ? `Gemini API 帳單餘額不足，請到 AI Studio 儲值後再試。原始訊息：${message}`
-                : `已達 Gemini API 速率上限，請稍後再試。原始訊息：${message}`);
-        }
-        throw new Error(`Gemini API 錯誤 (${response.status}): ${message}`);
+        if (response.status === 404) throw new Error(`找不到模型或工作，請確認專案已啟用 Agent Platform API：${message}`);
+        if (response.status === 401 || response.status === 403) throw new Error(`服務帳戶權限不足，請確認已授予 Vertex AI 使用者角色：${message}`);
+        if (response.status === 429) throw new Error(`已達 Agent Platform 配額上限，請稍後再試。原始訊息：${message}`);
+        throw new Error(`Agent Platform 錯誤 (${response.status}): ${message}`);
     }
     return await response.json();
 };
 
-const geminiDownload = async (uri) => {
-    if (!uri) throw new Error("缺少下載連結");
-    const separator = uri.includes("?") ? "&" : "?";
-    const response = await fetch(`${uri}${separator}key=${geminiKey()}`);
-    if (!response.ok) throw new Error(`下載生成檔案失敗 (${response.status})`);
-    return (await response.buffer()).toString("base64");
+const gcsOutputPrefix = (type = "video") => {
+    const folder = MEDIA_TYPES[type]?.folder;
+    if (!folder) throw new Error(`不支援的媒體類型: ${type}`);
+    return `gs://${BUCKET_NAME}/${folder}/gen-${Date.now()}-${uuidv4()}`;
 };
 
 const applyCors = (req, res) => {
@@ -268,6 +255,6 @@ module.exports = {
     issueToken,
     verifyToken,
     requireAuth,
-    geminiFetch,
-    geminiDownload
+    agentFetch,
+    gcsOutputPrefix
 };
