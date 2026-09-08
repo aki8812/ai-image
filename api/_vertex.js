@@ -215,7 +215,13 @@ const geminiFetch = async (path, options = {}) => {
         try { message = JSON.parse(text).error?.message || text; } catch (e) { }
 
         if (response.status === 404) throw new Error(`模型或工作不存在，請確認 API 金鑰已開通該模型：${message}`);
-        if (response.status === 429) throw new Error("已達 Gemini API 用量上限，請稍後再試。");
+        if (response.status === 401 || response.status === 403) throw new Error(`Gemini API 金鑰無效或權限不足：${message}`);
+        if (response.status === 429) {
+            const billing = /billing|credit|balance|payment|resume service/i.test(message);
+            throw new Error(billing
+                ? `Gemini API 帳單餘額不足，請到 AI Studio 儲值後再試。原始訊息：${message}`
+                : `已達 Gemini API 速率上限，請稍後再試。原始訊息：${message}`);
+        }
         throw new Error(`Gemini API 錯誤 (${response.status}): ${message}`);
     }
     return await response.json();
