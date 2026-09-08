@@ -194,7 +194,7 @@ const buildMusicRequest = (body) => {
         input.push({ type: "image", data: item.base64Data, mime_type: item.mimeType || "image/png" });
     });
 
-    return { model: MUSIC_MODEL, input, background: true };
+    return { model: MUSIC_MODEL, input };
 };
 
 const videoMeta = (body) => ({
