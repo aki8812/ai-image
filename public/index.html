@@ -296,13 +296,27 @@
         }
 
         .media-tab {
+            position: relative;
+            z-index: 1;
             flex: 1;
-            padding: 0.45rem 0;
-            border-radius: 0.6rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 0.35rem;
+            padding: 0.5rem 0;
+            border-radius: 0.55rem;
             font-size: 0.875rem;
             font-weight: 700;
             color: #9ca3af;
-            transition: background-color 0.2s ease, color 0.2s ease, box-shadow 0.2s ease;
+            background: transparent;
+            transition: color 0.22s ease;
+        }
+
+        .media-tab svg {
+            width: 15px;
+            height: 15px;
+            opacity: 0.7;
+            transition: opacity 0.22s ease;
         }
 
         .media-tab:hover {
@@ -310,9 +324,24 @@
         }
 
         .media-tab.active {
-            background: #2563eb;
             color: #ffffff;
-            box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        }
+
+        .media-tab.active svg {
+            opacity: 1;
+        }
+
+        #media-tab-indicator {
+            position: absolute;
+            top: 4px;
+            bottom: 4px;
+            left: 4px;
+            width: calc((100% - 8px) / 3);
+            border-radius: 0.55rem;
+            background: linear-gradient(180deg, #3b82f6 0%, #2563eb 100%);
+            box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+            transition: transform 0.3s cubic-bezier(0.34, 1.32, 0.64, 1);
+            pointer-events: none;
         }
 
         .field-label {
@@ -331,62 +360,301 @@
             color: #f3f4f6;
             font-size: 0.875rem;
             outline: none;
-            transition: border-color 0.2s ease;
+            transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+
+        .field-input::placeholder {
+            color: #6b7280;
         }
 
         .field-input:focus {
             border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
         }
 
-        select.field-input {
-            -webkit-appearance: none;
-            appearance: none;
-            padding-right: 2rem;
-            background-image: url("data:image/svg+xml;charset=utf8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%239ca3af' stroke-width='2'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 0.6rem center;
+        .aki-select {
+            position: relative;
         }
 
-        .aki-range {
-            -webkit-appearance: none;
-            appearance: none;
+        .aki-select>select {
+            display: none;
+        }
+
+        .aki-select-trigger {
             width: 100%;
-            height: 6px;
-            border-radius: 999px;
-            background: linear-gradient(90deg, #3b82f6 var(--fill, 50%), #4b5563 var(--fill, 50%));
-            outline: none;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.5rem;
+            background: #374151;
+            border: 1px solid #4b5563;
+            border-radius: 0.5rem;
+            padding: 0.5rem 0.75rem;
+            color: #f3f4f6;
+            font-size: 0.875rem;
+            text-align: left;
             cursor: pointer;
+            transition: border-color 0.2s ease, background-color 0.2s ease, box-shadow 0.2s ease;
         }
 
-        .aki-range::-webkit-slider-thumb {
+        .aki-select-trigger:hover {
+            background: #3f4a5a;
+        }
+
+        .aki-select.is-open .aki-select-trigger {
+            border-color: #3b82f6;
+            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
+        }
+
+        .aki-select-trigger svg {
+            flex-shrink: 0;
+            transition: transform 0.22s ease;
+        }
+
+        .aki-select.is-open .aki-select-trigger svg {
+            transform: rotate(180deg);
+        }
+
+        .aki-select-value {
+            overflow: hidden;
+            white-space: nowrap;
+            text-overflow: ellipsis;
+        }
+
+        .aki-select-value.is-placeholder {
+            color: #9ca3af;
+        }
+
+        .aki-select-panel {
+            position: fixed;
+            z-index: 60;
+            padding: 0.3rem;
+            background: #111827;
+            border: 1px solid #4b5563;
+            border-radius: 0.75rem;
+            box-shadow: 0 18px 40px rgba(0, 0, 0, 0.55);
+            transform-origin: top center;
+            animation: select-pop 0.16s cubic-bezier(0.34, 1.32, 0.64, 1);
+        }
+
+        @keyframes select-pop {
+            from {
+                opacity: 0;
+                transform: translateY(-4px) scale(0.98);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .aki-select-scroll {
+            max-height: 14.5rem;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .aki-select-option {
+            width: 100%;
+            text-align: left;
+            padding: 0.45rem 0.6rem;
+            border-radius: 0.45rem;
+            font-size: 0.8125rem;
+            color: #d1d5db;
+            cursor: pointer;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        .aki-select-option:hover {
+            background: #374151;
+            color: #f9fafb;
+        }
+
+        .aki-select-option.is-selected {
+            background: #2563eb;
+            color: #ffffff;
+            font-weight: 700;
+        }
+
+        .ios-range {
+            --pct: 0%;
+            --fill: #3b82f6;
+            --track: #4b5563;
+            width: 100%;
+            height: 22px;
+            margin: 0;
+            background: transparent;
+            border-radius: 0;
+            outline: none;
+            appearance: none;
+            -webkit-appearance: none;
+            cursor: grab;
+            touch-action: none;
+        }
+
+        .ios-range:active {
+            cursor: grabbing;
+        }
+
+        .ios-range::-webkit-slider-runnable-track {
+            height: 6px;
+            border: none;
+            border-radius: 999px;
+            background: linear-gradient(to right,
+                    var(--fill) 0%,
+                    var(--fill) var(--pct),
+                    var(--track) var(--pct),
+                    var(--track) 100%);
+        }
+
+        .ios-range::-webkit-slider-thumb {
             -webkit-appearance: none;
             appearance: none;
-            width: 18px;
-            height: 18px;
+            width: 16px;
+            height: 16px;
+            margin-top: -5px;
             border-radius: 50%;
-            background: #ffffff;
-            border: 3px solid #3b82f6;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-            transition: transform 0.15s ease;
+            border: none;
+            cursor: grab;
+            background:
+                radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.5) 30%, transparent 58%),
+                linear-gradient(165deg, #ffffff 0%, #f2f2f7 52%, #e5e5ea 100%);
+            box-shadow:
+                0 0.5px 1px rgba(0, 0, 0, 0.12),
+                0 2px 5px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            transition:
+                transform 0.2s cubic-bezier(0.34, 1.45, 0.64, 1),
+                box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
         }
 
-        .aki-range::-webkit-slider-thumb:hover {
-            transform: scale(1.15);
+        .ios-range:active::-webkit-slider-thumb,
+        .ios-range.is-dragging::-webkit-slider-thumb {
+            cursor: grabbing;
+            transform: scale(1.2);
+            box-shadow:
+                0 1px 2px rgba(0, 0, 0, 0.14),
+                0 4px 10px rgba(0, 0, 0, 0.26),
+                inset 0 1px 0 rgba(255, 255, 255, 1);
         }
 
-        .aki-range::-moz-range-thumb {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            background: #ffffff;
-            border: 3px solid #3b82f6;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.5);
-        }
-
-        .aki-range::-moz-range-track {
+        .ios-range::-moz-range-track {
             height: 6px;
+            background: var(--track);
             border-radius: 999px;
-            background: #4b5563;
+            border: none;
+        }
+
+        .ios-range::-moz-range-progress {
+            height: 6px;
+            background: var(--fill);
+            border-radius: 999px;
+        }
+
+        .ios-range::-moz-range-thumb {
+            width: 16px;
+            height: 16px;
+            border: none;
+            border-radius: 50%;
+            cursor: grab;
+            background:
+                radial-gradient(circle at 35% 28%, rgba(255, 255, 255, 1) 0%, rgba(255, 255, 255, 0.5) 30%, transparent 58%),
+                linear-gradient(165deg, #ffffff 0%, #f2f2f7 52%, #e5e5ea 100%);
+            box-shadow:
+                0 0.5px 1px rgba(0, 0, 0, 0.12),
+                0 2px 5px rgba(0, 0, 0, 0.22),
+                inset 0 1px 0 rgba(255, 255, 255, 0.95);
+            transition:
+                transform 0.2s cubic-bezier(0.34, 1.45, 0.64, 1),
+                box-shadow 0.2s cubic-bezier(0.22, 1, 0.36, 1);
+        }
+
+        .ios-range:active::-moz-range-thumb,
+        .ios-range.is-dragging::-moz-range-thumb {
+            cursor: grabbing;
+            transform: scale(1.2);
+        }
+
+        .ui-scroll-host {
+            position: relative;
+        }
+
+        .ui-scroll-viewport {
+            scrollbar-width: none !important;
+            -ms-overflow-style: none !important;
+        }
+
+        .ui-scroll-viewport::-webkit-scrollbar,
+        .ui-scroll-viewport::-webkit-scrollbar-thumb,
+        .ui-scroll-viewport::-webkit-scrollbar-track,
+        .ui-scroll-viewport::-webkit-scrollbar-button {
+            width: 0 !important;
+            height: 0 !important;
+            display: none !important;
+            background: transparent !important;
+            appearance: none !important;
+            -webkit-appearance: none !important;
+        }
+
+        .ui-scrollbar {
+            position: absolute;
+            z-index: 8;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.16s ease;
+        }
+
+        .ui-scroll-host.has-y-scroll:hover>.ui-scrollbar-y,
+        .ui-scroll-host.has-x-scroll:hover>.ui-scrollbar-x,
+        .ui-scroll-host.is-scrolling>.ui-scrollbar-y,
+        .ui-scroll-host.is-scrolling>.ui-scrollbar-x,
+        .ui-scroll-host.is-scrollbar-hover>.ui-scrollbar-y,
+        .ui-scroll-host.is-scrollbar-hover>.ui-scrollbar-x {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .ui-scrollbar-y {
+            top: 6px;
+            right: 3px;
+            bottom: 6px;
+            width: 8px;
+        }
+
+        .ui-scrollbar-x {
+            left: 6px;
+            right: 6px;
+            bottom: 3px;
+            height: 8px;
+        }
+
+        .ui-scrollbar-thumb {
+            position: absolute;
+            border-radius: 999px;
+            background: rgba(148, 163, 184, 0.22);
+            transition: background 0.12s ease;
+        }
+
+        .ui-scrollbar-thumb:hover,
+        .ui-scrollbar-thumb.is-dragging {
+            background: rgba(148, 163, 184, 0.42);
+        }
+
+        .ui-scrollbar-y .ui-scrollbar-thumb {
+            left: 1px;
+            right: 1px;
+            top: 0;
+            min-height: 28px;
+        }
+
+        .ui-scrollbar-x .ui-scrollbar-thumb {
+            top: 1px;
+            bottom: 1px;
+            left: 0;
+            min-width: 28px;
         }
 
         .settings-panel {
@@ -395,10 +663,151 @@
             gap: 0.9rem;
         }
 
+        .settings-group {
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            margin-top: 0.4rem;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            color: #6b7280;
+        }
+
+        .settings-group::after {
+            content: "";
+            flex: 1;
+            height: 1px;
+            background: linear-gradient(90deg, rgba(255, 255, 255, 0.14), transparent);
+        }
+
+        .settings-panel>.settings-group:first-child {
+            margin-top: 0;
+        }
+
+        .settings-hint {
+            font-size: 11px;
+            line-height: 1.7;
+            color: #6b7280;
+            padding: 0.6rem 0.75rem;
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            border-radius: 0.6rem;
+        }
+
         #settings-modal .settings-scroll {
-            max-height: 72vh;
+            max-height: 68vh;
             overflow-y: auto;
         }
+
+        #settings-modal:not(.hidden)>div,
+        #ratio-modal:not(.hidden)>div,
+        #thoughts-modal:not(.hidden)>div {
+            animation: modal-pop 0.22s cubic-bezier(0.34, 1.32, 0.64, 1);
+        }
+
+        @keyframes modal-pop {
+            from {
+                opacity: 0;
+                transform: translateY(10px) scale(0.97);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0) scale(1);
+            }
+        }
+
+        .audio-art {
+            position: relative;
+            width: 5rem;
+            height: 5rem;
+            border-radius: 50%;
+            background:
+                radial-gradient(circle at 32% 26%, rgba(255, 255, 255, 0.2), transparent 55%),
+                linear-gradient(160deg, #4f46e5 0%, #1e1b4b 100%);
+            border: 1px solid rgba(165, 180, 252, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            box-shadow: 0 10px 30px rgba(49, 46, 129, 0.55);
+        }
+
+        .audio-art::before,
+        .audio-art::after {
+            content: "";
+            position: absolute;
+            inset: -6px;
+            border-radius: 50%;
+            border: 1px solid rgba(129, 140, 248, 0.5);
+            opacity: 0;
+        }
+
+        #result-audio-card.is-playing .audio-art::before {
+            animation: audio-ring 2.4s ease-out infinite;
+        }
+
+        #result-audio-card.is-playing .audio-art::after {
+            animation: audio-ring 2.4s ease-out infinite 1.2s;
+        }
+
+        @keyframes audio-ring {
+            from {
+                opacity: 0.65;
+                transform: scale(1);
+            }
+
+            to {
+                opacity: 0;
+                transform: scale(1.5);
+            }
+        }
+
+        .audio-player {
+            width: 100%;
+            max-width: 22rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            padding: 0.5rem 0.75rem;
+            background: rgba(17, 24, 39, 0.66);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 999px;
+            backdrop-filter: blur(6px);
+        }
+
+        #audio-play {
+            flex-shrink: 0;
+            width: 34px;
+            height: 34px;
+            border-radius: 50%;
+            background: #6366f1;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.18s ease, transform 0.18s ease;
+        }
+
+        #audio-play:hover {
+            background: #818cf8;
+            transform: scale(1.06);
+        }
+
+        .audio-time {
+            flex-shrink: 0;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.6875rem;
+            color: #a5b4fc;
+            min-width: 2.5rem;
+            text-align: center;
+        }
+
+        #audio-seek {
+            --fill: #818cf8;
+            --track: rgba(148, 163, 184, 0.32);
+        }
+
     </style>
 </head>
 
@@ -471,17 +880,35 @@
 
                 <div id="result-audio-card"
                     class="absolute inset-0 z-0 hidden flex flex-col items-center justify-center gap-5 px-8 bg-gradient-to-br from-indigo-900/50 to-gray-900">
-                    <div
-                        class="w-20 h-20 rounded-full bg-indigo-600/30 border border-indigo-400/40 flex items-center justify-center">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="36" height="36" viewBox="0 0 24 24" fill="none"
-                            stroke="#a5b4fc" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <div class="audio-art">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 24 24" fill="none"
+                            stroke="#c7d2fe" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                             <path d="M9 18V5l12-2v13"></path>
                             <circle cx="6" cy="18" r="3"></circle>
                             <circle cx="18" cy="16" r="3"></circle>
                         </svg>
                     </div>
+
                     <p id="result-audio-title" class="text-sm text-gray-300 text-center line-clamp-2">AI 生成音樂</p>
-                    <audio id="result-audio" controls preload="metadata" class="w-full max-w-sm"></audio>
+
+                    <audio id="result-audio" preload="metadata" class="hidden"></audio>
+
+                    <div class="audio-player">
+                        <button id="audio-play" type="button" aria-label="播放">
+                            <svg id="audio-icon-play" xmlns="http://www.w3.org/2000/svg" width="16" height="16"
+                                viewBox="0 0 24 24" fill="currentColor">
+                                <polygon points="6 3 21 12 6 21 6 3"></polygon>
+                            </svg>
+                            <svg id="audio-icon-pause" class="hidden" xmlns="http://www.w3.org/2000/svg" width="16"
+                                height="16" viewBox="0 0 24 24" fill="currentColor">
+                                <rect x="6" y="4" width="4" height="16" rx="1"></rect>
+                                <rect x="14" y="4" width="4" height="16" rx="1"></rect>
+                            </svg>
+                        </button>
+                        <span id="audio-current" class="audio-time">0:00</span>
+                        <input type="range" id="audio-seek" class="ios-range" min="0" max="100" step="0.1" value="0">
+                        <span id="audio-total" class="audio-time">0:00</span>
+                    </div>
                 </div>
 
                 <div
@@ -517,7 +944,7 @@
                             </svg>
                         </button>
                         <button id="video-extend-btn" title="延伸這段影片"
-                            class="bg-emerald-600/90 text-white rounded-full p-2 hover:bg-emerald-500 transition backdrop-blur-sm hidden">
+                            class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
@@ -526,7 +953,7 @@
                             </svg>
                         </button>
                         <button id="video-edit-btn" title="用文字編輯這段影片"
-                            class="bg-purple-600/90 text-white rounded-full p-2 hover:bg-purple-500 transition backdrop-blur-sm hidden">
+                            class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
@@ -576,8 +1003,10 @@
                         <path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"></path>
                     </svg></button>
                 <div class="h-8 w-[1px] bg-gray-700"></div>
-                <div id="history-gallery-list"
-                    class="flex gap-2 overflow-x-auto scrollbar-hide w-full items-center scroll-smooth"></div>
+                <div class="ui-scroll-host w-full overflow-hidden">
+                    <div id="history-gallery-list"
+                        class="flex gap-2 overflow-x-auto ui-scroll-viewport w-full items-center scroll-smooth"></div>
+                </div>
             </div>
 
             <div id="gallery-nav" class="flex justify-between items-center px-2">
@@ -599,17 +1028,43 @@
         </p>
 
         <div id="input-hub" class="w-full">
-            <div id="media-tabs" class="flex gap-1 mb-3 bg-gray-800/70 border border-gray-700 rounded-xl p-1">
-                <button type="button" class="media-tab active" data-tab="image">影像</button>
-                <button type="button" class="media-tab" data-tab="video">影片</button>
-                <button type="button" class="media-tab" data-tab="music">音樂</button>
+            <div id="media-tabs" class="relative flex gap-1 mb-3 bg-gray-800/70 border border-gray-700 rounded-xl p-1">
+                <div id="media-tab-indicator"></div>
+                <button type="button" class="media-tab active" data-tab="image">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <rect x="3" y="3" width="18" height="18" rx="2"></rect>
+                        <circle cx="8.5" cy="8.5" r="1.5"></circle>
+                        <polyline points="21 15 16 10 5 21"></polyline>
+                    </svg>影像
+                </button>
+                <button type="button" class="media-tab" data-tab="video">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <polygon points="23 7 16 12 23 17 23 7"></polygon>
+                        <rect x="1" y="5" width="15" height="14" rx="2"></rect>
+                    </svg>影片
+                </button>
+                <button type="button" class="media-tab" data-tab="music">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                        stroke-linejoin="round">
+                        <path d="M9 18V5l12-2v13"></path>
+                        <circle cx="6" cy="18" r="3"></circle>
+                        <circle cx="18" cy="16" r="3"></circle>
+                    </svg>音樂
+                </button>
             </div>
 
             <div id="video-context-bar"
-                class="hidden mb-2 px-3 py-2 rounded-xl bg-emerald-900/30 border border-emerald-700/40 text-xs text-emerald-200 flex items-center justify-between gap-2">
-                <span id="video-context-label" class="truncate">接續上一段影片</span>
+                class="hidden mb-2 px-3 py-2 rounded-xl bg-blue-900/25 border border-blue-700/40 text-xs text-blue-200 flex items-center gap-2">
+                <svg class="flex-shrink-0 w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                    stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="13 17 18 12 13 7"></polyline>
+                    <polyline points="6 17 11 12 6 7"></polyline>
+                </svg>
+                <span id="video-context-label" class="truncate flex-grow">接續上一段影片</span>
                 <button type="button" id="video-context-clear"
-                    class="flex-shrink-0 px-2 py-0.5 rounded bg-emerald-800/60 hover:bg-emerald-700 transition">取消</button>
+                    class="flex-shrink-0 px-2 py-0.5 rounded bg-blue-800/60 hover:bg-blue-700 transition">取消</button>
             </div>
 
             <div id="input-bar"
@@ -673,7 +1128,7 @@
     </div>
 
     <div id="thoughts-modal"
-        class="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 hidden transition-opacity">
+        class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden transition-opacity">
         <div
             class="bg-gray-800 rounded-2xl shadow-2xl p-6 w-full max-w-lg border border-gray-700 max-h-[80vh] flex flex-col">
             <div class="flex justify-between items-center mb-4 border-b border-gray-700 pb-2">
@@ -690,8 +1145,10 @@
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg></button>
             </div>
-            <div id="thoughts-content"
-                class="overflow-y-auto flex-grow text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2 custom-scrollbar">
+            <div class="ui-scroll-host flex-grow overflow-hidden">
+                <div id="thoughts-content"
+                    class="h-full overflow-y-auto ui-scroll-viewport text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2">
+                </div>
             </div>
         </div>
     </div>
@@ -735,10 +1192,10 @@
         </div>
     </div>
 
-    <div id="settings-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
+    <div id="settings-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-700">
             <div class="flex justify-between items-center mb-6">
-                <h2 class="text-xl font-bold">設定</h2>
+                <h2 id="settings-title" class="text-xl font-bold">設定</h2>
                 <button id="settings-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="24" height="24"
                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
                         <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -746,7 +1203,8 @@
                     </svg></button>
             </div>
 
-            <div class="settings-scroll custom-scrollbar pr-1">
+            <div class="ui-scroll-host">
+                <div class="settings-scroll ui-scroll-viewport pr-1">
             <div id="image-settings">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
@@ -793,6 +1251,8 @@
             </div>
 
             <div id="video-settings" class="settings-panel hidden">
+                <p class="settings-group">生成方式</p>
+
                 <div>
                     <label class="field-label" for="video-task">影片來源</label>
                     <select id="video-task" class="field-input">
@@ -802,6 +1262,14 @@
                         <option value="reference">參考圖角色／場景一致</option>
                     </select>
                 </div>
+
+                <div>
+                    <label class="field-label" for="video-duration">影片長度 <span id="video-duration-value"
+                            class="text-blue-400 font-mono">8</span> 秒</label>
+                    <input type="range" id="video-duration" class="ios-range" min="3" max="10" step="1" value="8">
+                </div>
+
+                <p class="settings-group">鏡頭語言</p>
 
                 <div>
                     <label class="field-label" for="video-camera">鏡頭運動</label>
@@ -839,6 +1307,8 @@
                     </select>
                 </div>
 
+                <p class="settings-group">畫面質感</p>
+
                 <div>
                     <label class="field-label" for="video-style">視覺風格</label>
                     <select id="video-style" class="field-input">
@@ -849,7 +1319,7 @@
                         <option value="anime">日系動畫</option>
                         <option value="3d">3D 動畫</option>
                         <option value="claymation">黏土定格</option>
-                        <option value="noir">黑白film noir</option>
+                        <option value="noir">黑白 Film Noir</option>
                         <option value="vintage">復古膠卷</option>
                     </select>
                 </div>
@@ -883,16 +1353,12 @@
                     <input type="text" id="video-negative" class="field-input" placeholder="例如：文字浮水印、變形的手">
                 </div>
 
-                <div>
-                    <label class="field-label" for="video-duration">長度 <span id="video-duration-value"
-                            class="text-blue-400 font-mono">8</span> 秒</label>
-                    <input type="range" id="video-duration" class="aki-range" min="3" max="10" step="1" value="8">
-                </div>
-
-                <p class="text-[11px] text-gray-500 leading-relaxed">影片生成需要數分鐘，請勿關閉分頁。單次 3–10 秒，可反覆延伸至最長 40 秒。</p>
+                <p class="settings-hint">影片生成需要數分鐘，請勿關閉分頁。單次 3–10 秒，生成後可用畫面右上角的箭頭反覆延伸，最長 40 秒。</p>
             </div>
 
             <div id="music-settings" class="settings-panel hidden">
+                <p class="settings-group">演唱</p>
+
                 <div>
                     <label class="field-label" for="music-vocals">人聲</label>
                     <select id="music-vocals" class="field-input">
@@ -917,6 +1383,8 @@
                     </select>
                 </div>
 
+                <p class="settings-group">編曲</p>
+
                 <div>
                     <label class="field-label" for="music-genre">曲風</label>
                     <input type="text" id="music-genre" class="field-input" placeholder="例如：City Pop、抒情搖滾、Lo-fi">
@@ -935,29 +1403,32 @@
                 <div>
                     <label class="field-label" for="music-bpm">速度 <span id="music-bpm-value"
                             class="text-blue-400 font-mono">100</span> BPM</label>
-                    <input type="range" id="music-bpm" class="aki-range" min="60" max="200" step="1" value="100">
+                    <input type="range" id="music-bpm" class="ios-range" min="60" max="200" step="1" value="100">
                 </div>
 
                 <div>
-                    <label class="field-label" for="music-duration">長度 約 <span id="music-duration-value"
+                    <label class="field-label" for="music-duration">歌曲長度 約 <span id="music-duration-value"
                             class="text-blue-400 font-mono">120</span> 秒</label>
-                    <input type="range" id="music-duration" class="aki-range" min="30" max="300" step="10" value="120">
+                    <input type="range" id="music-duration" class="ios-range" min="30" max="300" step="10" value="120">
                 </div>
+
+                <p class="settings-group">歌詞</p>
 
                 <div>
                     <label class="field-label" for="music-lyrics">自訂歌詞（留空由 AI 創作）</label>
-                    <textarea id="music-lyrics" rows="4" class="field-input custom-scrollbar resize-none"
+                    <textarea id="music-lyrics" rows="4" class="field-input scrollbar-hide resize-none"
                         placeholder="[Verse]&#10;第一段歌詞...&#10;&#10;[Chorus]&#10;副歌..."></textarea>
                 </div>
 
-                <p class="text-[11px] text-gray-500 leading-relaxed">可上傳圖片作為靈感來源；生成的歌詞與段落結構會顯示在閃電按鈕內。</p>
+                <p class="settings-hint">可上傳圖片作為靈感來源；AI 寫出的歌詞與段落結構，會顯示在畫面右上角的閃電按鈕內。</p>
             </div>
+                </div>
             </div>
 
         </div>
     </div>
 
-    <div id="ratio-modal" class="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4 hidden">
+    <div id="ratio-modal" class="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4 hidden">
         <div class="bg-gray-800 rounded-2xl shadow-xl p-6 w-full max-w-md border border-gray-700">
             <div class="flex justify-between items-center mb-6">
                 <h2 class="text-xl font-bold">尺寸與比例</h2>
@@ -2399,6 +2870,7 @@
         function setActiveTab(tab) {
             activeTab = tab;
             mediaTabs.forEach((btn) => btn.classList.toggle('active', btn.dataset.tab === tab));
+            syncTabChrome(tab);
             promptTextarea.placeholder = TAB_PLACEHOLDER[tab] || TAB_PLACEHOLDER.image;
 
             imageSettings.classList.toggle('hidden', tab !== 'image');
@@ -2415,28 +2887,45 @@
 
         mediaTabs.forEach((btn) => { btn.onclick = () => setActiveTab(btn.dataset.tab); });
 
-        function syncRange(input, label) {
-            const min = parseFloat(input.min);
-            const max = parseFloat(input.max);
-            const percent = max > min ? ((parseFloat(input.value) - min) / (max - min)) * 100 : 0;
-            input.style.setProperty('--fill', `${percent}%`);
-            if (label) label.textContent = input.value;
+        function syncRangeFill(el) {
+            try {
+                const min = Number(el.min) || 0;
+                const max = Number(el.max) || 100;
+                const span = max - min || 1;
+                const t = (Number(el.value) - min) / span;
+                const width = el.getBoundingClientRect().width || el.clientWidth || 1;
+                const thumb = 16;
+                const fillPx = thumb * 0.5 + t * Math.max(0, width - thumb);
+                const pct = Math.max(0, Math.min(100, (fillPx / width) * 100));
+                el.style.setProperty('--pct', `${pct}%`);
+            } catch (err) {
+                console.error('同步拉桿填色失敗', err);
+            }
         }
 
-        const bpmInput = document.getElementById('music-bpm');
-        const durationInput = document.getElementById('music-duration');
-        const bpmLabel = document.getElementById('music-bpm-value');
-        const durationLabel = document.getElementById('music-duration-value');
+        const rangeRenderers = [];
 
-        bpmInput.oninput = () => syncRange(bpmInput, bpmLabel);
-        durationInput.oninput = () => syncRange(durationInput, durationLabel);
-        syncRange(bpmInput, bpmLabel);
-        syncRange(durationInput, durationLabel);
+        function bindRange(input, label) {
+            if (!input) return null;
+            const render = () => {
+                syncRangeFill(input);
+                if (label) label.textContent = input.value;
+            };
+            input.addEventListener('input', render);
+            input.addEventListener('pointerdown', () => input.classList.add('is-dragging'));
+            window.addEventListener('pointerup', () => input.classList.remove('is-dragging'));
+            rangeRenderers.push(render);
+            render();
+            return render;
+        }
+
+        window.addEventListener('resize', () => rangeRenderers.forEach((fn) => fn()));
 
         const videoDurationInput = document.getElementById('video-duration');
-        const videoDurationLabel = document.getElementById('video-duration-value');
-        videoDurationInput.oninput = () => syncRange(videoDurationInput, videoDurationLabel);
-        syncRange(videoDurationInput, videoDurationLabel);
+
+        bindRange(document.getElementById('music-bpm'), document.getElementById('music-bpm-value'));
+        bindRange(document.getElementById('music-duration'), document.getElementById('music-duration-value'));
+        bindRange(videoDurationInput, document.getElementById('video-duration-value'));
 
         function clearVideoContext() {
             videoContext = null;
@@ -2623,6 +3112,336 @@
 
             await runMediaJob(payload, 150);
         }
+
+        const TAB_SETTINGS_TITLE = {
+            image: '設定',
+            video: '影片設定',
+            music: '音樂設定'
+        };
+
+        function syncTabChrome(tab) {
+            try {
+                const indicator = document.getElementById('media-tab-indicator');
+                const index = Array.from(mediaTabs).findIndex((btn) => btn.dataset.tab === tab);
+                if (indicator && index >= 0) indicator.style.transform = `translateX(${index * 100}%)`;
+                const title = document.getElementById('settings-title');
+                if (title) title.textContent = TAB_SETTINGS_TITLE[tab] || TAB_SETTINGS_TITLE.image;
+            } catch (err) {
+                console.error('分頁樣式同步失敗', err);
+            }
+        }
+
+        function attachUiScrollbar(host, scroller) {
+            if (!host || !scroller || scroller.dataset.uiScrollAttached === '1') return;
+
+            try {
+                scroller.dataset.uiScrollAttached = '1';
+                scroller.classList.add('ui-scroll-viewport');
+                host.classList.add('ui-scroll-host');
+
+                const build = (axis) => {
+                    const bar = document.createElement('div');
+                    bar.className = `ui-scrollbar ui-scrollbar-${axis}`;
+                    const thumb = document.createElement('div');
+                    thumb.className = 'ui-scrollbar-thumb';
+                    bar.appendChild(thumb);
+                    host.appendChild(bar);
+                    return { bar, thumb };
+                };
+
+                const y = build('y');
+                const x = build('x');
+
+                let scrollTimer = null;
+                const markScrolling = () => {
+                    host.classList.add('is-scrolling');
+                    clearTimeout(scrollTimer);
+                    scrollTimer = setTimeout(() => host.classList.remove('is-scrolling'), 700);
+                };
+
+                const sync = () => {
+                    const vh = scroller.clientHeight;
+                    const sh = scroller.scrollHeight;
+                    const vw = scroller.clientWidth;
+                    const sw = scroller.scrollWidth;
+
+                    host.classList.toggle('has-y-scroll', sh > vh + 1);
+                    host.classList.toggle('has-x-scroll', sw > vw + 1);
+
+                    if (sh > vh + 1) {
+                        const track = y.bar.clientHeight;
+                        const size = Math.max(28, (vh / sh) * track);
+                        const max = Math.max(0, sh - vh);
+                        const pos = max ? (scroller.scrollTop / max) * (track - size) : 0;
+                        y.thumb.style.height = `${size}px`;
+                        y.thumb.style.transform = `translateY(${pos}px)`;
+                    }
+
+                    if (sw > vw + 1) {
+                        const track = x.bar.clientWidth;
+                        const size = Math.max(28, (vw / sw) * track);
+                        const max = Math.max(0, sw - vw);
+                        const pos = max ? (scroller.scrollLeft / max) * (track - size) : 0;
+                        x.thumb.style.width = `${size}px`;
+                        x.thumb.style.transform = `translateX(${pos}px)`;
+                    }
+                };
+
+                const bindDrag = ({ bar, thumb }, axis) => {
+                    thumb.addEventListener('pointerdown', (e) => {
+                        if (e.pointerType === 'mouse' && e.button !== 0) return;
+                        e.preventDefault();
+                        e.stopPropagation();
+                        thumb.classList.add('is-dragging');
+                        host.classList.add('is-scrollbar-hover');
+
+                        const startPos = axis === 'y' ? e.clientY : e.clientX;
+                        const startScroll = axis === 'y' ? scroller.scrollTop : scroller.scrollLeft;
+                        const track = axis === 'y' ? bar.clientHeight : bar.clientWidth;
+                        const thumbSize = axis === 'y' ? thumb.offsetHeight : thumb.offsetWidth;
+                        const maxScroll = axis === 'y'
+                            ? Math.max(0, scroller.scrollHeight - scroller.clientHeight)
+                            : Math.max(0, scroller.scrollWidth - scroller.clientWidth);
+                        const maxThumb = Math.max(1, track - thumbSize);
+
+                        const onMove = (ev) => {
+                            const delta = (axis === 'y' ? ev.clientY : ev.clientX) - startPos;
+                            const next = startScroll + (delta / maxThumb) * maxScroll;
+                            if (axis === 'y') scroller.scrollTop = next;
+                            else scroller.scrollLeft = next;
+                            markScrolling();
+                        };
+
+                        const onUp = () => {
+                            thumb.classList.remove('is-dragging');
+                            host.classList.remove('is-scrollbar-hover');
+                            window.removeEventListener('pointermove', onMove);
+                            window.removeEventListener('pointerup', onUp);
+                        };
+
+                        window.addEventListener('pointermove', onMove);
+                        window.addEventListener('pointerup', onUp);
+                    });
+                };
+
+                bindDrag(y, 'y');
+                bindDrag(x, 'x');
+
+                [y.bar, x.bar].forEach((bar) => {
+                    bar.addEventListener('pointerenter', () => host.classList.add('is-scrollbar-hover'));
+                    bar.addEventListener('pointerleave', () => {
+                        if (!y.thumb.classList.contains('is-dragging') && !x.thumb.classList.contains('is-dragging')) {
+                            host.classList.remove('is-scrollbar-hover');
+                        }
+                    });
+                });
+
+                scroller.addEventListener('scroll', () => { sync(); markScrolling(); }, { passive: true });
+
+                if (typeof ResizeObserver !== 'undefined') {
+                    const ro = new ResizeObserver(() => sync());
+                    ro.observe(scroller);
+                    ro.observe(host);
+                }
+
+                sync();
+            } catch (err) {
+                console.error('掛載自訂捲軸失敗', err);
+            }
+        }
+
+        document.querySelectorAll('.ui-scroll-viewport').forEach((viewport) => {
+            attachUiScrollbar(viewport.closest('.ui-scroll-host'), viewport);
+        });
+
+        const CHEVRON_SVG = '<svg class="aki-select-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"></polyline></svg>';
+
+        let openSelect = null;
+
+        function closeOpenSelect() {
+            if (!openSelect) return;
+            openSelect.wrapper.classList.remove('is-open');
+            openSelect.panel.style.display = 'none';
+            openSelect = null;
+        }
+
+        function upgradeSelect(select) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'aki-select';
+            select.parentNode.insertBefore(wrapper, select);
+            wrapper.appendChild(select);
+
+            const trigger = document.createElement('button');
+            trigger.type = 'button';
+            trigger.className = 'aki-select-trigger';
+            const value = document.createElement('span');
+            value.className = 'aki-select-value';
+            trigger.appendChild(value);
+            trigger.insertAdjacentHTML('beforeend', CHEVRON_SVG);
+            wrapper.appendChild(trigger);
+
+            const panel = document.createElement('div');
+            panel.className = 'aki-select-panel';
+            panel.style.display = 'none';
+            const scrollHost = document.createElement('div');
+            const scroll = document.createElement('div');
+            scroll.className = 'aki-select-scroll';
+            scrollHost.appendChild(scroll);
+            panel.appendChild(scrollHost);
+            document.body.appendChild(panel);
+
+            const options = Array.from(select.options).map((option) => {
+                const item = document.createElement('button');
+                item.type = 'button';
+                item.className = 'aki-select-option';
+                item.textContent = option.textContent;
+                item.dataset.value = option.value;
+                item.onclick = () => {
+                    select.value = option.value;
+                    select.dispatchEvent(new Event('change', { bubbles: true }));
+                    render();
+                    closeOpenSelect();
+                };
+                scroll.appendChild(item);
+                return item;
+            });
+
+            const render = () => {
+                const selected = select.options[select.selectedIndex];
+                value.textContent = selected ? selected.textContent : '請選擇';
+                value.classList.toggle('is-placeholder', !selected);
+                options.forEach((item) => item.classList.toggle('is-selected', item.dataset.value === select.value));
+            };
+
+            const place = () => {
+                const rect = trigger.getBoundingClientRect();
+                panel.style.width = `${rect.width}px`;
+                panel.style.left = `${rect.left}px`;
+                const height = panel.offsetHeight;
+                const below = window.innerHeight - rect.bottom;
+                if (below < height + 12 && rect.top > height + 12) {
+                    panel.style.top = `${rect.top - height - 6}px`;
+                } else {
+                    panel.style.top = `${rect.bottom + 6}px`;
+                }
+            };
+
+            trigger.onclick = (e) => {
+                e.stopPropagation();
+                const wasOpen = openSelect && openSelect.wrapper === wrapper;
+                closeOpenSelect();
+                if (wasOpen) return;
+                render();
+                panel.style.display = 'block';
+                openSelect = { wrapper, panel };
+                wrapper.classList.add('is-open');
+                place();
+                const active = scroll.querySelector('.is-selected');
+                if (active) active.scrollIntoView({ block: 'nearest' });
+            };
+
+            attachUiScrollbar(scrollHost, scroll);
+            render();
+        }
+
+        document.querySelectorAll('select.field-input').forEach((select) => {
+            try {
+                upgradeSelect(select);
+            } catch (err) {
+                console.error('下拉選單升級失敗', err);
+            }
+        });
+
+        document.addEventListener('click', closeOpenSelect);
+        window.addEventListener('resize', closeOpenSelect);
+        window.addEventListener('scroll', closeOpenSelect, true);
+
+        const audioPlayBtn = document.getElementById('audio-play');
+        const audioIconPlay = document.getElementById('audio-icon-play');
+        const audioIconPause = document.getElementById('audio-icon-pause');
+        const audioSeek = document.getElementById('audio-seek');
+        const audioCurrent = document.getElementById('audio-current');
+        const audioTotal = document.getElementById('audio-total');
+
+        function formatTime(seconds) {
+            if (!Number.isFinite(seconds) || seconds < 0) return '0:00';
+            const total = Math.floor(seconds);
+            return `${Math.floor(total / 60)}:${String(total % 60).padStart(2, '0')}`;
+        }
+
+        if (resultAudio && audioPlayBtn) {
+            let seeking = false;
+
+            audioPlayBtn.onclick = () => {
+                if (resultAudio.paused) resultAudio.play().catch((err) => console.error('播放失敗', err));
+                else resultAudio.pause();
+            };
+
+            const setPlayingState = (playing) => {
+                audioIconPlay.classList.toggle('hidden', playing);
+                audioIconPause.classList.toggle('hidden', !playing);
+                audioPlayBtn.setAttribute('aria-label', playing ? '暫停' : '播放');
+                resultAudioCard.classList.toggle('is-playing', playing);
+            };
+
+            resultAudio.addEventListener('play', () => setPlayingState(true));
+            resultAudio.addEventListener('pause', () => setPlayingState(false));
+            resultAudio.addEventListener('ended', () => {
+                setPlayingState(false);
+                resultAudio.currentTime = 0;
+                audioSeek.value = 0;
+                syncRangeFill(audioSeek);
+                audioCurrent.textContent = '0:00';
+            });
+
+            resultAudio.addEventListener('loadedmetadata', () => {
+                audioTotal.textContent = formatTime(resultAudio.duration);
+                audioSeek.max = Number.isFinite(resultAudio.duration) ? resultAudio.duration : 100;
+                audioSeek.value = 0;
+                syncRangeFill(audioSeek);
+            });
+
+            resultAudio.addEventListener('timeupdate', () => {
+                if (seeking) return;
+                audioCurrent.textContent = formatTime(resultAudio.currentTime);
+                audioSeek.value = resultAudio.currentTime;
+                syncRangeFill(audioSeek);
+            });
+
+            audioSeek.addEventListener('input', () => {
+                seeking = true;
+                audioCurrent.textContent = formatTime(Number(audioSeek.value));
+                syncRangeFill(audioSeek);
+            });
+
+            audioSeek.addEventListener('change', () => {
+                seeking = false;
+                resultAudio.currentTime = Number(audioSeek.value);
+            });
+
+            audioSeek.addEventListener('pointerdown', () => audioSeek.classList.add('is-dragging'));
+            window.addEventListener('pointerup', () => audioSeek.classList.remove('is-dragging'));
+        }
+
+        const dismissibleModals = ['settings-modal', 'ratio-modal', 'thoughts-modal', 'fullscreen-modal'];
+
+        dismissibleModals.forEach((id) => {
+            const modal = document.getElementById(id);
+            if (!modal) return;
+            modal.addEventListener('mousedown', (e) => {
+                if (e.target === modal) modal.classList.add('hidden');
+            });
+        });
+
+        document.addEventListener('keydown', (e) => {
+            if (e.key !== 'Escape') return;
+            if (openSelect) return closeOpenSelect();
+            const modal = dismissibleModals
+                .map((id) => document.getElementById(id))
+                .filter((el) => el && !el.classList.contains('hidden'))
+                .pop();
+            if (modal) modal.classList.add('hidden');
+        });
 
         setActiveTab('image');
 
