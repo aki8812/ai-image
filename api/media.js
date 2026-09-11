@@ -8,9 +8,12 @@ const {
     gcsOutputPrefix
 } = require("./_vertex.js");
 
-const VIDEO_MODEL = "gemini-omni-flash-preview";
+const VIDEO_MODEL = "gemini-omni-1.1-flash";
 
-const MUSIC_MODEL = "lyria-3-pro-preview";
+const MUSIC_MODELS = {
+    clip: { id: "lyria-3-clip-preview", maxSeconds: 30, mode: "generate-lyria-clip" },
+    pro: { id: "lyria-3-pro-preview", maxSeconds: 180, mode: "generate-lyria-pro" }
+};
 
 const VIDEO_TASKS = {
     "text-to-video": "text_to_video",
@@ -19,55 +22,6 @@ const VIDEO_TASKS = {
     reference: "reference_to_video",
     extend: "extend",
     edit: "extend"
-};
-
-const CAMERA_PRESETS = {
-    "push-in": "the camera slowly pushes in toward the subject",
-    "pull-out": "the camera slowly pulls back away from the subject",
-    "pan-left": "the camera pans smoothly to the left",
-    "pan-right": "the camera pans smoothly to the right",
-    "tilt-up": "the camera tilts upward",
-    "tilt-down": "the camera tilts downward",
-    "orbit": "the camera orbits around the subject in a smooth arc",
-    "crane-up": "a crane shot rising high above the scene",
-    "dolly-zoom": "a dolly zoom vertigo effect centred on the subject",
-    "handheld": "handheld documentary camera with subtle natural shake",
-    "drone": "a sweeping aerial drone shot",
-    "static": "a locked-off static tripod shot",
-    "follow": "the camera tracks and follows the subject from behind"
-};
-
-const SHOT_PRESETS = {
-    "close-up": "close-up shot",
-    "medium": "medium shot",
-    "wide": "wide establishing shot",
-    "extreme-wide": "extreme wide landscape shot",
-    "macro": "macro detail shot",
-    "over-shoulder": "over-the-shoulder shot",
-    "low-angle": "low angle shot looking up",
-    "high-angle": "high angle shot looking down",
-    "pov": "first person point-of-view shot"
-};
-
-const STYLE_PRESETS = {
-    cinematic: "cinematic film look, shallow depth of field, anamorphic lens, 35mm film grain",
-    documentary: "natural documentary realism, available light",
-    anime: "hand-drawn Japanese anime style, cel shaded",
-    "3d": "stylised 3D animated feature film render",
-    claymation: "stop-motion claymation with visible fingerprints",
-    noir: "high contrast black and white film noir",
-    vintage: "vintage 1970s film stock, warm faded colours",
-    hyperreal: "hyper realistic, ultra detailed, photographic"
-};
-
-const LIGHTING_PRESETS = {
-    golden: "golden hour sunlight with long warm shadows",
-    blue: "blue hour twilight with cool ambient tones",
-    neon: "neon night lighting with saturated colour reflections",
-    soft: "soft diffused studio lighting",
-    hard: "hard directional key light with deep shadows",
-    backlit: "strong backlight creating a rim glow",
-    overcast: "flat overcast daylight"
 };
 
 const MAX_WAIT_MS = 40000;
@@ -90,7 +44,14 @@ const handler = async (req, res) => {
     }
 };
 
-const preset = (table, key) => (key && table[key]) || "";
+const musicModel = (body) => MUSIC_MODELS[body.model] || MUSIC_MODELS.pro;
+
+const clampVideoSeconds = (value) => Math.min(10, Math.max(3, parseInt(value, 10) || 8));
+
+const clampMusicSeconds = (body) => {
+    const limit = musicModel(body).maxSeconds;
+    return Math.min(limit, Math.max(10, parseInt(body.duration, 10) || limit));
+};
 
 const buildVideoPrompt = (body) => {
     const images = Array.isArray(body.images) ? body.images : [];
@@ -109,21 +70,6 @@ const buildVideoPrompt = (body) => {
     const scene = String(body.prompt || "").trim();
     if (!scene && task !== "extend") throw new Error("請先輸入影片描述");
     if (scene) segments.push(scene);
-
-    const looks = [
-        preset(SHOT_PRESETS, body.shot),
-        preset(CAMERA_PRESETS, body.camera),
-        preset(STYLE_PRESETS, body.style),
-        preset(LIGHTING_PRESETS, body.lighting)
-    ].filter(Boolean);
-
-    if (looks.length > 0) segments.push(`Cinematography: ${looks.join("; ")}.`);
-
-    if (body.audio === "silent") segments.push("Audio: ambient only, no dialogue and no music.");
-    else if (body.audio === "dialogue") segments.push("Audio: include natural spoken dialogue for the characters.");
-    else if (body.audio === "score") segments.push("Audio: include a fitting instrumental score and sound effects.");
-
-    if (body.negative) segments.push(`Do not include: ${String(body.negative).trim()}.`);
 
     return segments.join("\n");
 };
@@ -146,19 +92,18 @@ const buildVideoRequest = (body) => {
         });
     }
 
-    const seconds = Math.min(10, Math.max(3, parseInt(body.duration, 10) || 8));
+    const output = { type: "video", delivery: "uri", gcs_uri: gcsOutputPrefix("video") };
+
+    if (!follow) {
+        output.aspect_ratio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
+        output.resolution = ["720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p";
+        output.duration = `${clampVideoSeconds(body.duration)}s`;
+    }
 
     return {
         model: VIDEO_MODEL,
         input,
-        response_format: [{
-            type: "video",
-            delivery: "uri",
-            gcs_uri: gcsOutputPrefix("video"),
-            aspect_ratio: body.aspectRatio === "9:16" ? "9:16" : "16:9",
-            resolution: ["720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p",
-            duration: `${seconds}s`
-        }],
+        response_format: [output],
         generation_config: { video_config: { task: VIDEO_TASKS[task] || "text_to_video" } },
         background: true
     };
@@ -170,20 +115,14 @@ const buildMusicRequest = (body) => {
 
     const details = [];
     if (body.genre) details.push(`Genre: ${body.genre}`);
-    if (body.mood) details.push(`Mood: ${body.mood}`);
-    if (body.instruments) details.push(`Instrumentation: ${body.instruments}`);
-    if (body.bpm) details.push(`Tempo: around ${parseInt(body.bpm, 10) || 100} BPM`);
-    if (body.key) details.push(`Key: ${body.key}`);
     if (body.language) details.push(`Vocal language: ${body.language}`);
 
     if (body.vocals === "instrumental") details.push("Instrumental only, absolutely no vocals");
     else if (body.vocals) details.push(`Vocals: ${body.vocals}`);
 
-    const seconds = parseInt(body.duration, 10);
-    if (seconds > 0) details.push(`Target length: about ${seconds} seconds`);
+    details.push(`Target length: about ${clampMusicSeconds(body)} seconds`);
 
-    const segments = [scene];
-    if (details.length > 0) segments.push(details.join("\n"));
+    const segments = [scene, details.join("\n")];
     if (body.lyrics) segments.push(`Use these lyrics, keeping the section markers:\n${String(body.lyrics).trim()}`);
     else if (body.vocals !== "instrumental") segments.push("Write original lyrics and label each section with markers such as [Verse] and [Chorus].");
     segments.push("Before the audio, output the final lyrics and a timecoded structure outline.");
@@ -194,24 +133,27 @@ const buildMusicRequest = (body) => {
         input.push({ type: "image", data: item.base64Data, mime_type: item.mimeType || "image/png" });
     });
 
-    return { model: MUSIC_MODEL, input };
+    return { model: musicModel(body).id, input };
 };
 
-const videoMeta = (body) => ({
-    type: "video",
-    prompt: body.prompt,
-    aspectRatio: body.aspectRatio === "9:16" ? "9:16" : "16:9",
-    size: body.resolution || "720p",
-    duration: `${Math.min(10, Math.max(3, parseInt(body.duration, 10) || 8))} 秒`,
-    mode: "generate-omni"
-});
+const videoMeta = (body) => {
+    const follow = body.task === "extend" || body.task === "edit";
+    return {
+        type: "video",
+        prompt: body.prompt,
+        aspectRatio: body.aspectRatio === "9:16" ? "9:16" : "16:9",
+        size: body.resolution || "720p",
+        duration: follow ? "已延伸" : `${clampVideoSeconds(body.duration)} 秒`,
+        mode: "generate-omni"
+    };
+};
 
 const musicMeta = (body) => ({
     type: "audio",
     prompt: body.prompt,
     aspectRatio: "-",
-    size: `約 ${parseInt(body.duration, 10) || 120} 秒`,
-    mode: "generate-lyria"
+    size: `約 ${clampMusicSeconds(body)} 秒`,
+    mode: musicModel(body).mode
 });
 
 const startJob = async (payload, meta) => {
@@ -292,21 +234,12 @@ const extractContent = (interaction) => {
     return { blocks, text: texts.join("\n").trim() };
 };
 
-const describeShape = (node, depth = 0) => {
-    if (node === null || node === undefined) return "null";
-    if (Array.isArray(node)) return depth > 3 ? "[...]" : `[${node.slice(0, 3).map((item) => describeShape(item, depth + 1)).join(",")}]`;
-    if (typeof node !== "object") return typeof node === "string" ? `"${node.substring(0, 40)}"` : String(node);
-    if (depth > 3) return "{...}";
-    return `{${Object.entries(node).map(([key, value]) => `${key}:${describeShape(value, depth + 1)}`).join(",")}}`;
-};
-
 const finalize = async (interaction, meta) => {
     const { blocks, text } = extractContent(interaction);
     const label = meta.type === "audio" ? "音樂" : "影片";
 
     if (blocks.length === 0) {
-        if (text) throw new Error(`模型未輸出${label}：${text.substring(0, 300)}`);
-        throw new Error(`模型未輸出${label}。回應結構：${describeShape(interaction).substring(0, 600)}`);
+        throw new Error(text ? `模型未輸出${label}：${text.substring(0, 300)}` : `模型未輸出${label}，請調整描述後再試一次`);
     }
 
     const items = [];

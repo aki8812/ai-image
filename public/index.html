@@ -403,7 +403,6 @@
 
         .aki-select.is-open .aki-select-trigger {
             border-color: #3b82f6;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.22);
         }
 
         .aki-select-trigger svg {
@@ -698,7 +697,170 @@
         #settings-modal .settings-scroll {
             max-height: 68vh;
             overflow-y: auto;
+            overflow-x: hidden;
         }
+
+        #thoughts-content {
+            overflow-x: hidden;
+        }
+
+        .video-player {
+            position: absolute;
+            left: 50%;
+            bottom: 0.9rem;
+            transform: translateX(-50%);
+            width: calc(100% - 2rem);
+            max-width: 30rem;
+            display: flex;
+            align-items: center;
+            gap: 0.55rem;
+            padding: 0.45rem 0.7rem;
+            background: rgba(17, 24, 39, 0.72);
+            border: 1px solid rgba(148, 163, 184, 0.22);
+            border-radius: 999px;
+            backdrop-filter: blur(8px);
+            z-index: 25;
+            opacity: 0;
+            transition: opacity 0.18s ease;
+        }
+
+        .video-player.is-modal {
+            bottom: 3.6rem;
+        }
+
+        .video-player.is-idle,
+        .video-player:hover,
+        .video-player:focus-within,
+        .group:hover .video-player {
+            opacity: 1;
+        }
+
+        .video-player.hidden {
+            display: none;
+        }
+
+        .video-player-btn {
+            flex-shrink: 0;
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #e5e7eb;
+            transition: background-color 0.18s ease, transform 0.18s ease;
+        }
+
+        .video-player-btn.is-primary {
+            background: #6366f1;
+            color: #ffffff;
+        }
+
+        .video-player-btn:hover {
+            background: rgba(148, 163, 184, 0.18);
+            transform: scale(1.06);
+        }
+
+        .video-player-btn.is-primary:hover {
+            background: #818cf8;
+        }
+
+        .video-player .ios-range {
+            --fill: #818cf8;
+            --track: rgba(148, 163, 184, 0.32);
+            flex-grow: 1;
+            width: auto;
+        }
+
+        .video-player .audio-time {
+            color: #c7d2fe;
+        }
+
+        #result-video,
+        #modal-video {
+            cursor: pointer;
+        }
+
+        #aki-tip {
+            position: fixed;
+            z-index: 200;
+            padding: 7px 12px;
+            border-radius: 10px;
+            background: #2b3648;
+            border: 1px solid rgba(148, 163, 184, 0.28);
+            color: #e5e7eb;
+            font-size: 12px;
+            line-height: 1.2;
+            white-space: nowrap;
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+            pointer-events: none;
+            opacity: 0;
+            transform: translateY(4px);
+            transition: opacity 0.15s ease, transform 0.15s ease;
+        }
+
+        #aki-tip.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .lyric-intro {
+            color: #9ca3af;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            margin-bottom: 0.9rem;
+        }
+
+        .lyric-section {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.4rem;
+            margin: 1rem 0 0.45rem;
+            padding: 0.2rem 0.65rem;
+            border-radius: 999px;
+            background: rgba(99, 102, 241, 0.16);
+            border: 1px solid rgba(129, 140, 248, 0.35);
+            color: #c7d2fe;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.04em;
+        }
+
+        .lyric-section:first-child {
+            margin-top: 0;
+        }
+
+        .lyric-line {
+            display: flex;
+            align-items: baseline;
+            gap: 0.7rem;
+            padding: 0.2rem 0;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            color: #e5e7eb;
+            font-size: 0.9rem;
+        }
+
+        .lyric-time {
+            flex-shrink: 0;
+            min-width: 2.6rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.7rem;
+            color: #818cf8;
+            text-align: right;
+            border-radius: 0.35rem;
+            padding: 0.05rem 0.3rem;
+            transition: background-color 0.15s ease, color 0.15s ease;
+        }
+
+        button.lyric-time:hover {
+            background: rgba(129, 140, 248, 0.18);
+            color: #c7d2fe;
+        }
+
+        .lyric-line.is-continued .lyric-time {
+            visibility: hidden;
+        }
+
+
 
         #settings-modal:not(.hidden)>div,
         #ratio-modal:not(.hidden)>div,
@@ -875,7 +1037,7 @@
                 <img id="result-image" src="" alt="生成的圖片"
                     class="w-full h-full object-contain image-transition opacity-0 z-0 relative z-0">
 
-                <video id="result-video" playsinline controls preload="metadata"
+                <video id="result-video" playsinline preload="metadata"
                     class="w-full h-full object-contain image-transition opacity-0 relative z-0 hidden"></video>
 
                 <div id="result-audio-card"
@@ -924,7 +1086,7 @@
                             <p id="meta-prompt"
                                 class="text-xs text-gray-200 line-clamp-2 opacity-90 font-medium font-sans leading-snug drop-shadow-sm">
                             </p>
-                            <button id="copy-prompt-btn" onclick="copyCurrentPrompt(this)"
+                            <button id="copy-prompt-btn" onclick="copyCurrentPrompt(this)" data-tip="複製提示詞"
                                 class="flex-shrink-0 bg-white/20 hover:bg-white/40 text-white p-1.5 rounded transition backdrop-blur-sm shadow-sm pointer-events-auto">
                                 <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24"
                                     fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"
@@ -936,14 +1098,14 @@
                         </div>
                     </div>
                     <div class="flex gap-2 pointer-events-auto">
-                        <button id="lightning-thoughts-btn"
+                        <button id="lightning-thoughts-btn" data-tip="思考過程"
                             class="bg-yellow-500/90 text-white rounded-full p-2 hover:bg-yellow-400 transition backdrop-blur-sm hidden shadow-lg shadow-yellow-500/20">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="currentColor" stroke="none">
                                 <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                             </svg>
                         </button>
-                        <button id="video-extend-btn" title="延伸這段影片"
+                        <button id="video-extend-btn" data-tip="延伸影片（+10 秒）"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -952,7 +1114,7 @@
                                 <polyline points="6 17 11 12 6 7"></polyline>
                             </svg>
                         </button>
-                        <button id="video-edit-btn" title="用文字編輯這段影片"
+                        <button id="video-edit-btn" data-tip="用文字編輯影片"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm hidden">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -961,7 +1123,7 @@
                                 <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"></path>
                             </svg>
                         </button>
-                        <button id="copy-image-btn" onclick="copyCurrentImage(this)"
+                        <button id="copy-image-btn" onclick="copyCurrentImage(this)" data-tip="複製圖片"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm">
                             <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -970,7 +1132,7 @@
                                 <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
                             </svg>
                         </button>
-                        <button id="download-btn"
+                        <button id="download-btn" data-tip="下載"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg
                                 xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -979,7 +1141,7 @@
                                 <polyline points="7 10 12 15 17 10"></polyline>
                                 <line x1="12" y1="15" x2="12" y2="3"></line>
                             </svg></button>
-                        <button id="fullscreen-btn"
+                        <button id="fullscreen-btn" data-tip="全螢幕"
                             class="bg-black/50 text-white rounded-full p-2 hover:bg-black/75 transition backdrop-blur-sm"><svg
                                 xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -994,7 +1156,7 @@
 
             <div id="history-gallery-section"
                 class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
-                <button id="clear-history-btn"
+                <button id="clear-history-btn" data-tip="清除全部紀錄"
                     class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg
                         xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -1010,13 +1172,13 @@
             </div>
 
             <div id="gallery-nav" class="flex justify-between items-center px-2">
-                <button id="nav-left" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg
+                <button id="nav-left" data-tip="上一個" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="15 18 9 12 15 6"></polyline>
                     </svg></button>
                 <span id="image-counter" class="text-sm text-gray-400 font-mono">0 / 0</span>
-                <button id="nav-right" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg
+                <button id="nav-right" data-tip="下一個" class="p-2 rounded-full hover:bg-gray-800 transition active:scale-90"><svg
                         xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <polyline points="9 18 15 12 9 6"></polyline>
@@ -1036,7 +1198,7 @@
                         <rect x="3" y="3" width="18" height="18" rx="2"></rect>
                         <circle cx="8.5" cy="8.5" r="1.5"></circle>
                         <polyline points="21 15 16 10 5 21"></polyline>
-                    </svg>影像
+                    </svg>圖片
                 </button>
                 <button type="button" class="media-tab" data-tab="video">
                     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -1080,7 +1242,7 @@
 
                 <div class="flex justify-between items-center w-full px-2">
                     <div class="flex gap-2 items-center">
-                        <button id="upload-btn-1"
+                        <button id="upload-btn-1" data-tip="上傳圖片"
                             class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition relative">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
@@ -1094,7 +1256,7 @@
                         <input type="file" id="image-upload-1" accept="image/png, image/jpeg, image/webp" class="hidden"
                             multiple>
 
-                        <button id="ratio-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
+                        <button id="ratio-btn" data-tip="比例與解析度" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
@@ -1102,7 +1264,7 @@
                             </svg>
                         </button>
 
-                        <button id="settings-btn" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
+                        <button id="settings-btn" data-tip="設定" class="flex-shrink-0 p-3 rounded-full hover:bg-gray-700 transition">
                             <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24"
                                 fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
                                 stroke-linejoin="round">
@@ -1137,7 +1299,7 @@
                         viewBox="0 0 24 24">
                         <path d="M13 10V3L4 14h7v7l9-11h-7z" />
                     </svg>
-                    <h2 class="text-lg font-bold text-gray-100">Gemini 思考過程</h2>
+                    <h2 id="thoughts-title" class="text-lg font-bold text-gray-100">Gemini 思考過程</h2>
                 </div>
                 <button id="thoughts-close-btn" class="p-1 rounded-full hover:bg-gray-700"><svg width="20" height="20"
                         viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
@@ -1145,9 +1307,9 @@
                         <line x1="6" y1="6" x2="18" y2="18"></line>
                     </svg></button>
             </div>
-            <div class="ui-scroll-host flex-grow overflow-hidden">
+            <div class="ui-scroll-host flex-grow overflow-hidden -mr-6">
                 <div id="thoughts-content"
-                    class="h-full overflow-y-auto ui-scroll-viewport text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-2">
+                    class="h-full overflow-y-auto ui-scroll-viewport text-gray-300 font-mono text-sm leading-relaxed whitespace-pre-wrap pr-6">
                 </div>
             </div>
         </div>
@@ -1162,7 +1324,7 @@
                     <line x1="18" y1="6" x2="6" y2="18"></line>
                     <line x1="6" y1="6" x2="18" y2="18"></line>
                 </svg></button>
-            <button id="modal-download-btn"
+            <button id="modal-download-btn" data-tip="下載"
                 class="absolute -top-2 right-10 md:top-2 md:right-14 z-10 bg-white text-black rounded-full p-1.5 hover:bg-gray-200 transition"><svg
                     xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none"
                     stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
@@ -1187,7 +1349,7 @@
                 0 / 0</div>
 
             <img id="modal-image" src="" class="max-w-full max-h-full object-contain rounded-lg">
-            <video id="modal-video" playsinline controls preload="metadata"
+            <video id="modal-video" playsinline preload="metadata"
                 class="max-w-full max-h-full object-contain rounded-lg hidden"></video>
         </div>
     </div>
@@ -1203,8 +1365,8 @@
                     </svg></button>
             </div>
 
-            <div class="ui-scroll-host">
-                <div class="settings-scroll ui-scroll-viewport pr-1">
+            <div class="ui-scroll-host -mr-6">
+                <div class="settings-scroll ui-scroll-viewport pr-6">
             <div id="image-settings">
             <div class="mb-4">
                 <label class="block text-sm font-medium text-gray-300 mb-3">生成模式</label>
@@ -1264,99 +1426,39 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="video-duration">影片長度 <span id="video-duration-value"
-                            class="text-blue-400 font-mono">8</span> 秒</label>
-                    <input type="range" id="video-duration" class="ios-range" min="3" max="10" step="1" value="8">
+                    <label class="field-label" for="video-duration">影片長度（秒）</label>
+                    <div class="flex items-center w-full bg-gray-700 border border-gray-600 rounded-lg overflow-hidden">
+                        <button id="video-dur-dec" type="button"
+                            class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition w-12 flex justify-center items-center">-</button>
+                        <input type="number" id="video-duration" value="8" min="3" max="10"
+                            class="flex-grow bg-transparent text-center text-white outline-none" readonly>
+                        <button id="video-dur-inc" type="button"
+                            class="px-4 py-2 bg-gray-600 hover:bg-gray-500 text-white font-bold transition w-12 flex justify-center items-center">+</button>
+                    </div>
                 </div>
 
-                <p class="settings-group">鏡頭語言</p>
-
-                <div>
-                    <label class="field-label" for="video-camera">鏡頭運動</label>
-                    <select id="video-camera" class="field-input">
-                        <option value="">自動</option>
-                        <option value="static">固定鏡頭</option>
-                        <option value="push-in">推近</option>
-                        <option value="pull-out">拉遠</option>
-                        <option value="pan-left">左搖</option>
-                        <option value="pan-right">右搖</option>
-                        <option value="tilt-up">上仰</option>
-                        <option value="tilt-down">下俯</option>
-                        <option value="orbit">環繞</option>
-                        <option value="crane-up">升降機上升</option>
-                        <option value="dolly-zoom">滑動變焦</option>
-                        <option value="handheld">手持晃動</option>
-                        <option value="drone">空拍</option>
-                        <option value="follow">跟拍</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="field-label" for="video-shot">景別</label>
-                    <select id="video-shot" class="field-input">
-                        <option value="">自動</option>
-                        <option value="macro">微距</option>
-                        <option value="close-up">特寫</option>
-                        <option value="medium">中景</option>
-                        <option value="wide">遠景</option>
-                        <option value="extreme-wide">大遠景</option>
-                        <option value="over-shoulder">過肩</option>
-                        <option value="low-angle">低角度</option>
-                        <option value="high-angle">高角度</option>
-                        <option value="pov">第一人稱視角</option>
-                    </select>
-                </div>
-
-                <p class="settings-group">畫面質感</p>
-
-                <div>
-                    <label class="field-label" for="video-style">視覺風格</label>
-                    <select id="video-style" class="field-input">
-                        <option value="">自動</option>
-                        <option value="cinematic">電影感</option>
-                        <option value="hyperreal">超寫實</option>
-                        <option value="documentary">紀錄片</option>
-                        <option value="anime">日系動畫</option>
-                        <option value="3d">3D 動畫</option>
-                        <option value="claymation">黏土定格</option>
-                        <option value="noir">黑白 Film Noir</option>
-                        <option value="vintage">復古膠卷</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="field-label" for="video-lighting">光線</label>
-                    <select id="video-lighting" class="field-input">
-                        <option value="">自動</option>
-                        <option value="golden">黃金時刻</option>
-                        <option value="blue">藍調時刻</option>
-                        <option value="neon">霓虹夜景</option>
-                        <option value="soft">柔光棚拍</option>
-                        <option value="hard">硬光強反差</option>
-                        <option value="backlit">逆光輪廓</option>
-                        <option value="overcast">陰天散射</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="field-label" for="video-audio">聲音</label>
-                    <select id="video-audio" class="field-input">
-                        <option value="">自動</option>
-                        <option value="dialogue">含人物對白</option>
-                        <option value="score">含配樂與音效</option>
-                        <option value="silent">僅環境音</option>
-                    </select>
-                </div>
-
-                <div>
-                    <label class="field-label" for="video-negative">不要出現的元素</label>
-                    <input type="text" id="video-negative" class="field-input" placeholder="例如：文字浮水印、變形的手">
-                </div>
-
-                <p class="settings-hint">影片生成需要數分鐘，請勿關閉分頁。單次 3–10 秒，生成後可用畫面右上角的箭頭反覆延伸，最長 40 秒。</p>
+                <p class="settings-hint">單次最多 10 秒（Google 的上限）。生成後點畫面右上角的箭頭可反覆延伸，每次 +10 秒、累計最長 40 秒。</p>
             </div>
 
             <div id="music-settings" class="settings-panel hidden">
+                <p class="settings-group">模型</p>
+
+                <div>
+                    <label class="field-label" for="music-model">Lyria 版本</label>
+                    <select id="music-model" class="field-input">
+                        <option value="pro">Lyria 3 Pro（最長 3 分鐘）</option>
+                        <option value="clip">Lyria 3 Clip（最長 30 秒）</option>
+                    </select>
+                </div>
+
+                <p class="settings-group">歌詞</p>
+
+                <div>
+                    <label class="field-label" for="music-lyrics">自訂歌詞（留空由 AI 創作）</label>
+                    <textarea id="music-lyrics" rows="5" class="field-input scrollbar-hide resize-none"
+                        placeholder="[Verse]&#10;第一段歌詞...&#10;&#10;[Chorus]&#10;副歌..."></textarea>
+                </div>
+
                 <p class="settings-group">演唱</p>
 
                 <div>
@@ -1391,36 +1493,12 @@
                 </div>
 
                 <div>
-                    <label class="field-label" for="music-mood">情緒</label>
-                    <input type="text" id="music-mood" class="field-input" placeholder="例如：溫暖懷舊、激昂熱血">
-                </div>
-
-                <div>
-                    <label class="field-label" for="music-instruments">樂器</label>
-                    <input type="text" id="music-instruments" class="field-input" placeholder="例如：鋼琴、電吉他、弦樂">
-                </div>
-
-                <div>
-                    <label class="field-label" for="music-bpm">速度 <span id="music-bpm-value"
-                            class="text-blue-400 font-mono">100</span> BPM</label>
-                    <input type="range" id="music-bpm" class="ios-range" min="60" max="200" step="1" value="100">
-                </div>
-
-                <div>
                     <label class="field-label" for="music-duration">歌曲長度 約 <span id="music-duration-value"
                             class="text-blue-400 font-mono">120</span> 秒</label>
-                    <input type="range" id="music-duration" class="ios-range" min="30" max="300" step="10" value="120">
+                    <input type="range" id="music-duration" class="ios-range" min="10" max="180" step="10" value="120">
                 </div>
 
-                <p class="settings-group">歌詞</p>
-
-                <div>
-                    <label class="field-label" for="music-lyrics">自訂歌詞（留空由 AI 創作）</label>
-                    <textarea id="music-lyrics" rows="4" class="field-input scrollbar-hide resize-none"
-                        placeholder="[Verse]&#10;第一段歌詞...&#10;&#10;[Chorus]&#10;副歌..."></textarea>
-                </div>
-
-                <p class="settings-hint">可上傳圖片作為靈感來源；AI 寫出的歌詞與段落結構，會顯示在畫面右上角的閃電按鈕內。</p>
+                <p class="settings-hint">可上傳圖片作為靈感來源；AI 寫好的歌詞與時間軸，生成後點畫面右上角的閃電按鈕就能看到。</p>
             </div>
                 </div>
             </div>
@@ -1825,11 +1903,24 @@
 
         lightningThoughtsBtn.onclick = () => {
             const imgData = sessionHistory[currentImageIndex];
-            if (imgData && imgData.thoughts) {
-                thoughtsContent.innerHTML = formatThoughts(imgData.thoughts);
-                thoughtsModal.classList.remove('hidden');
-            }
+            if (!imgData || !imgData.thoughts) return;
+            const isAudio = getMediaType(imgData) === 'audio';
+            document.getElementById('thoughts-title').textContent = isAudio ? '歌詞與時間軸' : 'Gemini 思考過程';
+            thoughtsContent.innerHTML = isAudio ? formatLyricSheet(imgData.thoughts) : formatThoughts(imgData.thoughts);
+            thoughtsContent.scrollTop = 0;
+            thoughtsModal.classList.remove('hidden');
         };
+
+        thoughtsContent.addEventListener('click', (e) => {
+            const btn = e.target.closest('.lyric-time[data-t]');
+            if (!btn) return;
+            try {
+                resultAudio.currentTime = Number(btn.dataset.t) || 0;
+                resultAudio.play().catch((err) => console.error('播放失敗', err));
+            } catch (err) {
+                console.error('跳轉歌詞時間失敗', err);
+            }
+        });
         thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
         thoughtsModal.onclick = (e) => { if (e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
@@ -2237,6 +2328,7 @@
             }
 
             lightningThoughtsBtn.classList.toggle('hidden', !item.thoughts);
+            lightningThoughtsBtn.dataset.tip = getMediaType(item) === 'audio' ? '歌詞與時間軸' : '思考過程';
             toggleVideoActions(item);
         }
 
@@ -2352,6 +2444,48 @@
             modalCounter.textContent = `${index + 1} / ${sessionHistory.length}`;
         }
 
+        function escapeHtml(text) {
+            return String(text).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
+        }
+
+        function formatLyricSheet(text) {
+            if (!text) return '';
+            try {
+                const marker = /\[\[([^\]]+)\]\]|\[(\d+(?:\.\d+)?)?:\]/g;
+                const first = text.search(marker);
+                if (first < 0) return formatThoughts(text);
+
+                const parts = [];
+                const intro = text.slice(0, first).replace(/\*\*/g, '').trim();
+                if (intro) parts.push(`<p class="lyric-intro">${escapeHtml(intro)}</p>`);
+
+                const tokens = [];
+                let match;
+                while ((match = marker.exec(text)) !== null) tokens.push({ match, index: match.index, end: marker.lastIndex });
+
+                const line = (body, stamp) => {
+                    if (stamp === undefined) return `<div class="lyric-line is-continued"><span class="lyric-time"></span><span>${escapeHtml(body)}</span></div>`;
+                    return `<div class="lyric-line"><button type="button" class="lyric-time" data-t="${stamp}" data-tip="從這裡播放">${formatTime(stamp)}</button><span>${escapeHtml(body)}</span></div>`;
+                };
+
+                tokens.forEach((token, i) => {
+                    const body = text.slice(token.end, i + 1 < tokens.length ? tokens[i + 1].index : undefined).replace(/\s+/g, ' ').trim();
+                    const [, section, stamp] = token.match;
+                    if (section) {
+                        parts.push(`<div class="lyric-section">段落 ${escapeHtml(section)}</div>`);
+                        if (body) parts.push(line(body));
+                        return;
+                    }
+                    if (body) parts.push(line(body, stamp === undefined ? undefined : Number(stamp)));
+                });
+
+                return parts.join('');
+            } catch (err) {
+                console.error('解析歌詞失敗', err);
+                return formatThoughts(text);
+            }
+        }
+
         function formatThoughts(text) {
             if (!text) return "";
             let formatted = text.replace(/\*\*(.*?)\*\*/g, '<strong class="text-yellow-400 block mt-4 mb-2 text-lg border-b border-gray-700 pb-1">$1</strong>');
@@ -2364,7 +2498,9 @@
             'generate-nanobanana2': 'NanoBanana 2',
             'generate-nanobanana1': 'NanoBanana 1',
             'generate-omni': 'Omni 1.1 Flash',
-            'generate-lyria': 'Lyria 3 Pro'
+            'generate-lyria': 'Lyria 3 Pro',
+            'generate-lyria-pro': 'Lyria 3 Pro',
+            'generate-lyria-clip': 'Lyria 3 Clip'
         };
 
         function getModelDisplayName(mode) {
@@ -2922,10 +3058,34 @@
         window.addEventListener('resize', () => rangeRenderers.forEach((fn) => fn()));
 
         const videoDurationInput = document.getElementById('video-duration');
+        const musicDurationInput = document.getElementById('music-duration');
+        const musicModelSelect = document.getElementById('music-model');
+        const MUSIC_MAX_SECONDS = { clip: 30, pro: 180 };
 
-        bindRange(document.getElementById('music-bpm'), document.getElementById('music-bpm-value'));
-        bindRange(document.getElementById('music-duration'), document.getElementById('music-duration-value'));
-        bindRange(videoDurationInput, document.getElementById('video-duration-value'));
+        const renderMusicDuration = bindRange(musicDurationInput, document.getElementById('music-duration-value'));
+
+        function syncMusicDurationLimit() {
+            try {
+                const limit = MUSIC_MAX_SECONDS[musicModelSelect.value] || 180;
+                musicDurationInput.max = limit;
+                musicDurationInput.step = limit <= 30 ? 5 : 10;
+                if (Number(musicDurationInput.value) > limit) musicDurationInput.value = limit;
+                if (renderMusicDuration) renderMusicDuration();
+            } catch (err) {
+                console.error('同步歌曲長度上限失敗', err);
+            }
+        }
+
+        musicModelSelect.addEventListener('change', syncMusicDurationLimit);
+        syncMusicDurationLimit();
+
+        function stepVideoDuration(delta) {
+            const current = parseInt(videoDurationInput.value, 10) || 8;
+            videoDurationInput.value = Math.min(10, Math.max(3, current + delta));
+        }
+
+        document.getElementById('video-dur-dec').onclick = () => stepVideoDuration(-1);
+        document.getElementById('video-dur-inc').onclick = () => stepVideoDuration(1);
 
         function clearVideoContext() {
             videoContext = null;
@@ -3071,12 +3231,6 @@
                 mode: 'video',
                 task,
                 prompt,
-                camera: document.getElementById('video-camera').value,
-                shot: document.getElementById('video-shot').value,
-                style: document.getElementById('video-style').value,
-                lighting: document.getElementById('video-lighting').value,
-                audio: document.getElementById('video-audio').value,
-                negative: document.getElementById('video-negative').value.trim(),
                 aspectRatio: document.querySelector('input[name="video-ratio-mode"]:checked')?.value || '16:9',
                 resolution: document.querySelector('input[name="video-res-mode"]:checked')?.value || '720p',
                 duration: parseInt(videoDurationInput.value, 10),
@@ -3099,12 +3253,10 @@
             const payload = {
                 mode: 'music',
                 prompt,
+                model: document.getElementById('music-model').value,
                 vocals: document.getElementById('music-vocals').value,
                 language: document.getElementById('music-language').value,
                 genre: document.getElementById('music-genre').value.trim(),
-                mood: document.getElementById('music-mood').value.trim(),
-                instruments: document.getElementById('music-instruments').value.trim(),
-                bpm: document.getElementById('music-bpm').value,
                 duration: parseInt(document.getElementById('music-duration').value, 10),
                 lyrics: document.getElementById('music-lyrics').value.trim(),
                 images
@@ -3165,8 +3317,9 @@
                     const vw = scroller.clientWidth;
                     const sw = scroller.scrollWidth;
 
+                    const allowX = getComputedStyle(scroller).overflowX !== 'hidden';
                     host.classList.toggle('has-y-scroll', sh > vh + 1);
-                    host.classList.toggle('has-x-scroll', sw > vw + 1);
+                    host.classList.toggle('has-x-scroll', allowX && sw > vw + 1);
 
                     if (sh > vh + 1) {
                         const track = y.bar.clientHeight;
@@ -3177,7 +3330,7 @@
                         y.thumb.style.transform = `translateY(${pos}px)`;
                     }
 
-                    if (sw > vw + 1) {
+                    if (allowX && sw > vw + 1) {
                         const track = x.bar.clientWidth;
                         const size = Math.max(28, (vw / sw) * track);
                         const max = Math.max(0, sw - vw);
@@ -3340,6 +3493,10 @@
                 if (active) active.scrollIntoView({ block: 'nearest' });
             };
 
+            panel.addEventListener('wheel', (e) => {
+                if (scroll.scrollHeight <= scroll.clientHeight + 1) e.preventDefault();
+            }, { passive: false });
+
             attachUiScrollbar(scrollHost, scroll);
             render();
         }
@@ -3354,7 +3511,10 @@
 
         document.addEventListener('click', closeOpenSelect);
         window.addEventListener('resize', closeOpenSelect);
-        window.addEventListener('scroll', closeOpenSelect, true);
+        window.addEventListener('scroll', (e) => {
+            if (openSelect && openSelect.panel.contains(e.target)) return;
+            closeOpenSelect();
+        }, true);
 
         const audioPlayBtn = document.getElementById('audio-play');
         const audioIconPlay = document.getElementById('audio-icon-play');
@@ -3422,6 +3582,170 @@
             audioSeek.addEventListener('pointerdown', () => audioSeek.classList.add('is-dragging'));
             window.addEventListener('pointerup', () => audioSeek.classList.remove('is-dragging'));
         }
+
+        const PLAYER_ICONS = {
+            play: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><polygon points="6 3 21 12 6 21 6 3"></polygon></svg>',
+            pause: '<svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" rx="1"></rect><rect x="14" y="4" width="4" height="16" rx="1"></rect></svg>',
+            sound: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><path d="M15.5 8.5a5 5 0 0 1 0 7"></path><path d="M19 5a9 9 0 0 1 0 14"></path></svg>',
+            muted: '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"></polygon><line x1="23" y1="9" x2="17" y2="15"></line><line x1="17" y1="9" x2="23" y2="15"></line></svg>'
+        };
+
+        function buildVideoPlayer(video, container, modal) {
+            if (!video || !container) return null;
+            try {
+                const bar = document.createElement('div');
+                bar.className = `video-player is-idle hidden${modal ? ' is-modal' : ''}`;
+                bar.innerHTML = `
+                    <button type="button" class="video-player-btn is-primary" data-role="play" data-tip="播放">${PLAYER_ICONS.play}</button>
+                    <span class="audio-time" data-role="current">0:00</span>
+                    <input type="range" class="ios-range" data-role="seek" min="0" max="100" step="0.1" value="0">
+                    <span class="audio-time" data-role="total">0:00</span>
+                    <button type="button" class="video-player-btn" data-role="mute" data-tip="靜音">${PLAYER_ICONS.sound}</button>`;
+                container.appendChild(bar);
+
+                const playBtn = bar.querySelector('[data-role="play"]');
+                const muteBtn = bar.querySelector('[data-role="mute"]');
+                const seek = bar.querySelector('[data-role="seek"]');
+                const current = bar.querySelector('[data-role="current"]');
+                const total = bar.querySelector('[data-role="total"]');
+                let seeking = false;
+                let idleTimer = null;
+
+                const wake = () => {
+                    bar.classList.add('is-idle');
+                    clearTimeout(idleTimer);
+                    if (!video.paused) idleTimer = setTimeout(() => bar.classList.remove('is-idle'), 2200);
+                };
+
+                const paint = () => {
+                    playBtn.innerHTML = video.paused ? PLAYER_ICONS.play : PLAYER_ICONS.pause;
+                    playBtn.dataset.tip = video.paused ? '播放' : '暫停';
+                    muteBtn.innerHTML = video.muted ? PLAYER_ICONS.muted : PLAYER_ICONS.sound;
+                    muteBtn.dataset.tip = video.muted ? '取消靜音' : '靜音';
+                    if (video.paused) bar.classList.add('is-idle');
+                    else wake();
+                };
+
+                const toggle = () => {
+                    if (video.paused) video.play().catch((err) => console.error('播放失敗', err));
+                    else video.pause();
+                };
+
+                playBtn.onclick = (e) => { e.stopPropagation(); toggle(); };
+                muteBtn.onclick = (e) => { e.stopPropagation(); video.muted = !video.muted; paint(); };
+                video.addEventListener('click', (e) => { e.stopPropagation(); toggle(); });
+                bar.addEventListener('click', (e) => e.stopPropagation());
+                bar.addEventListener('mousedown', (e) => e.stopPropagation());
+                container.addEventListener('pointermove', wake);
+
+                video.addEventListener('play', paint);
+                video.addEventListener('pause', paint);
+                video.addEventListener('volumechange', paint);
+                video.addEventListener('ended', () => {
+                    video.currentTime = 0;
+                    seek.value = 0;
+                    syncRangeFill(seek);
+                    current.textContent = '0:00';
+                    paint();
+                });
+
+                video.addEventListener('loadedmetadata', () => {
+                    total.textContent = formatTime(video.duration);
+                    seek.max = Number.isFinite(video.duration) ? video.duration : 100;
+                    seek.value = 0;
+                    current.textContent = '0:00';
+                    syncRangeFill(seek);
+                    paint();
+                });
+
+                video.addEventListener('timeupdate', () => {
+                    if (seeking) return;
+                    current.textContent = formatTime(video.currentTime);
+                    seek.value = video.currentTime;
+                    syncRangeFill(seek);
+                });
+
+                seek.addEventListener('input', () => {
+                    seeking = true;
+                    current.textContent = formatTime(Number(seek.value));
+                    syncRangeFill(seek);
+                    wake();
+                });
+
+                seek.addEventListener('change', () => {
+                    seeking = false;
+                    video.currentTime = Number(seek.value);
+                });
+
+                seek.addEventListener('pointerdown', () => seek.classList.add('is-dragging'));
+                window.addEventListener('pointerup', () => seek.classList.remove('is-dragging'));
+
+                const observer = new MutationObserver(() => {
+                    bar.classList.toggle('hidden', video.classList.contains('hidden'));
+                    if (!video.classList.contains('hidden')) syncRangeFill(seek);
+                });
+                observer.observe(video, { attributes: true, attributeFilter: ['class'] });
+                bar.classList.toggle('hidden', video.classList.contains('hidden'));
+
+                paint();
+                return bar;
+            } catch (err) {
+                console.error('建立影片播放器失敗', err);
+                return null;
+            }
+        }
+
+        buildVideoPlayer(resultVideo, resultVideo.parentElement, false);
+        buildVideoPlayer(modalVideo, modalVideo.parentElement, true);
+
+        const akiTip = document.createElement('div');
+        akiTip.id = 'aki-tip';
+        akiTip.setAttribute('role', 'tooltip');
+        document.body.appendChild(akiTip);
+        let tipTarget = null;
+
+        function hideTip() {
+            tipTarget = null;
+            akiTip.classList.remove('is-visible');
+        }
+
+        function showTip(target) {
+            try {
+                const text = target.dataset.tip;
+                if (!text) return hideTip();
+                tipTarget = target;
+                akiTip.textContent = text;
+                akiTip.classList.add('is-visible');
+                const rect = target.getBoundingClientRect();
+                const width = akiTip.offsetWidth;
+                const height = akiTip.offsetHeight;
+                let left = rect.left + rect.width / 2 - width / 2;
+                left = Math.max(8, Math.min(window.innerWidth - width - 8, left));
+                let top = rect.bottom + 9;
+                if (top + height > window.innerHeight - 8) top = rect.top - height - 9;
+                akiTip.style.left = `${left}px`;
+                akiTip.style.top = `${top}px`;
+            } catch (err) {
+                console.error('顯示提示失敗', err);
+            }
+        }
+
+        document.addEventListener('mouseover', (e) => {
+            const target = e.target.closest('[data-tip]');
+            if (!target) {
+                if (tipTarget) hideTip();
+                return;
+            }
+            if (target !== tipTarget) showTip(target);
+        });
+
+        document.addEventListener('mouseout', (e) => {
+            if (tipTarget && !tipTarget.contains(e.relatedTarget)) hideTip();
+        });
+
+        document.addEventListener('mousedown', hideTip, true);
+        window.addEventListener('scroll', hideTip, true);
+        window.addEventListener('blur', hideTip);
 
         const dismissibleModals = ['settings-modal', 'ratio-modal', 'thoughts-modal', 'fullscreen-modal'];
 
