@@ -616,6 +616,11 @@
             pointer-events: auto;
         }
 
+        .ui-scroll-host:not(.has-y-scroll)>.ui-scrollbar-y,
+        .ui-scroll-host:not(.has-x-scroll)>.ui-scrollbar-x {
+            display: none;
+        }
+
         .ui-scrollbar-y {
             top: 6px;
             right: 3px;
@@ -810,23 +815,104 @@
             margin-bottom: 0.9rem;
         }
 
-        .lyric-section {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.4rem;
-            margin: 1rem 0 0.45rem;
-            padding: 0.2rem 0.65rem;
-            border-radius: 999px;
-            background: rgba(99, 102, 241, 0.16);
-            border: 1px solid rgba(129, 140, 248, 0.35);
-            color: #c7d2fe;
-            font-size: 0.72rem;
-            font-weight: 700;
-            letter-spacing: 0.04em;
+        .lyric-divider {
+            height: 1px;
+            margin: 0.7rem 0;
+            background: linear-gradient(90deg, rgba(129, 140, 248, 0.35), transparent);
         }
 
-        .lyric-section:first-child {
-            margin-top: 0;
+        .lyric-heading {
+            margin: 1.2rem 0 0.45rem;
+            font-size: 0.6875rem;
+            font-weight: 700;
+            letter-spacing: 0.14em;
+            color: #6b7280;
+        }
+
+        .lyric-caption {
+            color: #d1d5db;
+            font-family: 'Microsoft JhengHei', sans-serif;
+            font-size: 0.85rem;
+            line-height: 1.8;
+        }
+
+        #thoughts-content.is-lyrics {
+            white-space: normal;
+            font-family: 'Microsoft JhengHei', sans-serif;
+        }
+
+        .toggle-field-head {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.75rem;
+        }
+
+        .toggle-field-head .field-label {
+            margin-bottom: 0;
+        }
+
+        .toggle-field .ios-range {
+            margin-top: 0.35rem;
+            transition: opacity 0.18s ease;
+        }
+
+        .toggle-field.is-off .ios-range {
+            opacity: 0.3;
+            pointer-events: none;
+        }
+
+        .toggle-field.is-off .toggle-value,
+        .toggle-field:not(.is-off) .toggle-auto {
+            display: none;
+        }
+
+        .toggle-auto {
+            color: #a5b4fc;
+        }
+
+        .switch {
+            position: relative;
+            display: inline-flex;
+            flex-shrink: 0;
+        }
+
+        .switch input {
+            position: absolute;
+            opacity: 0;
+            width: 0;
+            height: 0;
+        }
+
+        .switch-slider {
+            width: 38px;
+            height: 22px;
+            border-radius: 999px;
+            background: #4b5563;
+            transition: background 0.18s;
+            position: relative;
+            cursor: pointer;
+        }
+
+        .switch-slider::before {
+            content: "";
+            position: absolute;
+            top: 3px;
+            left: 3px;
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #fff;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.35);
+            transition: transform 0.18s;
+        }
+
+        .switch input:checked+.switch-slider {
+            background: #3b82f6;
+        }
+
+        .switch input:checked+.switch-slider::before {
+            transform: translateX(16px);
         }
 
         .lyric-line {
@@ -1459,6 +1545,30 @@
                         placeholder="[Verse]&#10;第一段歌詞...&#10;&#10;[Chorus]&#10;副歌..."></textarea>
                 </div>
 
+                <p class="settings-group">節奏與長度</p>
+
+                <div class="toggle-field" id="music-duration-field">
+                    <div class="toggle-field-head">
+                        <label class="field-label" for="music-duration">歌曲長度
+                            <span class="toggle-value">約 <span id="music-duration-value" class="text-blue-400 font-mono">120</span> 秒</span>
+                            <span class="toggle-auto">由 AI 決定</span>
+                        </label>
+                        <label class="switch" data-tip="關閉後交給 AI 決定"><input type="checkbox" id="music-duration-on" checked><span class="switch-slider"></span></label>
+                    </div>
+                    <input type="range" id="music-duration" class="ios-range" min="10" max="180" step="10" value="120">
+                </div>
+
+                <div class="toggle-field" id="music-bpm-field">
+                    <div class="toggle-field-head">
+                        <label class="field-label" for="music-bpm">速度
+                            <span class="toggle-value"><span id="music-bpm-value" class="text-blue-400 font-mono">120</span> BPM</span>
+                            <span class="toggle-auto">由 AI 決定</span>
+                        </label>
+                        <label class="switch" data-tip="關閉後交給 AI 決定"><input type="checkbox" id="music-bpm-on"><span class="switch-slider"></span></label>
+                    </div>
+                    <input type="range" id="music-bpm" class="ios-range" min="60" max="200" step="5" value="120">
+                </div>
+
                 <p class="settings-group">演唱</p>
 
                 <div>
@@ -1483,19 +1593,6 @@
                         <option value="Japanese">日語</option>
                         <option value="Korean">韓語</option>
                     </select>
-                </div>
-
-                <p class="settings-group">編曲</p>
-
-                <div>
-                    <label class="field-label" for="music-genre">曲風</label>
-                    <input type="text" id="music-genre" class="field-input" placeholder="例如：City Pop、抒情搖滾、Lo-fi">
-                </div>
-
-                <div>
-                    <label class="field-label" for="music-duration">歌曲長度 約 <span id="music-duration-value"
-                            class="text-blue-400 font-mono">120</span> 秒</label>
-                    <input type="range" id="music-duration" class="ios-range" min="10" max="180" step="10" value="120">
                 </div>
 
                 <p class="settings-hint">可上傳圖片作為靈感來源；AI 寫好的歌詞與時間軸，生成後點畫面右上角的閃電按鈕就能看到。</p>
@@ -1885,7 +1982,10 @@
             return true;
         }
 
-        document.getElementById('settings-btn').onclick = () => document.getElementById('settings-modal').classList.remove('hidden');
+        document.getElementById('settings-btn').onclick = () => {
+            document.getElementById('settings-modal').classList.remove('hidden');
+            requestAnimationFrame(() => rangeRenderers.forEach((fn) => fn()));
+        };
         document.getElementById('settings-close-btn').onclick = () => document.getElementById('settings-modal').classList.add('hidden');
         document.getElementById('ratio-btn').onclick = () => document.getElementById('ratio-modal').classList.remove('hidden');
         document.getElementById('ratio-close-btn').onclick = () => document.getElementById('ratio-modal').classList.add('hidden');
@@ -1905,8 +2005,10 @@
             const imgData = sessionHistory[currentImageIndex];
             if (!imgData || !imgData.thoughts) return;
             const isAudio = getMediaType(imgData) === 'audio';
-            document.getElementById('thoughts-title').textContent = isAudio ? '歌詞與時間軸' : 'Gemini 思考過程';
-            thoughtsContent.innerHTML = isAudio ? formatLyricSheet(imgData.thoughts) : formatThoughts(imgData.thoughts);
+            const sheet = isAudio ? formatLyricSheet(imgData.thoughts) : null;
+            document.getElementById('thoughts-title').textContent = sheet ? sheet.title : 'Gemini 思考過程';
+            thoughtsContent.classList.toggle('is-lyrics', !!sheet);
+            thoughtsContent.innerHTML = sheet ? sheet.html : formatThoughts(imgData.thoughts);
             thoughtsContent.scrollTop = 0;
             thoughtsModal.classList.remove('hidden');
         };
@@ -2328,7 +2430,7 @@
             }
 
             lightningThoughtsBtn.classList.toggle('hidden', !item.thoughts);
-            lightningThoughtsBtn.dataset.tip = getMediaType(item) === 'audio' ? '歌詞與時間軸' : '思考過程';
+            lightningThoughtsBtn.dataset.tip = getMediaType(item) === 'audio' ? formatLyricSheet(item.thoughts).title : '思考過程';
             toggleVideoActions(item);
         }
 
@@ -2449,40 +2551,60 @@
         }
 
         function formatLyricSheet(text) {
-            if (!text) return '';
+            const raw = String(text || '').replace(/\*\*/g, '').trim();
+            const captionBlock = (body) => `<p class="lyric-caption">${escapeHtml(body)}</p>`;
+            if (!raw) return { title: '曲目說明', html: '' };
             try {
-                const marker = /\[\[([^\]]+)\]\]|\[(\d+(?:\.\d+)?)?:\]/g;
-                const first = text.search(marker);
-                if (first < 0) return formatThoughts(text);
+                const marker = /\[\[([^\]]*)\]\]|\[(\d+(?:\.\d+)?)?:(\d+(?:\.\d+)?)?\]/g;
+                let source = raw;
+                let caption = '';
 
-                const parts = [];
-                const intro = text.slice(0, first).replace(/\*\*/g, '').trim();
-                if (intro) parts.push(`<p class="lyric-intro">${escapeHtml(intro)}</p>`);
+                const cap = /caption\s*[:：]\s*/i.exec(source);
+                if (cap) {
+                    const after = source.slice(cap.index + cap[0].length);
+                    const next = after.search(marker);
+                    caption = (next < 0 ? after : after.slice(0, next)).trim();
+                    source = source.slice(0, cap.index) + (next < 0 ? '' : after.slice(next));
+                }
 
                 const tokens = [];
                 let match;
-                while ((match = marker.exec(text)) !== null) tokens.push({ match, index: match.index, end: marker.lastIndex });
+                while ((match = marker.exec(source)) !== null) tokens.push({ match, index: match.index, end: marker.lastIndex });
 
-                const line = (body, stamp) => {
-                    if (stamp === undefined) return `<div class="lyric-line is-continued"><span class="lyric-time"></span><span>${escapeHtml(body)}</span></div>`;
-                    return `<div class="lyric-line"><button type="button" class="lyric-time" data-t="${stamp}" data-tip="從這裡播放">${formatTime(stamp)}</button><span>${escapeHtml(body)}</span></div>`;
-                };
-
+                const intro = source.slice(0, tokens.length ? tokens[0].index : undefined).replace(/\s+/g, ' ').trim();
+                const lines = [];
                 tokens.forEach((token, i) => {
-                    const body = text.slice(token.end, i + 1 < tokens.length ? tokens[i + 1].index : undefined).replace(/\s+/g, ' ').trim();
-                    const [, section, stamp] = token.match;
-                    if (section) {
-                        parts.push(`<div class="lyric-section">段落 ${escapeHtml(section)}</div>`);
-                        if (body) parts.push(line(body));
+                    const body = source.slice(token.end, i + 1 < tokens.length ? tokens[i + 1].index : undefined).replace(/\s+/g, ' ').trim();
+                    const [, section, start] = token.match;
+                    if (section !== undefined) {
+                        if (lines.length && lines[lines.length - 1] !== 'divider') lines.push('divider');
+                        if (body) lines.push({ body });
                         return;
                     }
-                    if (body) parts.push(line(body, stamp === undefined ? undefined : Number(stamp)));
+                    if (body) lines.push({ body, start: start === undefined ? undefined : Number(start) });
                 });
+                while (lines.length && lines[lines.length - 1] === 'divider') lines.pop();
 
-                return parts.join('');
+                const line = ({ body, start }) => {
+                    if (start === undefined) return `<div class="lyric-line is-continued"><span class="lyric-time"></span><span>${escapeHtml(body)}</span></div>`;
+                    return `<div class="lyric-line"><button type="button" class="lyric-time" data-t="${start}" data-tip="從這裡播放">${formatTime(start)}</button><span>${escapeHtml(body)}</span></div>`;
+                };
+
+                const hasLyrics = lines.some((item) => item !== 'divider');
+                const parts = [];
+
+                if (hasLyrics) {
+                    if (intro) parts.push(`<p class="lyric-intro">${escapeHtml(intro)}</p>`);
+                    lines.forEach((item) => parts.push(item === 'divider' ? '<div class="lyric-divider"></div>' : line(item)));
+                    if (caption) parts.push('<div class="lyric-heading">曲目說明</div>', captionBlock(caption));
+                    return { title: '歌詞與時間軸', html: parts.join('') };
+                }
+
+                const description = caption || intro || raw;
+                return { title: '曲目說明', html: captionBlock(description) };
             } catch (err) {
                 console.error('解析歌詞失敗', err);
-                return formatThoughts(text);
+                return { title: '曲目說明', html: captionBlock(raw) };
             }
         }
 
@@ -3029,10 +3151,10 @@
                 const max = Number(el.max) || 100;
                 const span = max - min || 1;
                 const t = (Number(el.value) - min) / span;
-                const width = el.getBoundingClientRect().width || el.clientWidth || 1;
+                const width = el.getBoundingClientRect().width || el.clientWidth;
                 const thumb = 16;
                 const fillPx = thumb * 0.5 + t * Math.max(0, width - thumb);
-                const pct = Math.max(0, Math.min(100, (fillPx / width) * 100));
+                const pct = width > thumb ? Math.max(0, Math.min(100, (fillPx / width) * 100)) : t * 100;
                 el.style.setProperty('--pct', `${pct}%`);
             } catch (err) {
                 console.error('同步拉桿填色失敗', err);
@@ -3078,6 +3200,20 @@
 
         musicModelSelect.addEventListener('change', syncMusicDurationLimit);
         syncMusicDurationLimit();
+
+        bindRange(document.getElementById('music-bpm'), document.getElementById('music-bpm-value'));
+
+        function bindToggleField(fieldId, checkboxId) {
+            const field = document.getElementById(fieldId);
+            const checkbox = document.getElementById(checkboxId);
+            if (!field || !checkbox) return;
+            const sync = () => field.classList.toggle('is-off', !checkbox.checked);
+            checkbox.addEventListener('change', sync);
+            sync();
+        }
+
+        bindToggleField('music-duration-field', 'music-duration-on');
+        bindToggleField('music-bpm-field', 'music-bpm-on');
 
         function stepVideoDuration(delta) {
             const current = parseInt(videoDurationInput.value, 10) || 8;
@@ -3256,13 +3392,13 @@
                 model: document.getElementById('music-model').value,
                 vocals: document.getElementById('music-vocals').value,
                 language: document.getElementById('music-language').value,
-                genre: document.getElementById('music-genre').value.trim(),
-                duration: parseInt(document.getElementById('music-duration').value, 10),
+                duration: document.getElementById('music-duration-on').checked ? parseInt(document.getElementById('music-duration').value, 10) : null,
+                bpm: document.getElementById('music-bpm-on').checked ? parseInt(document.getElementById('music-bpm').value, 10) : null,
                 lyrics: document.getElementById('music-lyrics').value.trim(),
                 images
             };
 
-            await runMediaJob(payload, 150);
+            await runMediaJob(payload, payload.model === 'clip' ? 15 : 45);
         }
 
         const TAB_SETTINGS_TITLE = {

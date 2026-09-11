@@ -8,7 +8,7 @@ const {
     gcsOutputPrefix
 } = require("./_vertex.js");
 
-const VIDEO_MODEL = "gemini-omni-1.1-flash";
+const VIDEO_MODEL = "gemini-omni-flash-preview";
 
 const MUSIC_MODELS = {
     clip: { id: "lyria-3-clip-preview", maxSeconds: 30, mode: "generate-lyria-clip" },
@@ -49,8 +49,15 @@ const musicModel = (body) => MUSIC_MODELS[body.model] || MUSIC_MODELS.pro;
 const clampVideoSeconds = (value) => Math.min(10, Math.max(3, parseInt(value, 10) || 8));
 
 const clampMusicSeconds = (body) => {
-    const limit = musicModel(body).maxSeconds;
-    return Math.min(limit, Math.max(10, parseInt(body.duration, 10) || limit));
+    const seconds = parseInt(body.duration, 10);
+    if (!seconds) return null;
+    return Math.min(musicModel(body).maxSeconds, Math.max(10, seconds));
+};
+
+const clampBpm = (body) => {
+    const bpm = parseInt(body.bpm, 10);
+    if (!bpm) return null;
+    return Math.min(200, Math.max(60, bpm));
 };
 
 const buildVideoPrompt = (body) => {
@@ -114,18 +121,18 @@ const buildMusicRequest = (body) => {
     if (!scene) throw new Error("請先描述你想要的音樂");
 
     const details = [];
-    if (body.genre) details.push(`Genre: ${body.genre}`);
+    const seconds = clampMusicSeconds(body);
+    const bpm = clampBpm(body);
+    if (seconds) details.push(`Target length: about ${seconds} seconds`);
+    if (bpm) details.push(`Tempo: ${bpm} BPM`);
     if (body.language) details.push(`Vocal language: ${body.language}`);
 
     if (body.vocals === "instrumental") details.push("Instrumental only, absolutely no vocals");
     else if (body.vocals) details.push(`Vocals: ${body.vocals}`);
 
-    details.push(`Target length: about ${clampMusicSeconds(body)} seconds`);
-
-    const segments = [scene, details.join("\n")];
+    const segments = details.length ? [scene, details.join("\n")] : [scene];
     if (body.lyrics) segments.push(`Use these lyrics, keeping the section markers:\n${String(body.lyrics).trim()}`);
     else if (body.vocals !== "instrumental") segments.push("Write original lyrics and label each section with markers such as [Verse] and [Chorus].");
-    segments.push("Before the audio, output the final lyrics and a timecoded structure outline.");
 
     const input = [{ type: "text", text: segments.join("\n\n") }];
     (Array.isArray(body.images) ? body.images : []).slice(0, 10).forEach((item) => {
@@ -152,7 +159,7 @@ const musicMeta = (body) => ({
     type: "audio",
     prompt: body.prompt,
     aspectRatio: "-",
-    size: `約 ${clampMusicSeconds(body)} 秒`,
+    size: clampMusicSeconds(body) ? `約 ${clampMusicSeconds(body)} 秒` : "長度由 AI 決定",
     mode: musicModel(body).mode
 });
 
