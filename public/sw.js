@@ -1,4 +1,4 @@
-const CACHE_NAME = 'ai-image-cache-v19';
+const CACHE_NAME = 'ai-image-cache-v20';
 
 const FILES_TO_CACHE = [
   '/',

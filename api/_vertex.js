@@ -119,7 +119,8 @@ const saveMediaToStorage = async (items, metadata) => {
             size: metadata.size,
             mode: metadata.mode,
             duration: metadata.duration,
-            thoughts: metadata.thoughtsArray ? metadata.thoughtsArray[index] : metadata.thoughts
+            thoughts: metadata.thoughtsArray ? metadata.thoughtsArray[index] : metadata.thoughts,
+            lyrics: metadata.lyrics || ""
         };
     });
 

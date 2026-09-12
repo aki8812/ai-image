@@ -101,10 +101,8 @@ const buildVideoRequest = (body) => {
 
     const output = { type: "video", delivery: "uri", gcs_uri: gcsOutputPrefix("video") };
 
-    if (task !== "edit") {
-        output.aspect_ratio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
-        output.duration = `${clampVideoSeconds(body.duration)}s`;
-    }
+    if (task !== "edit") output.duration = `${clampVideoSeconds(body.duration)}s`;
+    if (task !== "edit" && task !== "extend") output.aspect_ratio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
     if (task !== "extend") output.resolution = ["720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p";
 
     return {
@@ -160,7 +158,8 @@ const musicMeta = (body) => ({
     prompt: body.prompt,
     aspectRatio: "-",
     size: clampMusicSeconds(body) ? `約 ${clampMusicSeconds(body)} 秒` : "長度由 AI 決定",
-    mode: musicModel(body).mode
+    mode: musicModel(body).mode,
+    lyrics: String(body.lyrics || "").trim()
 });
 
 const startJob = async (payload, meta) => {
@@ -261,7 +260,7 @@ const finalize = async (interaction, meta) => {
     for (const block of blocks) {
         if (block.uri) {
             const published = await publishGcsUri(block.uri, meta.type);
-            items.push({ ...published, prompt: meta.prompt, aspectRatio: meta.aspectRatio, size: meta.size, duration: meta.duration, mode: meta.mode, thoughts: text, gcsUri: block.uri });
+            items.push({ ...published, prompt: meta.prompt, aspectRatio: meta.aspectRatio, size: meta.size, duration: meta.duration, mode: meta.mode, thoughts: text, lyrics: meta.lyrics || "", gcsUri: block.uri });
         } else if (block.data) {
             inline.push({ base64Data: block.data, mimeType: block.mime_type || undefined });
         }

@@ -933,34 +933,11 @@
         }
 
         .lyric-line {
-            display: flex;
-            align-items: baseline;
-            gap: 0.7rem;
             padding: 0.2rem 0;
             font-family: 'Microsoft JhengHei', sans-serif;
             color: #e5e7eb;
             font-size: 0.9rem;
-        }
-
-        .lyric-time {
-            flex-shrink: 0;
-            min-width: 2.6rem;
-            font-family: 'Roboto Mono', monospace;
-            font-size: 0.7rem;
-            color: #818cf8;
-            text-align: right;
-            border-radius: 0.35rem;
-            padding: 0.05rem 0.3rem;
-            transition: background-color 0.15s ease, color 0.15s ease;
-        }
-
-        button.lyric-time:hover {
-            background: rgba(129, 140, 248, 0.18);
-            color: #c7d2fe;
-        }
-
-        .lyric-line.is-continued .lyric-time {
-            visibility: hidden;
+            line-height: 1.5;
         }
 
 
@@ -1259,7 +1236,7 @@
 
             <div id="history-gallery-section"
                 class="w-full flex items-center gap-3 bg-gray-800/50 p-2 rounded-xl backdrop-blur-sm border border-gray-700">
-                <button id="clear-history-btn" data-tip="清除全部紀錄"
+                <button id="clear-history-btn" data-tip="刪除此項目"
                     class="flex-shrink-0 p-2.5 bg-red-900/30 hover:bg-red-900/60 text-red-200 rounded-lg transition border border-red-900/30"><svg
                         xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -2021,9 +1998,9 @@
 
         lightningThoughtsBtn.onclick = () => {
             const imgData = sessionHistory[currentImageIndex];
-            if (!imgData || !imgData.thoughts) return;
+            if (!imgData || (!imgData.thoughts && !imgData.lyrics)) return;
             const isAudio = getMediaType(imgData) === 'audio';
-            const sheet = isAudio ? formatLyricSheet(imgData.thoughts) : null;
+            const sheet = isAudio ? formatLyricSheet(imgData) : null;
             document.getElementById('thoughts-title').textContent = sheet ? sheet.title : 'Gemini 思考過程';
             thoughtsContent.classList.toggle('is-lyrics', !!sheet);
             thoughtsContent.innerHTML = sheet ? sheet.html : formatThoughts(imgData.thoughts);
@@ -2031,16 +2008,6 @@
             thoughtsModal.classList.remove('hidden');
         };
 
-        thoughtsContent.addEventListener('click', (e) => {
-            const btn = e.target.closest('.lyric-time[data-t]');
-            if (!btn) return;
-            try {
-                resultAudio.currentTime = Number(btn.dataset.t) || 0;
-                resultAudio.play().catch((err) => console.error('播放失敗', err));
-            } catch (err) {
-                console.error('跳轉歌詞時間失敗', err);
-            }
-        });
         thoughtsCloseBtn.onclick = () => thoughtsModal.classList.add('hidden');
         thoughtsModal.onclick = (e) => { if (e.target === thoughtsModal) thoughtsModal.classList.add('hidden'); };
 
@@ -2447,8 +2414,8 @@
                 document.getElementById('meta-prompt-container').classList.add('hidden');
             }
 
-            lightningThoughtsBtn.classList.toggle('hidden', !item.thoughts);
-            lightningThoughtsBtn.dataset.tip = getMediaType(item) === 'audio' ? formatLyricSheet(item.thoughts).title : '思考過程';
+            lightningThoughtsBtn.classList.toggle('hidden', !item.thoughts && !item.lyrics);
+            lightningThoughtsBtn.dataset.tip = getMediaType(item) === 'audio' ? formatLyricSheet(item).title : '思考過程';
             toggleVideoActions(item);
         }
 
@@ -2586,11 +2553,6 @@
 
             return sections.map((item, index) => {
                 if (item.tag) return item.tag;
-                if (!item.lines.length) {
-                    if (index === 0) return 'Intro';
-                    if (index === sections.length - 1) return 'Outro';
-                    return 'Interlude';
-                }
                 if (item.code === chorusCode) {
                     seenChorus = true;
                     return 'Chorus';
@@ -2611,10 +2573,13 @@
             });
         }
 
-        function formatLyricSheet(text) {
-            const raw = String(text || '').replace(/\*\*/g, '').trim();
+        function formatLyricSheet(item) {
+            const own = String(item?.lyrics || '').trim();
+            const raw = String(item?.thoughts || '').replace(/\*\*/g, '').trim();
             const captionBlock = (body) => `<p class="lyric-caption">${escapeHtml(body)}</p>`;
-            if (!raw) return { title: '曲目說明', html: '' };
+            const sectionBlock = (label) => `<div class="lyric-section">[${escapeHtml(label)}]</div>`;
+            const lineBlock = (body) => `<div class="lyric-line">${escapeHtml(body)}</div>`;
+            if (!own && !raw) return { title: '曲目說明', html: '' };
             try {
                 const marker = /\[\[([^\]]*)\]\]|\[(\d+(?:\.\d+)?)?:(\d+(?:\.\d+)?)?\]|\[([A-Za-z][A-Za-z -]*\d*)\]/g;
                 let source = raw;
@@ -2628,6 +2593,17 @@
                     source = source.slice(0, cap.index) + (next < 0 ? '' : after.slice(next));
                 }
 
+                const parts = [];
+
+                if (own) {
+                    own.split(/\r?\n/).map((row) => row.trim()).filter(Boolean).forEach((row) => {
+                        const tag = /^\[([^\]]+)\]$/.exec(row);
+                        parts.push(tag ? sectionBlock(tag[1].trim()) : lineBlock(row));
+                    });
+                    if (caption) parts.push('<div class="lyric-heading">曲目說明</div>', captionBlock(caption));
+                    return { title: '歌詞', html: parts.join('') };
+                }
+
                 const tokens = [];
                 let match;
                 while ((match = marker.exec(source)) !== null) {
@@ -2637,49 +2613,37 @@
 
                 const intro = source.slice(0, tokens.length ? tokens[0].index : undefined).replace(/\s+/g, ' ').trim();
                 const sections = [];
-                const open = (code, tag) => {
-                    sections.push({ code, tag, lines: [] });
-                    return sections[sections.length - 1];
-                };
                 let current = null;
+                const open = (code, tag) => {
+                    current = { code, tag, lines: [] };
+                    sections.push(current);
+                };
 
                 tokens.forEach((token, i) => {
                     const body = source.slice(token.end, i + 1 < tokens.length ? tokens[i + 1].index : undefined).replace(/\s+/g, ' ').trim();
-                    const [, code, start, , tag] = token.match;
-                    if (code !== undefined || tag !== undefined) {
-                        current = open(code === undefined ? tag.toLowerCase() : code.replace(/\d+$/, ''), tag === undefined ? null : tag.trim());
-                        if (body) current.lines.push({ body });
-                        return;
-                    }
-                    if (!body) return;
-                    if (!current) current = open('', null);
-                    current.lines.push({ body, start: start === undefined ? undefined : Number(start) });
+                    const [, code, , , tag] = token.match;
+                    if (code !== undefined || tag !== undefined) open(code === undefined ? tag.toLowerCase() : code.replace(/\d+$/, ''), tag === undefined ? null : tag.trim());
+                    else if (!current) open('', null);
+                    if (body) current.lines.push(body);
                 });
 
-                const line = ({ body, start }) => {
-                    if (start === undefined) return `<div class="lyric-line is-continued"><span class="lyric-time"></span><span>${escapeHtml(body)}</span></div>`;
-                    return `<div class="lyric-line"><button type="button" class="lyric-time" data-t="${start}" data-tip="從這裡播放">${formatTime(start)}</button><span>${escapeHtml(body)}</span></div>`;
-                };
+                const sung = sections.filter((entry) => entry.lines.length);
 
-                const hasLyrics = sections.some((item) => item.lines.length);
-                const parts = [];
-
-                if (hasLyrics) {
+                if (sung.length) {
                     if (intro) parts.push(`<p class="lyric-intro">${escapeHtml(intro)}</p>`);
-                    const labels = labelSections(sections);
-                    sections.forEach((item, index) => {
-                        parts.push(`<div class="lyric-section">[${escapeHtml(labels[index])}]</div>`);
-                        item.lines.forEach((entry) => parts.push(line(entry)));
+                    const labels = labelSections(sung);
+                    sung.forEach((entry, index) => {
+                        parts.push(sectionBlock(labels[index]));
+                        entry.lines.forEach((body) => parts.push(lineBlock(body)));
                     });
                     if (caption) parts.push('<div class="lyric-heading">曲目說明</div>', captionBlock(caption));
-                    return { title: '歌詞與時間軸', html: parts.join('') };
+                    return { title: '歌詞', html: parts.join('') };
                 }
 
-                const description = caption || intro || raw;
-                return { title: '曲目說明', html: captionBlock(description) };
+                return { title: '曲目說明', html: captionBlock(caption || intro || raw) };
             } catch (err) {
                 console.error('解析歌詞失敗', err);
-                return { title: '曲目說明', html: captionBlock(raw) };
+                return { title: '曲目說明', html: captionBlock(own || raw) };
             }
         }
 
