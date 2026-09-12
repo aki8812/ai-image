@@ -8,7 +8,7 @@ const {
     gcsOutputPrefix
 } = require("./_vertex.js");
 
-const VIDEO_MODEL = "gemini-omni-flash-preview";
+const VIDEO_MODEL = "gemini-omni-1.1-flash-preview";
 
 const MUSIC_MODELS = {
     clip: { id: "lyria-3-clip-preview", maxSeconds: 30, mode: "generate-lyria-clip" },
@@ -21,7 +21,7 @@ const VIDEO_TASKS = {
     "first-last": "image_to_video",
     reference: "reference_to_video",
     extend: "extend",
-    edit: "extend"
+    edit: "edit"
 };
 
 const MAX_WAIT_MS = 40000;
@@ -101,11 +101,11 @@ const buildVideoRequest = (body) => {
 
     const output = { type: "video", delivery: "uri", gcs_uri: gcsOutputPrefix("video") };
 
-    if (!follow) {
+    if (task !== "edit") {
         output.aspect_ratio = body.aspectRatio === "9:16" ? "9:16" : "16:9";
-        output.resolution = ["720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p";
         output.duration = `${clampVideoSeconds(body.duration)}s`;
     }
+    if (task !== "extend") output.resolution = ["720p", "1080p", "4k"].includes(body.resolution) ? body.resolution : "720p";
 
     return {
         model: VIDEO_MODEL,
@@ -150,7 +150,7 @@ const videoMeta = (body) => {
         prompt: body.prompt,
         aspectRatio: body.aspectRatio === "9:16" ? "9:16" : "16:9",
         size: body.resolution || "720p",
-        duration: follow ? "已延伸" : `${clampVideoSeconds(body.duration)} 秒`,
+        duration: body.task === "edit" ? "已編輯" : follow ? `已延伸 +${clampVideoSeconds(body.duration)} 秒` : `${clampVideoSeconds(body.duration)} 秒`,
         mode: "generate-omni"
     };
 };
@@ -199,8 +199,14 @@ const isFailed = (interaction) => ["failed", "cancelled", "expired"].includes(in
 
 const assertNotFailed = (interaction) => {
     if (!isFailed(interaction)) return;
-    const reason = interaction.error?.message || extractContent(interaction).text;
-    throw new Error(reason ? `生成失敗：${reason.substring(0, 200)}` : "生成失敗，請調整描述後再試一次");
+    const reason = interaction.error?.message || extractContent(interaction).text || describeFailure(interaction);
+    throw new Error(reason ? `生成失敗：${reason.substring(0, 300)}` : "生成失敗，請調整描述後再試一次");
+};
+
+const describeFailure = (interaction) => {
+    const { steps, usage, input, ...rest } = interaction;
+    const detail = JSON.stringify(rest);
+    return detail === "{}" ? "" : `（${interaction.status}）${detail}`;
 };
 
 const extractContent = (interaction) => {

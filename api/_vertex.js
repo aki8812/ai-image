@@ -208,6 +208,7 @@ const agentFetch = async (path, options = {}) => {
         let message = text;
         try { message = JSON.parse(text).error?.message || text; } catch (e) { }
 
+        if (text.includes("content_blocked")) throw new Error("內容被 Google 安全過濾器擋下：Lyria 會比對既有歌曲的歌詞與指名歌手，請改用原創歌詞或換個描述再試");
         if (response.status === 404) throw new Error(`找不到模型或工作，請確認專案已啟用 Agent Platform API：${message}`);
         if (response.status === 401 || response.status === 403) throw new Error(`服務帳戶權限不足，請確認已授予 Vertex AI 使用者角色：${message}`);
         if (response.status === 429) throw new Error(`已達 Agent Platform 配額上限，請稍後再試。原始訊息：${message}`);

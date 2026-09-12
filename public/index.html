@@ -730,7 +730,16 @@
         }
 
         .video-player.is-modal {
-            bottom: 3.6rem;
+            bottom: 0.6rem;
+        }
+
+        #modal-video {
+            max-height: calc(100% - 8.5rem);
+        }
+
+        #fullscreen-modal.is-video #modal-counter {
+            bottom: auto;
+            top: 0.75rem;
         }
 
         .video-player.is-idle,
@@ -815,10 +824,18 @@
             margin-bottom: 0.9rem;
         }
 
-        .lyric-divider {
-            height: 1px;
-            margin: 0.7rem 0;
-            background: linear-gradient(90deg, rgba(129, 140, 248, 0.35), transparent);
+        .lyric-section {
+            margin: 1.1rem 0 0.35rem;
+            font-family: 'Roboto Mono', monospace;
+            font-size: 0.72rem;
+            font-weight: 700;
+            letter-spacing: 0.06em;
+            color: #a5b4fc;
+        }
+
+        .lyric-section:first-child,
+        .lyric-intro + .lyric-section {
+            margin-top: 0.2rem;
         }
 
         .lyric-heading {
@@ -1972,6 +1989,7 @@
             const isVideo = type === 'video';
             modalImage.classList.toggle('hidden', isVideo);
             modalVideo.classList.toggle('hidden', !isVideo);
+            document.getElementById('fullscreen-modal').classList.toggle('is-video', isVideo);
 
             if (isVideo) {
                 modalVideo.src = url;
@@ -2550,12 +2568,55 @@
             return String(text).replace(/[&<>"]/g, (ch) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[ch]));
         }
 
+        const SECTION_TAG = /^(intro|verse|pre-chorus|chorus|hook|bridge|interlude|instrumental|outro|refrain|drop|solo)/i;
+
+        function labelSections(sections) {
+            const explicit = sections.filter((item) => item.tag);
+            if (explicit.length === sections.length) return sections.map((item) => item.tag);
+
+            const sung = sections.filter((item) => item.lines.length);
+            const counts = {};
+            sung.forEach((item) => { counts[item.code] = (counts[item.code] || 0) + 1; });
+            const peak = Math.max(0, ...Object.values(counts));
+            const repeated = Object.keys(counts).filter((code) => counts[code] === peak && peak > 1);
+            let chorusCode = repeated.find((code) => code !== sung[0]?.code) || repeated[0] || null;
+            let verseCode = null;
+            let verse = 0;
+            let seenChorus = false;
+
+            return sections.map((item, index) => {
+                if (item.tag) return item.tag;
+                if (!item.lines.length) {
+                    if (index === 0) return 'Intro';
+                    if (index === sections.length - 1) return 'Outro';
+                    return 'Interlude';
+                }
+                if (item.code === chorusCode) {
+                    seenChorus = true;
+                    return 'Chorus';
+                }
+                if (verseCode === null || item.code === verseCode) {
+                    verseCode = item.code;
+                    verse += 1;
+                    return `Verse ${verse}`;
+                }
+                if (chorusCode === null) {
+                    chorusCode = item.code;
+                    seenChorus = true;
+                    return 'Chorus';
+                }
+                if (counts[item.code] === 1) return seenChorus ? 'Bridge' : 'Pre-Chorus';
+                verse += 1;
+                return `Verse ${verse}`;
+            });
+        }
+
         function formatLyricSheet(text) {
             const raw = String(text || '').replace(/\*\*/g, '').trim();
             const captionBlock = (body) => `<p class="lyric-caption">${escapeHtml(body)}</p>`;
             if (!raw) return { title: '曲目說明', html: '' };
             try {
-                const marker = /\[\[([^\]]*)\]\]|\[(\d+(?:\.\d+)?)?:(\d+(?:\.\d+)?)?\]/g;
+                const marker = /\[\[([^\]]*)\]\]|\[(\d+(?:\.\d+)?)?:(\d+(?:\.\d+)?)?\]|\[([A-Za-z][A-Za-z -]*\d*)\]/g;
                 let source = raw;
                 let caption = '';
 
@@ -2569,33 +2630,47 @@
 
                 const tokens = [];
                 let match;
-                while ((match = marker.exec(source)) !== null) tokens.push({ match, index: match.index, end: marker.lastIndex });
+                while ((match = marker.exec(source)) !== null) {
+                    if (match[4] !== undefined && !SECTION_TAG.test(match[4])) continue;
+                    tokens.push({ match, index: match.index, end: marker.lastIndex });
+                }
 
                 const intro = source.slice(0, tokens.length ? tokens[0].index : undefined).replace(/\s+/g, ' ').trim();
-                const lines = [];
+                const sections = [];
+                const open = (code, tag) => {
+                    sections.push({ code, tag, lines: [] });
+                    return sections[sections.length - 1];
+                };
+                let current = null;
+
                 tokens.forEach((token, i) => {
                     const body = source.slice(token.end, i + 1 < tokens.length ? tokens[i + 1].index : undefined).replace(/\s+/g, ' ').trim();
-                    const [, section, start] = token.match;
-                    if (section !== undefined) {
-                        if (lines.length && lines[lines.length - 1] !== 'divider') lines.push('divider');
-                        if (body) lines.push({ body });
+                    const [, code, start, , tag] = token.match;
+                    if (code !== undefined || tag !== undefined) {
+                        current = open(code === undefined ? tag.toLowerCase() : code.replace(/\d+$/, ''), tag === undefined ? null : tag.trim());
+                        if (body) current.lines.push({ body });
                         return;
                     }
-                    if (body) lines.push({ body, start: start === undefined ? undefined : Number(start) });
+                    if (!body) return;
+                    if (!current) current = open('', null);
+                    current.lines.push({ body, start: start === undefined ? undefined : Number(start) });
                 });
-                while (lines.length && lines[lines.length - 1] === 'divider') lines.pop();
 
                 const line = ({ body, start }) => {
                     if (start === undefined) return `<div class="lyric-line is-continued"><span class="lyric-time"></span><span>${escapeHtml(body)}</span></div>`;
                     return `<div class="lyric-line"><button type="button" class="lyric-time" data-t="${start}" data-tip="從這裡播放">${formatTime(start)}</button><span>${escapeHtml(body)}</span></div>`;
                 };
 
-                const hasLyrics = lines.some((item) => item !== 'divider');
+                const hasLyrics = sections.some((item) => item.lines.length);
                 const parts = [];
 
                 if (hasLyrics) {
                     if (intro) parts.push(`<p class="lyric-intro">${escapeHtml(intro)}</p>`);
-                    lines.forEach((item) => parts.push(item === 'divider' ? '<div class="lyric-divider"></div>' : line(item)));
+                    const labels = labelSections(sections);
+                    sections.forEach((item, index) => {
+                        parts.push(`<div class="lyric-section">[${escapeHtml(labels[index])}]</div>`);
+                        item.lines.forEach((entry) => parts.push(line(entry)));
+                    });
                     if (caption) parts.push('<div class="lyric-heading">曲目說明</div>', captionBlock(caption));
                     return { title: '歌詞與時間軸', html: parts.join('') };
                 }
@@ -2958,12 +3033,6 @@
                 const response = await fetch(url);
                 const blob = await response.blob();
 
-                if (navigator.share && navigator.canShare && navigator.canShare({ files: [new File([blob], fileName, { type: preset.mime })] })) {
-                    const file = new File([blob], fileName, { type: preset.mime });
-                    await navigator.share({ files: [file], title: fileName });
-                    return;
-                }
-
                 const blobUrl = URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = blobUrl;
@@ -2973,7 +3042,6 @@
                 document.body.removeChild(a);
                 setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
             } catch (e) {
-                if (e.name === 'AbortError') return;
                 console.error('Download failed:', e);
                 const a = document.createElement('a');
                 a.href = url;
@@ -3334,12 +3402,14 @@
 
                 await forceFinishProgressTo100();
                 onSingleImageReady(slotIndex, item);
+                return true;
             } catch (err) {
-                if (err.name === 'AbortError') return;
+                if (err.name === 'AbortError') return false;
                 sessionHistory[slotIndex] = { pending: false, error: true };
                 renderGallery();
                 if (currentImageIndex === slotIndex) showImage(slotIndex);
                 showError(err.message);
+                return false;
             } finally {
                 setLoading(false, 0);
                 releaseWakeLock();
@@ -3374,8 +3444,8 @@
                 previousUri: videoContext ? videoContext.gcsUri : null
             };
 
-            clearVideoContext();
-            await runMediaJob(payload, 180);
+            const estimate = task === 'text-to-video' ? 45 : 65;
+            if (await runMediaJob(payload, estimate)) clearVideoContext();
         }
 
         async function handleMusicGeneration() {
@@ -3816,9 +3886,26 @@
                 seek.addEventListener('pointerdown', () => seek.classList.add('is-dragging'));
                 window.addEventListener('pointerup', () => seek.classList.remove('is-dragging'));
 
+                const place = () => {
+                    if (!modal || video.classList.contains('hidden')) return;
+                    const box = container.getBoundingClientRect();
+                    const frame = video.getBoundingClientRect();
+                    if (!box.height || !frame.height) return;
+                    const room = box.bottom - frame.bottom - bar.offsetHeight - 10;
+                    bar.style.bottom = `${Math.max(room, 10)}px`;
+                };
+
+                if (modal) {
+                    video.addEventListener('loadedmetadata', () => requestAnimationFrame(place));
+                    window.addEventListener('resize', place);
+                }
+
                 const observer = new MutationObserver(() => {
                     bar.classList.toggle('hidden', video.classList.contains('hidden'));
-                    if (!video.classList.contains('hidden')) syncRangeFill(seek);
+                    if (!video.classList.contains('hidden')) {
+                        syncRangeFill(seek);
+                        requestAnimationFrame(place);
+                    }
                 });
                 observer.observe(video, { attributes: true, attributeFilter: ['class'] });
                 bar.classList.toggle('hidden', video.classList.contains('hidden'));
